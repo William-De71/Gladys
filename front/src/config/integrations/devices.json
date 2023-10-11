@@ -73,5 +73,10 @@
     "key": "nodeRed",
     "link": "node-red",
     "img": "/assets/integrations/cover/node-red.jpg"
+  },
+  {
+    "key": "freebox",
+    "link": "freebox",
+    "img": "/assets/integrations/cover/freebox.jpg"
   }
 ]

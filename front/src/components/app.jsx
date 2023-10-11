@@ -148,6 +148,12 @@ import MELCloudDiscoverPage from '../routes/integration/all/melcloud/discover-pa
 // NodeRed integration
 import NodeRedPage from '../routes/integration/all/node-red/setup-page';
 
+// Freebox integration
+import FreeboxPage from '../routes/integration/all/freebox/device-page';
+import FreeboxEditPage from '../routes/integration/all/freebox/edit-page';
+import FreeboxDiscoverPage from '../routes/integration/all/freebox/discover-page';
+import FreeboxSetupPage from '../routes/integration/all/freebox/setup-page';
+
 const defaultState = getDefaultState();
 const store = createStore(defaultState);
 
@@ -279,6 +285,11 @@ const AppRouter = connect(
         <MELCloudEditPage path="/dashboard/integration/device/melcloud/edit/:deviceSelector" />
         <MELCloudDiscoverPage path="/dashboard/integration/device/melcloud/discover" />
         <MELCloudSetupPage path="/dashboard/integration/device/melcloud/setup" />
+
+        <FreeboxPage path="/dashboard/integration/device/freebox" />
+        <FreeboxEditPage path="/dashboard/integration/device/freebox/edit/:deviceSelector" />
+        <FreeboxDiscoverPage path="/dashboard/integration/device/freebox/discover" />
+        <FreeboxSetupPage path="/dashboard/integration/device/freebox/setup" />
 
         <BluetoothDevicePage path="/dashboard/integration/device/bluetooth" />
         <BluetoothEditDevicePage path="/dashboard/integration/device/bluetooth/:deviceSelector" />
