@@ -127,5 +127,10 @@
     "link": "energy-monitoring",
     "img": "/assets/integrations/cover/energy-monitoring.jpg",
     "invertInDarkMode": true
+  },
+  {
+    "key": "freebox",
+    "link": "freebox",
+    "img": "/assets/integrations/cover/freebox.jpg"
   }
 ]

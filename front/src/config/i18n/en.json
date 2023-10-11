@@ -790,6 +790,25 @@
         "deleteError": "Error when deleting, please try again."
       }
     },
+    "freebox": {
+      "title": "Freebox Home",
+      "description": "Control your Freebox Home devices.",
+      "deviceTab": "Devices",
+      "discoverTab": "Discover",
+      "setupTab": "Setup",
+      "setup": {
+        "title": "Configuration du service Freebox Home",
+        "description": "Vous pouvez connecter Gladys à votre Freebox pour commander les appareils associés au pack sécurité.",
+        "warning": "Warning! ",
+        "warningDescription": "You must have set a password for your Freebox router web administration page. Enable the option “Permettre les nouvelles demandes d’associations” and check that the option “Accès à distance sécurisé à Freebox OS” is active in “Gestion des ports” > “Connexions entrantes”.",
+        "firstConnection": "The first time Gladys Assistant will connect to your Freebox, you will need to authorize it by pressing the right arrow on the facade of the Freebox when prompted to do so.",
+        "error": "Une erreur s'est produite lors de l'enregistrement de la configuration.",
+        "connecting": "Configuration enregistrée. Connexion à votre Freebox en cours...",
+        "connected": "Connecté à la Freebox avec succès !",
+        "connectionError": "Erreur lors de la connexion, veuillez vérifier votre configuration.",
+        "disconnected": "Déconnecté de la Freebox."
+      }
+    },
     "zigbee2mqtt": {
       "title": "Zigbee2mqtt",
       "description": "Control your Zigbee devices with Zigbee2mqtt",

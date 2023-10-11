@@ -1379,6 +1379,11 @@ const WEBSOCKET_MESSAGE_TYPES = {
     STATUS_CHANGE: 'nodered.status-change',
     MQTT_ERROR: 'nodered.mqtt-error',
   },
+  FREEBOX: {
+    DISCOVER: 'freebox.discover',
+    CONNECTED: 'freebox.connected',
+    ERROR: 'freebox.error',
+  },
 };
 
 const DASHBOARD_TYPE = {

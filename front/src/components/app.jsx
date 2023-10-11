@@ -188,6 +188,12 @@ import CallMeBotPage from '../routes/integration/all/callmebot/setup-page';
 // Energy Monitoring integration
 import EnergyMonitoringIntegration from '../routes/integration/all/energy-monitoring/index';
 
+// Freebox integration
+import FreeboxPage from '../routes/integration/all/freebox/device-page';
+import FreeboxEditPage from '../routes/integration/all/freebox/edit-page';
+import FreeboxDiscoverPage from '../routes/integration/all/freebox/discover-page';
+import FreeboxSetupPage from '../routes/integration/all/freebox/setup-page';
+
 const defaultState = getDefaultState();
 const store = createStore(defaultState);
 
@@ -349,6 +355,11 @@ const AppRouter = connect(
         <NukiSetupPage path="/dashboard/integration/device/nuki/setup" />
         <NukiMqttDiscoverPage path="/dashboard/integration/device/nuki/mqtt" />
         <NukiHttpDiscoverPage path="/dashboard/integration/device/nuki/http" />
+
+        <FreeboxPage path="/dashboard/integration/device/freebox" />
+        <FreeboxEditPage path="/dashboard/integration/device/freebox/edit/:deviceSelector" />
+        <FreeboxDiscoverPage path="/dashboard/integration/device/freebox/discover" />
+        <FreeboxSetupPage path="/dashboard/integration/device/freebox/setup" />
 
         <BluetoothDevicePage path="/dashboard/integration/device/bluetooth" />
         <BluetoothEditDevicePage path="/dashboard/integration/device/bluetooth/:deviceSelector" />

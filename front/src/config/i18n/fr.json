@@ -1025,6 +1025,66 @@
         "deleteError": "Erreur lors de la suppression, veuillez réessayer."
       }
     },
+    "freebox": {
+      "title": "Freebox",
+      "description": "Contrôlez vos appareils connectés à votre Freebox.",
+      "deviceTab": "Appareils",
+      "discoverTab": "Découverte Freebox",
+      "setupTab": "Configuration Freebox",
+      "documentation": "Freebox documentation",
+      "discoverDeviceDescr": "Scanner automatiquement les appareils de votre Freebox",
+      "nameLabel": "Nom de l'appareil",
+      "namePlaceholder": "Entrez le nom de votre appareil",
+      "modelLabel": "Modèle",
+      "roomLabel": "Pièce",
+      "saveButton": "Sauvegarder",
+      "updateButton": "Mettre à jour",
+      "alreadyCreatedButton": "Déjà créé",
+      "deleteButton": "Supprimer",
+      "unmanagedModelButton": "Modèle non pris en charge ou non disponible",
+      "device": {
+        "title": "Appareils Freebox dans Gladys",
+        "updates": "Vérifier les mises à jour",
+        "editButton": "Editer",
+        "noDeviceFound": "Aucun appareil trouvé dans votre Freebox.",
+        "featuresLabel": "Fonctionnalités"
+      },
+      "status": {
+        "notConnected": "Gladys n'a pas réussi à se connecter à votre Freebox, plus d'informations sur la ",
+        "setupPageLink": "page de configuration Freebox.",
+        "online": "En ligne",
+        "offline": "Hors ligne"
+      },
+      "discover": {
+        "title": "Appareils détectés sur votre Freebox",
+        "description": "Les appareils de votre Freebox sont automatiquement découverts. Vos appareils doivent être ajoutés à votre Freebox avant.",
+        "error": "Erreur de découverte des appareils de votre Freebox. Veuillez vérifier vos informations d'identification lors de l'installation.",
+        "noDeviceFound": "Aucun appareil Freebox n'a été découvert.",
+        "scan": "Scanner"
+      },
+      "setup": {
+        "title": "Configuration du service Freebox",
+        "description": "Vous pouvez connecter Gladys à votre Freebox pour commander les appareils associés.",
+        "warning": "Avertissement! ",
+        "warningDescription": "Vous devez avoir défini un mot de passe pour la page d'administration Web de votre routeur Freebox. Activez l'option « Permettre les nouvelles demandes d'associations » et vérifiez que l'option « Accès à distance sécurisé à Freebox OS » est active dans « Gestion des ports » > « Connexions entrantes ».",
+        "firstConnection": "La première fois que Gladys Assistant se connectera à votre Freebox, vous devrez l'autoriser en appuyant sur la flèche de validation sur la façade de la Freebox lorsque vous y serez invité.",
+        "deviceName": "Freebox",
+        "boxModelName": "Nom de la Freebox",
+        "boxModel": "Modèle",
+        "connectButton": "Connecter",
+        "disconnectButton": "Déconnecter",
+        "scanButton": "Recherche sur le réseau",
+        "error": "Une erreur s'est produite lors de la connexion de Gladys à la freebox!",
+        "connected": "Connecté à la Freebox avec succès!",
+        "disconnected": "Déconnecté de la Freebox.",
+        "noFreeboxFound": "Nous n'avons trouvé aucune Freebox sur votre réseau. Êtes-vous sûr que vous êtes connecté au même réseau que votre box et que celle-ci est sous tension?"
+      },
+      "error": {
+        "defaultError": "Une erreur s'est produite lors de l'enregistrement de l'appareil.",
+        "defaultDeletionError": "Une erreur s'est produite lors de la suppression de l'appareil.",
+        "conflictError": "L'appareil actuel est déjà dans Gladys."
+      }
+    },
     "zigbee2mqtt": {
       "title": "Zigbee2mqtt",
       "description": "Contrôlez vos appareils Zigbee via Zigbee2mqtt.",
