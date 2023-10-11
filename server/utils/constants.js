@@ -1543,6 +1543,11 @@ const WEBSOCKET_MESSAGE_TYPES = {
   MATTERBRIDGE: {
     STATUS_CHANGE: 'matterbridge.status-change',
   },
+  FREEBOX: {
+    DISCOVER: 'freebox.discover',
+    CONNECTED: 'freebox.connected',
+    ERROR: 'freebox.error',
+  },
 };
 
 const DASHBOARD_TYPE = {
