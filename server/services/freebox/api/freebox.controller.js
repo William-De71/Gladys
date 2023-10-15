@@ -34,12 +34,32 @@ module.exports = function FreeboxController(freeboxManager) {
 
   /**
    * @api {get} /api/v1/service/freebox/discover Retrieve freebox devices
-   * @apiName discover
+   * @apiName discover devices
    * @apiGroup Freebox
    */
   async function discoverDevices(req, res) {
     const devices = await freeboxManager.discoverDevices();
     res.json(devices);
+  }
+
+  /**
+   * @api {get} /api/v1/service/freebox/disconnect Disconnect Freebox from Gladys
+   * @apiName Disconnect Freebox
+   * @apiGroup Freebox
+   */
+  async function disconnectFreebox(req, res) {
+    const response = await freeboxManager.disconnect();
+    res.json(response);
+  }
+
+  /**
+   * @api {post} /api/v1/service/freebox/restart Restart your Freebox 
+   * @apiName Restart Freebox
+   * @apiGroup Freebox
+   */
+  async function restartFreebox(req, res) {
+    const response = await freeboxManager.restartFreebox();
+    res.json(response);
   }
 
   return {
@@ -59,7 +79,18 @@ module.exports = function FreeboxController(freeboxManager) {
     },
     'get /api/v1/service/freebox/discover': {
       authenticated: true,
+      admin: true,
       controller: asyncMiddleware(discoverDevices),
+    },
+    'get /api/v1/service/freebox/disconnect': {
+      authenticated: true,
+      admin: true,
+      controller: asyncMiddleware(disconnectFreebox),
+    },
+    'post /api/v1/service/freebox/restart': {
+      authenticated: true,
+      admin: true,
+      controller: asyncMiddleware(restartFreebox),
     },
   };
 };

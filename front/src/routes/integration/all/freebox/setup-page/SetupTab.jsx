@@ -8,7 +8,18 @@ class SetupTab extends Component {
   render(props) {
     let statusMessage = null;
 
-    if ((props.authorizedFreeboxStatus === RequestStatus.Error) || (props.discoverFreeboxStatus === RequestStatus.Error)) {
+    const freeboxConnected = (props.authorizedFreeboxStatus === RequestStatus.Success);
+    const freeboxDisconnected = (props.disconnectFreeboxStatus === RequestStatus.Success);
+
+    if (freeboxConnected) {
+      // Freebox Connected
+      statusMessage = (
+        <p class="alert alert-success">
+          <Text id="integration.freebox.setup.connected" />
+        </p>
+      );
+    }
+    else if ((props.authorizedFreeboxStatus === RequestStatus.Error) || (props.discoverFreeboxStatus === RequestStatus.Error)) {
       // Error 
       statusMessage = (
         <p class="alert alert-danger">
@@ -24,11 +35,11 @@ class SetupTab extends Component {
         </p>
       );
     }
-    else if ((props.authorizedFreeboxStatus === RequestStatus.Success) && (props.appToken.length > 0)) {
-      // Freebox Connected
+    else if (freeboxDisconnected) {
+      // Freebox Disconnected
       statusMessage = (
         <p class="alert alert-success">
-          <Text id="integration.freebox.setup.connected" />
+          <Text id="integration.freebox.setup.disconnected" />
         </p>
       );
     }
@@ -71,7 +82,7 @@ class SetupTab extends Component {
                     <Text id="integration.freebox.setup.warningDescription" />
                   </div>
 
-                  {props.appToken === null && (
+                  {((!props.appToken || freeboxDisconnected) && !freeboxConnected) && (
                     <div class="alert alert-info">
                       <Text id="integration.freebox.setup.firstConnection" />
                     </div>
@@ -83,6 +94,16 @@ class SetupTab extends Component {
                         <h3 class="card-title">
                           <Text id="integration.freebox.setup.deviceName" />
                         </h3>
+                        <div class="page-options d-flex">
+                          {(freeboxConnected && !freeboxDisconnected || (props.appToken && props.appToken.length > 0)) && (
+                            <button 
+                              class="btn btn-danger" 
+                              onClick={props.restartFreebox}
+                            >
+                            <i class="fe fe-refresh-cw" />
+                            </button>
+                          )}
+                        </div>                        
                       </div>
                       <div class="card-body">
 
@@ -102,12 +123,12 @@ class SetupTab extends Component {
                         
                         <div
                           class={cx('dimmer', {
-                            active: props.authorizedFreeboxStatus === RequestStatus.Getting
+                            active: (props.authorizedFreeboxStatus === RequestStatus.Getting || props.disconnectFreeboxStatus === RequestStatus.Getting)
                           })}
                         >
                           <div class="loader" />
                           <div class="dimmer-content">
-                            {!props.appToken && props.appToken === null && (
+                            {(freeboxDisconnected || (!props.appToken || props.appToken.length === 0)) && !freeboxConnected && (
                               <button 
                                 class="btn btn-success" 
                                 onClick={props.connectFreebox}
@@ -115,10 +136,10 @@ class SetupTab extends Component {
                                 <Text id="integration.freebox.setup.connectButton" />
                               </button>
                             )}
-                            {props.appToken && props.appToken.length > 0 && (
+                            {(freeboxConnected || (props.appToken && props.appToken.length > 0)) && !freeboxDisconnected && (
                               <button 
                                 class="btn btn-danger" 
-                                // onClick={props.connectFreebox}
+                                onClick={props.disconnectFreebox}
                               >
                                 <Text id="integration.freebox.setup.disconnectButton" />
                               </button>

@@ -11,6 +11,7 @@ const { WEBSOCKET_MESSAGE_TYPES, EVENTS } = require('../../../utils/constants');
 async function discoverFreebox() {
 
   let discoveryResponse;
+
   try {
     discoveryResponse = await this.discovery();
 
