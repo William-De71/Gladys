@@ -91,23 +91,11 @@ class FreeboxDeviceBox extends Component {
   };
 
   render(
-    {
-      deviceIndex,
-      editable,
-      editButton,
-      deleteButton,
-      saveButton,
-      updateButton,
-      alreadyCreatedButton,
-      housesWithRooms
-    },
-    { device, loading, errorMessage, tooMuchStatesError, statesNumber }
+    { deviceIndex, device, housesWithRooms, editable, ...props },
+    { loading, errorMessage, tooMuchStatesError, statesNumber }
   ) {
     const validModel = device.features && device.features.length > 0;
-    console.log(`validModel: ${validModel}`);
-    console.log(`editable: ${editable}`);
-    console.log(`updateButton: ${updateButton}`);
-
+    
     return (
       <div class="col-md-6">
         <div class="card">
@@ -182,25 +170,25 @@ class FreeboxDeviceBox extends Component {
                 )}
 
                 <div class="form-group">
-                  {validModel && alreadyCreatedButton && (
+                  {validModel && props.alreadyCreatedButton && (
                     <button class="btn btn-primary mr-2" disabled="true">
                       <Text id="integration.freebox.alreadyCreatedButton" />
                     </button>
                   )}
 
-                  {validModel && updateButton && (
+                  {validModel && props.updateButton && (
                     <button onClick={this.saveDevice} class="btn btn-success mr-2">
                       <Text id="integration.freebox.updateButton" />
                     </button>
                   )}
 
-                  {validModel && saveButton && (
+                  {validModel && props.saveButton && (
                     <button onClick={this.saveDevice} class="btn btn-success mr-2">
                       <Text id="integration.freebox.saveButton" />
                     </button>
                   )}
 
-                  {validModel && deleteButton && (
+                  {validModel && props.deleteButton && (
                     <button onClick={this.deleteDevice} class="btn btn-danger">
                       <Text id="integration.freebox.deleteButton" />
                     </button>
@@ -212,7 +200,7 @@ class FreeboxDeviceBox extends Component {
                     </button>
                   )}
 
-                  {validModel && editButton && (
+                  {validModel && props.editButton && (
                     <Link href={`/dashboard/integration/device/freebox/edit/${device.selector}`}>
                       <button class="btn btn-secondary float-right">
                         <Text id="integration.freebox.device.editButton" />
