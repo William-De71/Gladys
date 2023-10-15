@@ -1,4 +1,3 @@
-
 /**
  * @description Prepares service and starts connection.
  * @example

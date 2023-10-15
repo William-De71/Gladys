@@ -10,8 +10,7 @@ class FreeboxSetupPage extends Component {
   
   componentWillMount() {
     this.props.discoverFreebox();
-    // this.props.openSessionFreebox();
-    this.props.loadProps();
+    this.props.getAppToken();
     this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.FREEBOX.DISCOVER, this.props.displayDiscoveredMessage);
     this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.FREEBOX.ERROR, this.props.displayFreeboxError);
   }
@@ -32,6 +31,6 @@ class FreeboxSetupPage extends Component {
 }
 
 export default connect(
-  'user,session,discoverFreeboxStatus,authorizedFreeboxStatus,deviceName,boxModelName,boxModel,appToken', 
+  'user,session,discoverFreeboxStatus,authorizedFreeboxStatus,disconnectFreeboxStatus,deviceName,boxModelName,boxModel,appToken', 
   actions
 )(FreeboxSetupPage);
