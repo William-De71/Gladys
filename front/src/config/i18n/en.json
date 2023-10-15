@@ -791,22 +791,60 @@
       }
     },
     "freebox": {
-      "title": "Freebox Home",
-      "description": "Control your Freebox Home devices.",
+      "title": "Freebox",
+      "description": "Control your Freebox devices.",
       "deviceTab": "Devices",
       "discoverTab": "Discover",
       "setupTab": "Setup",
+      "documentation": "Freebox documentation",
+      "discoverDeviceDescr": "Automatically scan Freebox devices",
+      "nameLabel": "Device name",
+      "namePlaceholder": "Enter the name of your device",
+      "modelLabel": "Model",
+      "roomLabel": "Room",
+      "saveButton": "Save",
+      "updateButton": "Update",
+      "alreadyCreatedButton": "Already created",
+      "deleteButton": "Delete",
+      "unmanagedModelButton": "Model not managed or available",
+      "device": {
+        "title": "Freebox devices in Gladys",
+        "editButton": "Edit",
+        "noDeviceFound": "No Freebox device found.",
+        "featuresLabel": "Features"
+      },
+      "status": {
+        "notConnected": "Gladys failed to connect to your local Freebox, , please go to ",
+        "setupPageLink": "Freebox configuration page."
+      },
+      "discover": {
+        "title": "Devices detected on your local Freebox",
+        "description": "Freebox devices are automatically discovered. Your Freebox devices need to be added to your Freebox before.",
+        "error": "Error discovering Tuya devices. Please verify your credentials on Setup.",
+        "noDeviceFound": "No Freebox device discovered.",
+        "scan": "Scan"
+      },
       "setup": {
-        "title": "Configuration du service Freebox Home",
-        "description": "Vous pouvez connecter Gladys à votre Freebox pour commander les appareils associés au pack sécurité.",
+        "title": "Freebox Configuration",
+        "description": "You can connect Gladys to your Freebox to control the related devices.",
         "warning": "Warning! ",
-        "warningDescription": "You must have set a password for your Freebox router web administration page. Enable the option “Permettre les nouvelles demandes d’associations” and check that the option “Accès à distance sécurisé à Freebox OS” is active in “Gestion des ports” > “Connexions entrantes”.",
-        "firstConnection": "The first time Gladys Assistant will connect to your Freebox, you will need to authorize it by pressing the right arrow on the facade of the Freebox when prompted to do so.",
-        "error": "Une erreur s'est produite lors de l'enregistrement de la configuration.",
-        "connecting": "Configuration enregistrée. Connexion à votre Freebox en cours...",
-        "connected": "Connecté à la Freebox avec succès !",
-        "connectionError": "Erreur lors de la connexion, veuillez vérifier votre configuration.",
-        "disconnected": "Déconnecté de la Freebox."
+        "warningDescription": "You must have set a password for the web administration page of your Freebox router. Enable the option « Allow new association requests » et check the option « Secure remote access to Freebox OS » is active in « Port management » > « Incoming connections ».",
+        "firstConnection": "The first time Gladys Assistant connects to your Freebox, you will need to authorize it by pressing the validation arrow on the front of the Freebox when prompted.",
+        "deviceName": "Freebox",
+        "boxModelName": "Freebox name",
+        "boxModel": "Model",
+        "connectButton": "Connect",
+        "disconnectButton": "Disconnect",
+        "scanButton": "Scan network",
+        "error": "An error occurred while connecting Gladys to the Freebox!",
+        "connected": "Connected to Freebox successfully!",
+        "disconnected": "Disconnected from the Freebox.",
+        "noFreeboxFound": "No Freebox discovered, Are you sure that you are connected to the same network as your box and that it is powered on?"
+      },
+      "error": {
+        "defaultError": "There was an error saving the device.",
+        "defaultDeletionError": "There was an error deleting the device.",
+        "conflictError": "Current device is already in Gladys."
       }
     },
     "zigbee2mqtt": {

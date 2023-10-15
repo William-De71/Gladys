@@ -1044,21 +1044,17 @@
       "unmanagedModelButton": "Modèle non pris en charge ou non disponible",
       "device": {
         "title": "Appareils Freebox dans Gladys",
-        "updates": "Vérifier les mises à jour",
         "editButton": "Editer",
         "noDeviceFound": "Aucun appareil trouvé dans votre Freebox.",
         "featuresLabel": "Fonctionnalités"
       },
       "status": {
         "notConnected": "Gladys n'a pas réussi à se connecter à votre Freebox, plus d'informations sur la ",
-        "setupPageLink": "page de configuration Freebox.",
-        "online": "En ligne",
-        "offline": "Hors ligne"
+        "setupPageLink": "page de configuration Freebox."
       },
       "discover": {
         "title": "Appareils détectés sur votre Freebox",
         "description": "Les appareils de votre Freebox sont automatiquement découverts. Vos appareils doivent être ajoutés à votre Freebox avant.",
-        "error": "Erreur de découverte des appareils de votre Freebox. Veuillez vérifier vos informations d'identification lors de l'installation.",
         "noDeviceFound": "Aucun appareil Freebox n'a été découvert.",
         "scan": "Scanner"
       },

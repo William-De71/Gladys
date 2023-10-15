@@ -53,6 +53,10 @@ async function setValue(device, deviceFeature, value) {
       }
       break;
     case 'store_slider':
+
+      endpointIdtoDevice = endpointId;
+      valuetoDevice = transformedValue;
+
       if (endpointId === '1') {
         if (transformedValue === COVER_STATE.CLOSE) {
           endpointIdtoDevice = 3;

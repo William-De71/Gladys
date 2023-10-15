@@ -20,7 +20,7 @@ async function loadDeviceDetails(sessionToken, freeboxDeviceId) {
   });
 
   const { result } = responsePage.data;
-
+  
   return { ...freeboxDeviceId, specifications: result };
 }
 

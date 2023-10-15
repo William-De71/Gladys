@@ -47,18 +47,34 @@ function createActions(store) {
         freeboxGetToken = await state.httpClient.post('/api/v1/service/freebox/connect');
         
         store.setState({
-          //appToken: freeboxGetToken.appToken,
           authorizedFreeboxStatus: RequestStatus.Success
         });
 
       } catch (e) {
-        console.error(e);
         store.setState({
-          //appToken: null,
           authorizedFreeboxStatus: RequestStatus.Error,
           freeboxConnectionError: e.message
         });
       }
+    },
+
+    async disconnectFreebox(state) {
+      store.setState({
+        disconnectFreeboxStatus: RequestStatus.Getting,
+      });
+      try {
+        await state.httpClient.get('/api/v1/service/freebox/disconnect');
+
+        store.setState({
+          disconnectFreeboxStatus: RequestStatus.Success
+        });
+      } catch (e) {
+        store.setState({
+          disconnectFreeboxStatus: RequestStatus.Error,
+          freeboxConnectionError: e.message
+        });
+      }
+
     },
 
     async openSessionFreebox(state) {
@@ -81,15 +97,56 @@ function createActions(store) {
       }
     },
 
-    async loadProps(state) {
-      let appToken;
+    async restartFreebox(state) {
+      store.setState({
+        restartFreeboxStatus: RequestStatus.Getting,
+      });
       try {
-        appToken = await state.httpClient.get('/api/v1/service/freebox/variable/FREEBOX_APPTOKEN');
-      } finally {
+        await state.httpClient.post('/api/v1/service/freebox/restart');
+
         store.setState({
-          appToken: (appToken || { value: '' }).value,
+          restartFreeboxStatus: RequestStatus.Success
+        });
+
+      } catch (e) {
+        console.error(e);
+        store.setState({
+          restartFreeboxStatus: RequestStatus.Error,
+          freeboxConnectionError: e.message
         });
       }
+    },
+
+    async getAppToken(state) {
+
+      store.setState({
+        freeboxGetTokenStatus: RequestStatus.Getting
+      });
+
+      let appToken = '';
+
+      store.setState({
+        appToken
+      });
+
+      console.log(appToken);
+
+      try {
+        const { value: freeboxAppToken } = await state.httpClient.get('/api/v1/service/freebox/variable/FREEBOX_APPTOKEN');
+        appToken = freeboxAppToken;
+
+        store.setState({
+          freeboxGetTokenStatus: RequestStatus.Success
+        });
+
+      } catch (e) {
+        store.setState({
+          freeboxGetTokenStatus: RequestStatus.Error
+        });
+      }
+      store.setState({
+        appToken
+      });
     },
 
     displayDiscoveredMessage() {
@@ -101,7 +158,7 @@ function createActions(store) {
       setTimeout(
         () =>
           store.setState({
-            connectFreeboxStatus: undefined
+            authorizedFreeboxStatus: undefined
           }),
         3000
       );
@@ -110,9 +167,12 @@ function createActions(store) {
 
     displayFreeboxError(state, error) {
       store.setState({
-        // discoverFreeboxStatus: undefined,
-        // authorizedFreeboxStatus: undefined,
-        // connectFreeboxStatus: undefined,
+        discoverFreeboxStatus: undefined,
+        authorizedFreeboxStatus: undefined,
+        freeboxGetTokenStatus: undefined,
+        restartFreeboxStatus: undefined,
+        sessionFreeboxStatus: undefined,
+        disconnectFreeboxStatus: undefined,
         freeboxConnectionError: error
       });
     },

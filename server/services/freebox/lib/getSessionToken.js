@@ -31,7 +31,12 @@ async function getSessionToken() {
         };
 
         sessionResponse = await this.openSession(sessionStart);
-        const { session_token: sessionToken } = sessionResponse.data.result;
+        const { session_token: sessionToken, permissions } = sessionResponse.data.result;
+
+        const { settings, camera, home } = permissions;
+        if (!settings || !camera || !home) {
+            throw new ServiceNotConfiguredError('Freebox: Your app permissions does not allow accessing this API')
+        }
 
         this.gladys.event.emit(EVENTS.WEBSOCKET.SEND_ALL, {
             type: WEBSOCKET_MESSAGE_TYPES.FREEBOX.CONNECTED,
@@ -43,7 +48,7 @@ async function getSessionToken() {
         this.gladys.event.emit(EVENTS.WEBSOCKET.SEND_ALL, {
             type: WEBSOCKET_MESSAGE_TYPES.FREEBOX.ERROR,
         });
-        logger.error(`There was an error connecting to the freebox. Error: ${e}`);
+        logger.error(`There was an error connecting to the freebox. ${e}`);
         throw new ServiceNotConfiguredError(`Freebox: Service is not connected with error ${e}`);
     }
    

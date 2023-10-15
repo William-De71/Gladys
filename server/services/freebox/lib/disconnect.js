@@ -8,10 +8,7 @@ const { FREEBOX_APPTOKEN_KEY } = require('./utils/constants');
  */
 function disconnect() {
   logger.debug(`Disconnecting from Freebox...`);
-
   this.gladys.variable.destroy(FREEBOX_APPTOKEN_KEY, this.serviceId);
-
-  this.connected = false;
 
 }
 
