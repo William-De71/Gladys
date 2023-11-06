@@ -1,6 +1,6 @@
 const logger = require('../../utils/logger');
-const FreeboxHandler = require('./lib');
 const FreeboxController = require('./api/freebox.controller');
+const FreeboxHandler = require('./lib');
 
 module.exports = function FreeboxService(gladys, serviceId) {
     const freeboxHandler = new FreeboxHandler(gladys, serviceId);
