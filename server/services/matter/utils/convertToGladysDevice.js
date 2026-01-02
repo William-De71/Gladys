@@ -20,6 +20,7 @@ const {
 const Promise = require('bluebird');
 const { DEVICE_FEATURE_CATEGORIES, DEVICE_FEATURE_TYPES, DEVICE_FEATURE_UNITS } = require('../../../utils/constants');
 const { slugify } = require('../../../utils/slugify');
+const { NOUS_POWER_CLUSTER } = require('../utils/constants');
 
 /**
  * @description Convert the Matter measurement unit attribute to Gladys attribute.
@@ -376,6 +377,46 @@ async function convertToGladysDevice(serviceId, nodeId, device, nodeDetailDevice
             max: 1000000,
           });
         }
+      } else if (clusterIndex === NOUS_POWER_CLUSTER) {
+        // Ajout de la Puissance (ActivePower)
+        gladysDevice.features.push({
+          name: `${clusterClient.name} - ${clusterClient.endpointId} (Power)`,
+          selector: slugify(`matter-${device.name}-${clusterClient.name}-power`, true),
+          category: DEVICE_FEATURE_CATEGORIES.ENERGY_SENSOR,
+          type: DEVICE_FEATURE_TYPES.ENERGY_SENSOR.POWER,
+          read_only: true,
+          has_feedback: true,
+          unit: DEVICE_FEATURE_UNITS.WATT,
+          external_id: `matter:${nodeId}:${devicePath}:${clusterIndex}:308084769`,
+          min: 0,
+          max: 4000,
+        });
+        // Ajout de la Tension (Voltage)
+        gladysDevice.features.push({
+          name: `${clusterClient.name} - ${clusterClient.endpointId} (Voltage)`,
+          selector: slugify(`matter-${device.name}-${clusterClient.name}-voltage`, true),
+          category: DEVICE_FEATURE_CATEGORIES.ENERGY_SENSOR,
+          type: DEVICE_FEATURE_TYPES.ENERGY_SENSOR.VOLTAGE,
+          read_only: true,
+          has_feedback: true,
+          unit: DEVICE_FEATURE_UNITS.VOLT,
+          external_id: `matter:${nodeId}:${devicePath}:${clusterIndex}:308084772`,
+          min: 0,
+          max: 300,
+        });
+        // Ajout de l'Intensité (Current)
+        gladysDevice.features.push({
+          name: `${clusterClient.name} - ${clusterClient.endpointId} (Current)`,
+          selector: slugify(`matter-${device.name}-${clusterClient.name}-current`, true),
+          category: DEVICE_FEATURE_CATEGORIES.ENERGY_SENSOR,
+          type: DEVICE_FEATURE_TYPES.ENERGY_SENSOR.CURRENT,
+          read_only: true,
+          has_feedback: true,
+          unit: DEVICE_FEATURE_UNITS.AMPERE,
+          external_id: `matter:${nodeId}:${devicePath}:${clusterIndex}:308084774`,
+          min: 0,
+          max: 16,
+        });
       }
     });
   }

@@ -21,6 +21,9 @@ const logger = require('../../../utils/logger');
 const { hsbToRgb, rgbToInt } = require('../../../utils/colors');
 const { EVENTS, STATE } = require('../../../utils/constants');
 
+// Gestion du cluster propriétaire NOUS TECHNOLOGY
+const { NOUS_POWER_CLUSTER } = require('../utils/constants');
+
 /**
  * @description Listen to state changes of a device.
  * @param {bigint} nodeId - The node ID of the device.
@@ -335,6 +338,28 @@ async function listenToStateChange(nodeId, devicePath, device) {
         });
       });
     }
+  }
+
+  const nousPower = device.clusterClients.get(NOUS_POWER_CLUSTER);
+  if (nousPower && !this.stateChangeListeners.has(nousPower)) {
+    logger.debug(`Matter: Adding state change listener for NOUS Power cluster`);
+    this.stateChangeListeners.add(nousPower);
+
+    // Écouteur générique pour tous les attributs de ce cluster
+    nousPower.addAttributeListener('all', (attribute) => {
+      const { name, value } = attribute;
+      const attributeId = attribute.id; // L'ID numérique (ex: 308084769)
+      
+      logger.debug(`Matter: NOUS Attribute ${name} (${attributeId}) changed to ${value}`);
+
+      const stateValue = value / 10; // Correction de l'échelle commune à V, A et W
+
+      // On émet l'événement vers Gladys en utilisant l'ID d'attribut
+      this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, {
+        device_feature_external_id: `matter:${nodeId}:${devicePath}:${NOUS_POWER_CLUSTER}:${attributeId}`,
+        state: stateValue,
+      });
+    });
   }
 }
 

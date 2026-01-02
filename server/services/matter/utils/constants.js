@@ -3,6 +3,9 @@ const VARIABLES = {
   MATTER_BACKUP: 'MATTER_BACKUP',
 };
 
+const NOUS_POWER_CLUSTER = 0x125B0011;
+
 module.exports = {
   VARIABLES,
+  NOUS_POWER_CLUSTER,
 };
