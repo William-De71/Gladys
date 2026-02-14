@@ -69,8 +69,16 @@ module.exports = function DashboardController(gladys) {
    * @apiUse DashboardSuccess
    */
   async function getBySelector(req, res) {
-    const dashboard = await gladys.dashboard.getBySelector(req.user.id, req.params.dashboard_selector);
-    res.json(dashboard);
+    try {
+      const dashboard = await gladys.dashboard.getBySelector(req.user.id, req.params.dashboard_selector);
+      if (!dashboard) {
+        res.status(404).json({ error: 'Dashboard not found' });
+        return;
+      }
+      res.json(dashboard);
+    } catch (error) {
+      res.status(422).json({ error: 'Invalid dashboard selector', details: error.message });
+    }
   }
 
   /**
