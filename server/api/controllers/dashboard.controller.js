@@ -47,8 +47,20 @@ module.exports = function DashboardController(gladys) {
    * @apiUse DashboardSuccess
    */
   async function update(req, res) {
-    const dashboard = await gladys.dashboard.update(req.user.id, req.params.dashboard_selector, req.body);
-    res.json(dashboard);
+    try {
+      const dashboardSelector = req.params.dashboard_selector;
+      
+      // Handle the specific case where selector is "dashboard" to avoid ambiguity
+      if (dashboardSelector === 'dashboard') {
+        res.status(400).json({ error: 'Invalid dashboard selector: "dashboard" is a reserved word' });
+        return;
+      }
+      
+      const dashboard = await gladys.dashboard.update(req.user.id, dashboardSelector, req.body);
+      res.json(dashboard);
+    } catch (error) {
+      res.status(422).json({ error: 'Invalid dashboard selector', details: error.message });
+    }
   }
 
   /**
@@ -70,7 +82,15 @@ module.exports = function DashboardController(gladys) {
    */
   async function getBySelector(req, res) {
     try {
-      const dashboard = await gladys.dashboard.getBySelector(req.user.id, req.params.dashboard_selector);
+      const dashboardSelector = req.params.dashboard_selector;
+      
+      // Handle the specific case where selector is "dashboard" to avoid ambiguity
+      if (dashboardSelector === 'dashboard') {
+        res.status(400).json({ error: 'Invalid dashboard selector: "dashboard" is a reserved word' });
+        return;
+      }
+      
+      const dashboard = await gladys.dashboard.getBySelector(req.user.id, dashboardSelector);
       if (!dashboard) {
         res.status(404).json({ error: 'Dashboard not found' });
         return;

@@ -29,50 +29,47 @@ const ThermostatTpiBox = ({ loading, error, box, targetTemp, currentTemp, isHeat
         </h3>
       </div>
       <div class="card-body">
+        {error && (
+          <div class="alert alert-danger mb-3">
+            <Text id="dashboard.boxes.thermostatTpi.error" />
+          </div>
+        )}
         <div class={cx('dimmer', { active: loading })}>
           <div class="loader" />
-          {error && (
-            <p class="alert alert-danger">
-              <Text id="dashboard.boxes.thermostatTpi.error" />
-            </p>
-          )}
-          {!error && (
-            <div class="dimmer-content">
-              {/* Cercle et Températures */}
-              <div class={style.thermostatContainer}>
-                <svg width="200" height="200" viewBox="0 0 200 200" class={style.svgRoot}>
-                  <circle cx="100" cy="100" r={radius} class={style.circleTrack} 
-                    stroke-dasharray={`${strokeDash} ${circumference}`} />
-                  <circle cx="100" cy="100" r={radius} class={style.circleProgress} 
-                    stroke-dasharray={`${progress} ${circumference}`}
-                    stroke={isHeating ? '#e74c3c' : '#555'} />
-                </svg>
+          <div class="dimmer-content">
+            {/* Cercle et Températures */}
+            <div class={style.thermostatContainer}>
+              <svg width="200" height="200" viewBox="0 0 200 200" class={style.svgRoot}>
+                <circle cx="100" cy="100" r={radius} class={style.circleTrack} 
+                  stroke-dasharray={`${strokeDash} ${circumference}`} />
+                <circle cx="100" cy="100" r={radius} class={style.circleProgress} 
+                  stroke-dasharray={`${progress} ${circumference}`}
+                  stroke={isHeating ? '#e74c3c' : '#555'} />
+              </svg>
 
-                <div class={style.infoCenter}>
-                  <div class={style.targetTempDisplay}>{targetTemp.toFixed(1)}°</div>
-                  <div class={style.currentTempDisplay}>
-                    {currentTemp.toFixed(1)}°C <i class="fe fe-wind" />
-                  </div>
-                  <div class="mt-2">
-                    <i class={cx('fe fe-flame mr-2', { 'text-danger': isHeating, 'text-muted': !isHeating })} />
-                  </div>
+              <div class={style.infoCenter}>
+                <div class={style.targetTempDisplay}>{targetTemp.toFixed(1)}°</div>
+                <div class={style.currentTempDisplay}>
+                  {currentTemp.toFixed(1)}°C <i class="fe fe-wind" />
                 </div>
-
-                <div class={style.sideButtons}>
-                  <button class="btn btn-outline-secondary btn-sm" onClick={() => updateTemp(0.5)}>+</button>
-                  <button class="btn btn-outline-secondary btn-sm" onClick={() => updateTemp(-0.5)}>-</button>
+                <div class="mt-2">
+                  <i class={cx('fe fe-flame mr-2', { 'text-danger': isHeating, 'text-muted': !isHeating })} />
                 </div>
               </div>
 
-              {/* Sélecteur de mode */}
-              <div class="d-flex justify-content-around mt-4 pt-3 border-top">
-                <ModeIcon icon="hand" active={currentMode === 0} onClick={() => changeMode(0)} colorClass="text-warning" />
-                <ModeIcon icon="leaf" active={currentMode === 1} onClick={() => changeMode(1)} colorClass="text-success" />
-                <ModeIcon icon="home" active={currentMode === 2} onClick={() => changeMode(2)} colorClass="text-primary" />
-                <ModeIcon icon="zap" active={currentMode === 3} onClick={() => changeMode(3)} colorClass="text-danger" />
+              <div class={style.sideButtons}>
+                <button class="btn btn-outline-secondary btn-sm" onClick={() => updateTemp(0.5)}>+</button>
+                <button class="btn btn-outline-secondary btn-sm" onClick={() => updateTemp(-0.5)}>-</button>
               </div>
             </div>
-          )}
+
+            {/* Sélecteur de mode */}
+            <div class="d-flex justify-content-around mt-4 pt-3 border-top">
+              <ModeIcon icon="hand" active={currentMode === 0} onClick={() => changeMode(0)} colorClass="text-warning" />
+              <ModeIcon icon="thermometer" active={currentMode === 1} onClick={() => changeMode(1)} colorClass="text-info" />
+              <ModeIcon icon="zap" active={currentMode === 2} onClick={() => changeMode(2)} colorClass="text-success" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
