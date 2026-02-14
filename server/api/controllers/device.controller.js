@@ -147,29 +147,30 @@ module.exports = function DeviceController(gladys) {
    * @apiGroup Device
    */
   async function getDeviceFeature(req, res) {
-    const device = gladys.device.getBySelector(req.params.device_feature_selector);
-    if (!device) {
-      res.status(404).json({ error: 'Device feature not found' });
-      return;
+    try {
+      const featureSelector = req.params.device_feature_selector;
+      
+      // Extract device selector from feature selector
+      const [deviceSelector] = featureSelector.split(':');
+      
+      // Get the device
+      const device = gladys.device.getBySelector(deviceSelector);
+      if (!device) {
+        res.status(404).json({ error: 'Device not found' });
+        return;
+      }
+      
+      // Find the feature in the device
+      const feature = device.features.find(f => f.selector === featureSelector);
+      if (!feature) {
+        res.status(404).json({ error: 'Feature not found in device' });
+        return;
+      }
+      
+      res.json(feature);
+    } catch (error) {
+      res.status(500).json({ error: 'Internal server error', details: error.message });
     }
-    
-    // Extract feature selector from the full selector
-    const featureSelector = req.params.device_feature_selector;
-    const [deviceSelector] = featureSelector.split(':');
-    
-    const deviceObj = gladys.device.getBySelector(deviceSelector);
-    if (!deviceObj) {
-      res.status(404).json({ error: 'Device not found' });
-      return;
-    }
-    
-    const feature = deviceObj.features.find(f => f.selector === featureSelector);
-    if (!feature) {
-      res.status(404).json({ error: 'Feature not found in device' });
-      return;
-    }
-    
-    res.json(feature);
   }
 
   /**

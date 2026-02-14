@@ -92,44 +92,71 @@ class ThermostatTpi extends Component {
     };
   }
 
+  componentDidMount() {
+    this.refreshData();
+    this.interval = setInterval(this.refreshData, 30000); // Refresh every 30 seconds
+  }
+
+  componentWillUnmount() {
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    // Refresh data when box configuration changes
+    if (prevProps.box !== this.props.box) {
+      this.refreshData();
+    }
+  }
+
   refreshData = async () => {
     try {
       const { box } = this.props;
-      if (box.device_features && box.device_features.length > 0) {
-        // Récupérer le device complet depuis l'API
-        const deviceSelectors = box.device_features.map(feature => feature.split(':')[0]);
-        const uniqueDeviceSelectors = [...new Set(deviceSelectors)];
-        
-        if (uniqueDeviceSelectors.length > 0) {
-          const device = await this.props.httpClient.get(`/api/v1/device/${uniqueDeviceSelectors[0]}`);
-          
-          const targetFeature = device.features.find(f => f.category === 'thermostat');
-          let tempFeature = null;
-          
-          // Récupérer le capteur de température s'il est configuré
-          if (box.temperature_sensor) {
-            try {
-              tempFeature = await this.props.httpClient.get(`/api/v1/device_feature/${box.temperature_sensor}`);
-            } catch (e) {
-              tempFeature = device.features.find(f => f.category === 'temperature-sensor');
-            }
-          } else {
-            tempFeature = device.features.find(f => f.category === 'temperature-sensor');
-          }
-          
-          const modeFeature = device.features.find(f => f.type === 'mode');
-          const stateFeature = device.features.find(f => f.type === 'binary');
-
-          this.setState({
-            targetTemp: (targetFeature && targetFeature.last_value !== undefined) ? targetFeature.last_value : 20,
-            currentTemp: (tempFeature && tempFeature.last_value !== undefined) ? tempFeature.last_value : 0,
-            currentMode: (modeFeature && modeFeature.last_value !== undefined) ? modeFeature.last_value : 0,
-            isHeating: stateFeature && stateFeature.last_value === 1,
-            loading: false,
-            error: false
-          });
-        }
+      
+      // Vérifier si on a des device features configurées
+      if (!box.device_features || box.device_features.length === 0) {
+        this.setState({ loading: false, error: false });
+        return;
       }
+
+      // Récupérer le device principal
+      const deviceSelector = box.device_features[0].split(':')[0];
+      const device = await this.props.httpClient.get(`/api/v1/device/${deviceSelector}`);
+      
+      if (!device) {
+        this.setState({ error: true, loading: false });
+        return;
+      }
+
+      // Récupérer la feature de température cible
+      const targetFeature = device.features.find(f => f.category === 'thermostat');
+      
+      // Récupérer la feature de température actuelle
+      let currentTempFeature = null;
+      if (box.temperature_sensor) {
+        try {
+          currentTempFeature = await this.props.httpClient.get(`/api/v1/device_feature/${box.temperature_sensor}`);
+        } catch (e) {
+          // Si erreur, essayer de trouver dans le device principal
+          currentTempFeature = device.features.find(f => f.category === 'temperature-sensor');
+        }
+      } else {
+        currentTempFeature = device.features.find(f => f.category === 'temperature-sensor');
+      }
+      
+      // Récupérer les autres features
+      const modeFeature = device.features.find(f => f.type === 'mode');
+      const stateFeature = device.features.find(f => f.type === 'binary');
+
+      this.setState({
+        targetTemp: (targetFeature && targetFeature.last_value !== undefined) ? targetFeature.last_value : 20,
+        currentTemp: (currentTempFeature && currentTempFeature.last_value !== undefined) ? currentTempFeature.last_value : 0,
+        currentMode: (modeFeature && modeFeature.last_value !== undefined) ? modeFeature.last_value : 0,
+        isHeating: stateFeature && stateFeature.last_value === 1,
+        loading: false,
+        error: false
+      });
     } catch (e) {
       this.setState({ error: true, loading: false });
     }
@@ -162,16 +189,6 @@ class ThermostatTpi extends Component {
       }
     }
   };
-
-  componentDidMount() {
-    this.refreshData();
-    // Rafraîchissement automatique toutes les 30 secondes
-    this.interval = setInterval(this.refreshData, 30000); 
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.interval);
-  }
 
   render(props, state) {
     return (
