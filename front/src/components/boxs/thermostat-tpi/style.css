@@ -1,0 +1,61 @@
+.thermostatContainer {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.svgRoot {
+  transform: rotate(135deg);
+  transform-origin: 50% 50%;
+}
+
+.circleTrack {
+  fill: none;
+  stroke: #e9ecef;
+  stroke-width: 12;
+  transform: rotate(135deg);
+  transform-origin: 50% 50%;
+}
+
+.circleProgress {
+  fill: none;
+  stroke-width: 12;
+  transform: rotate(135deg);
+  transform-origin: 50% 50%;
+  transition: stroke-dasharray 0.4s ease;
+}
+
+.infoCenter {
+  position: absolute;
+  text-align: center;
+}
+
+.targetTempDisplay {
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.currentTempDisplay {
+  font-size: 1rem;
+  color: #6c757d;
+}
+
+.sideButtons {
+  position: absolute;
+  right: -60px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modeIcon {
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: color 0.2s;
+  opacity: 0.6;
+}
+
+.modeActive {
+  opacity: 1;
+}

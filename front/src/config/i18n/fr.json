@@ -285,7 +285,8 @@
       "scene": "Scène",
       "music": "Musique",
       "gauge": "Jauge",
-      "energy-consumption": "Consommation Énergétique"
+      "energy-consumption": "Consommation Énergétique",
+      "thermostat-tpi": "Thermostat TPI"
     },
     "boxes": {
       "column": "Colonne {{index}}",
@@ -492,6 +493,12 @@
         "noData": "Aucune donnée de consommation énergétique disponible pour cette période",
         "showSubscriptionPrices": "Afficher les prix d'abonnement",
         "showSubscriptionPricesDescription": "Affiche le coût mensuel de l'abonnement en plus des données de consommation dans le graphique."
+      },
+      "thermostatTpi": {
+        "editName": "Nom du widget (optionnel)",
+        "editNamePlaceholder": "Nom affiché sur le tableau de bord",
+        "editDeviceFeatures": "Sélectionner un thermostat",
+        "error": "Erreur lors du chargement des données du thermostat"
       }
     }
   },

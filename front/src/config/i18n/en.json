@@ -285,7 +285,8 @@
       "scene": "Scene",
       "music": "Music",
       "gauge": "Gauge",
-      "energy-consumption": "Energy Consumption"
+      "energy-consumption": "Energy Consumption",
+      "thermostat-tpi": "TPI Thermostat"
     },
     "boxes": {
       "column": "Column {{index}}",
@@ -471,6 +472,12 @@
         "noData": "No energy consumption data available for this period",
         "showSubscriptionPrices": "Show subscription prices",
         "showSubscriptionPricesDescription": "Display the monthly subscription cost alongside consumption data in the chart."
+      },
+      "thermostatTpi": {
+        "editName": "Widget Name (optional)",
+        "editNamePlaceholder": "Name displayed on the dashboard",
+        "editDeviceFeatures": "Select a thermostat",
+        "error": "Error loading thermostat data"
       },
       "scene": {
         "editNameLabel": "Widget Name (optional)",

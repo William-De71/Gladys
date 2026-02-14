@@ -18,6 +18,8 @@ import EditEdfTempoBox from '../../../components/boxs/edf-tempo/EditEdfTempo';
 import EditGaugeBox from '../../../components/boxs/gauge/EditGaugeBox';
 import EditEnergyConsumptionBox from '../../../components/boxs/energy-consumption/EditEnergyConsumption';
 
+import EditThermostatTpi from '../../../components/boxs/thermostat-tpi/EditThermostatTpi';
+
 const Box = ({ children, ...props }) => {
   switch (props.box.type) {
     case 'weather':
@@ -52,6 +54,8 @@ const Box = ({ children, ...props }) => {
       return <EditGaugeBox {...props} />;
     case 'energy-consumption':
       return <EditEnergyConsumptionBox {...props} />;
+    case 'thermostat-tpi':
+      return <EditThermostatTpi {...props} />;
     default:
       return <SelectBoxType {...props} />;
   }
