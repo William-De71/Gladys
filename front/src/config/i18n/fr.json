@@ -498,6 +498,7 @@
         "editName": "Nom du widget (optionnel)",
         "editNamePlaceholder": "Nom affiché sur le tableau de bord",
         "editDeviceFeatures": "Sélectionner un thermostat",
+        "editTemperatureSensor": "Sélectionner un capteur de température",
         "error": "Erreur lors du chargement des données du thermostat"
       }
     }

@@ -4,46 +4,10 @@ import { connect } from 'unistore/preact';
 import Select from 'react-select';
 
 import BaseEditBox from '../baseEditBox';
-import ThermostatTpi from './ThermostatTpi';
 import { getDeviceFeatureName } from '../../../utils/device';
-import { DEVICE_FEATURE_CATEGORIES, DEVICE_FEATURE_TYPES } from '../../../../../server/utils/constants';
+import { DEVICE_FEATURE_CATEGORIES } from '../../../../../server/utils/constants';
 import withIntlAsProp from '../../../utils/withIntlAsProp';
-import { DEFAULT_COLORS, DEFAULT_COLORS_NAME } from '../chart/ApexChartComponent';
 
-const square = (color = 'transparent') => ({
-  alignItems: 'center',
-  display: 'flex',
-
-  ':before': {
-    backgroundColor: color,
-    content: '" "',
-    display: 'block',
-    marginRight: 8,
-    height: 10,
-    width: 10
-  }
-});
-
-const colorSelectorStyles = {
-  control: styles => ({ ...styles, backgroundColor: 'white' }),
-  option: (styles, { data, isDisabled, isFocused, isSelected }) => {
-    const { value: color } = data;
-    return {
-      ...styles,
-      backgroundColor: isDisabled ? undefined : isSelected ? color : isFocused ? color : undefined,
-      color: isDisabled ? '#ccc' : isSelected ? 'white' : isFocused ? 'white' : color,
-      cursor: isDisabled ? 'not-allowed' : 'default',
-
-      ':active': {
-        ...styles[':active'],
-        backgroundColor: !isDisabled ? color : undefined
-      }
-    };
-  },
-  input: styles => ({ ...styles, ...square() }),
-  placeholder: styles => ({ ...styles, ...square('#ccc') }),
-  singleValue: (styles, { data }) => ({ ...styles, ...square(data.value) })
-};
 
 class EditThermostatTpi extends Component {
   constructor(props) {
@@ -92,31 +56,16 @@ class EditThermostatTpi extends Component {
     }
   };
 
-  updateShowSubscriptionPrices = e => {
-    this.props.updateBoxConfig(this.props.x, this.props.y, {
-      show_subscription_prices: e.target.checked
-    });
-  };
-
-  updateChartColor = (i, value) => {
-    const colors = this.props.box.colors || [];
-    if (value) {
-      colors[i] = value;
+  updateTemperatureSensor = selectedOption => {
+    if (selectedOption) {
+      this.props.updateBoxConfig(this.props.x, this.props.y, {
+        temperature_sensor: selectedOption.value
+      });
+    } else {
+      this.props.updateBoxConfig(this.props.x, this.props.y, {
+        temperature_sensor: null
+      });
     }
-    // Make sure all colors are filled with a default color
-    const selectedDeviceFeatures = this.getSelectedDeviceFeatures();
-    for (let y = 0; y < selectedDeviceFeatures.length; y += 1) {
-      // if no color is filled, pick a default color in array
-      if (colors[y] === null || colors[y] === undefined) {
-        colors[y] = DEFAULT_COLORS[y];
-        // if we are outside of the default color array,
-        // Take the first default color
-        if (!colors[y]) {
-          colors[y] = DEFAULT_COLORS[0];
-        }
-      }
-    }
-    this.props.updateBoxConfig(this.props.x, this.props.y, { colors });
   };
 
   getSelectedDeviceFeatures = () => {
@@ -138,14 +87,43 @@ class EditThermostatTpi extends Component {
     });
   };
 
+  getSelectedTemperatureSensor = () => {
+    if (!this.props.box.temperature_sensor) {
+      return null;
+    }
+    const deviceFeature = this.state.deviceFeatures.find(d => d.selector === this.props.box.temperature_sensor);
+    if (!deviceFeature) {
+      return {
+        label: this.props.box.temperature_sensor,
+        value: this.props.box.temperature_sensor
+      };
+    }
+    return {
+      label: getDeviceFeatureName(this.state.devices, this.state.deviceFeatures, deviceFeature),
+      value: deviceFeature.selector
+    };
+  };
+
+  getTemperatureSensorOptions = () => {
+    const temperatureSensorOptions = [];
+    this.state.devices.forEach(device => {
+      device.features.forEach(feature => {
+        if (feature.category === DEVICE_FEATURE_CATEGORIES.TEMPERATURE_SENSOR) {
+          temperatureSensorOptions.push({
+            label: getDeviceFeatureName(this.props.intl.dictionary, device, feature),
+            value: feature.selector
+          });
+        }
+      });
+    });
+    return temperatureSensorOptions;
+  };
+
   getDeviceFeatureOptions = () => {
     const deviceFeaturesOptions = [];
     this.state.devices.forEach(device => {
       device.features.forEach(feature => {
-        if (
-          feature.category === DEVICE_FEATURE_CATEGORIES.THERMOSTAT &&
-          feature.type === DEVICE_FEATURE_TYPES.THERMOSTAT.TARGET_TEMPERATURE
-        ) {
+        if (feature.category === DEVICE_FEATURE_CATEGORIES.THERMOSTAT) {
           deviceFeaturesOptions.push({
             label: getDeviceFeatureName(this.props.intl.dictionary, device, feature),
             value: feature.selector
@@ -173,11 +151,8 @@ class EditThermostatTpi extends Component {
 
     const selectedDeviceFeatures = this.getSelectedDeviceFeatures();
     const deviceFeatureOptions = this.getDeviceFeatureOptions();
-    const manyFeatures = selectedDeviceFeatures && selectedDeviceFeatures.length > 1;
-    const colorOptions = DEFAULT_COLORS.map((colorValue, i) => ({
-      value: colorValue,
-      label: props.intl.dictionary.color[DEFAULT_COLORS_NAME[i]] || DEFAULT_COLORS_NAME[i]
-    }));
+    const selectedTemperatureSensor = this.getSelectedTemperatureSensor();
+    const temperatureSensorOptions = this.getTemperatureSensorOptions();
 
     return (
       <BaseEditBox {...props} titleKey="dashboard.boxTitle.thermostat-tpi">
@@ -208,35 +183,17 @@ class EditThermostatTpi extends Component {
             isMulti
           />
         </div>
-        {selectedDeviceFeatures &&
-          selectedDeviceFeatures.map((feature, i) => (
-            <div class="form-group">
-              <label>
-                <Text
-                  id={`dashboard.boxes.chart.${manyFeatures ? 'dataColor' : 'chartColor'}`}
-                  fields={{ featureLabel: feature && feature.label }}
-                />
-              </label>
-              <Select
-                defaultValue={colorOptions.find(({ value }) => value === DEFAULT_COLORS[i])}
-                value={
-                  props.box.colors &&
-                  props.box.colors.length &&
-                  colorOptions.find(({ value }) => value === props.box.colors[i])
-                }
-                onChange={({ value }) => this.updateChartColor(i, value)}
-                options={colorOptions}
-                styles={colorSelectorStyles}
-                className="react-select-container"
-                classNamePrefix="react-select"
-              />
-            </div>
-          ))}
         <div class="form-group">
           <label>
-            <Text id="global.preview" />
+            <Text id="dashboard.boxes.thermostatTpi.editTemperatureSensor" />
           </label>
-          <ThermostatTpi {...props} />
+          <Select
+            defaultValue={[]}
+            value={selectedTemperatureSensor}
+            onChange={this.updateTemperatureSensor}
+            options={temperatureSensorOptions.length > 0 ? temperatureSensorOptions : null}
+            maxMenuHeight={220}
+          />
         </div>
       </BaseEditBox>
     );

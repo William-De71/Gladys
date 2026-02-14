@@ -475,8 +475,9 @@
       },
       "thermostatTpi": {
         "editName": "Widget Name (optional)",
-        "editNamePlaceholder": "Name displayed on the dashboard",
+        "editNamePlaceholder": "Name displayed on dashboard",
         "editDeviceFeatures": "Select a thermostat",
+        "editTemperatureSensor": "Select a temperature sensor",
         "error": "Error loading thermostat data"
       },
       "scene": {
