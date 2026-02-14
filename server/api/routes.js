@@ -233,6 +233,10 @@ function getRoutes(gladys) {
       authenticated: true,
       controller: deviceController.setValueFeature,
     },
+    'get /api/v1/device_feature/:device_feature_selector': {
+      authenticated: true,
+      controller: deviceController.getDeviceFeature,
+    },
     'patch /api/v1/device_feature/:device_feature_selector': {
       authenticated: true,
       controller: deviceController.updateDeviceFeature,

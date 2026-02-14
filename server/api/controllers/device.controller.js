@@ -142,6 +142,37 @@ module.exports = function DeviceController(gladys) {
   }
 
   /**
+   * @api {get} /api/v1/device_feature/:device_feature_selector getDeviceFeature
+   * @apiName getDeviceFeature
+   * @apiGroup Device
+   */
+  async function getDeviceFeature(req, res) {
+    const device = gladys.device.getBySelector(req.params.device_feature_selector);
+    if (!device) {
+      res.status(404).json({ error: 'Device feature not found' });
+      return;
+    }
+    
+    // Extract feature selector from the full selector
+    const featureSelector = req.params.device_feature_selector;
+    const [deviceSelector] = featureSelector.split(':');
+    
+    const deviceObj = gladys.device.getBySelector(deviceSelector);
+    if (!deviceObj) {
+      res.status(404).json({ error: 'Device not found' });
+      return;
+    }
+    
+    const feature = deviceObj.features.find(f => f.selector === featureSelector);
+    if (!feature) {
+      res.status(404).json({ error: 'Feature not found in device' });
+      return;
+    }
+    
+    res.json(feature);
+  }
+
+  /**
    * @api {patch} /api/v1/device_feature/:device_feature_selector updateDeviceFeature
    * @apiName updateDeviceFeature
    * @apiGroup Device
@@ -175,5 +206,6 @@ module.exports = function DeviceController(gladys) {
     getDuckDbMigrationState: asyncMiddleware(getDuckDbMigrationState),
     migrateFromSQLiteToDuckDb: asyncMiddleware(migrateFromSQLiteToDuckDb),
     updateDeviceFeature: asyncMiddleware(updateDeviceFeature),
+    getDeviceFeature: asyncMiddleware(getDeviceFeature),
   });
 };
