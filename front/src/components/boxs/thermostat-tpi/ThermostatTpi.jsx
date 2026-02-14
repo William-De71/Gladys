@@ -104,9 +104,19 @@ class ThermostatTpi extends Component {
           const device = await this.props.httpClient.get(`/api/v1/device/${uniqueDeviceSelectors[0]}`);
           
           const targetFeature = device.features.find(f => f.category === 'thermostat');
-          const tempFeature = box.temperature_sensor ? 
-            await this.props.httpClient.get(`/api/v1/device_feature/${box.temperature_sensor}`) : 
-            device.features.find(f => f.category === 'temperature-sensor');
+          let tempFeature = null;
+          
+          // Récupérer le capteur de température s'il est configuré
+          if (box.temperature_sensor) {
+            try {
+              tempFeature = await this.props.httpClient.get(`/api/v1/device_feature/${box.temperature_sensor}`);
+            } catch (e) {
+              tempFeature = device.features.find(f => f.category === 'temperature-sensor');
+            }
+          } else {
+            tempFeature = device.features.find(f => f.category === 'temperature-sensor');
+          }
+          
           const modeFeature = device.features.find(f => f.type === 'mode');
           const stateFeature = device.features.find(f => f.type === 'binary');
 
