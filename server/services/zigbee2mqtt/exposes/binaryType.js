@@ -108,6 +108,14 @@ const names = {
       type: DEVICE_FEATURE_TYPES.INPUT.BINARY,
     },
   },
+  strobe: {
+    types: {
+      composite: {
+        category: DEVICE_FEATURE_CATEGORIES.SIREN,
+        type: DEVICE_FEATURE_TYPES.SIREN.STROBE,
+      },
+    },
+  },
 };
 
 module.exports = {
