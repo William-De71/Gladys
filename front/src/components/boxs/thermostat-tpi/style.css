@@ -1,26 +1,199 @@
+.thermostatCard {
+  background-color: #1C1C1C !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
 .thermostatContainer {
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto;
 }
 
 .svgRoot {
-  transform: rotate(135deg);
-  transform-origin: 50% 50%;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
 }
 
+.knob {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.knob:hover {
+  transform: scale(1.1);
+}
+
+.centralDisplay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.status {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.temperatureMain {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.tempValue {
+  font-size: 72px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.tempDecimal {
+  font-size: 24px;
+  font-weight: 400;
+  opacity: 0.8;
+  margin-left: 2px;
+}
+
+.tempUnit {
+  font-size: 18px;
+  font-weight: 400;
+  opacity: 0.6;
+  margin-left: 4px;
+  align-self: flex-start;
+  margin-top: 8px;
+}
+
+.quickControls {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.quickButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #444;
+  background: transparent;
+  color: white;
+  font-size: 18px;
+  font-weight: 300;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quickButton:hover {
+  background: #333;
+  border-color: #666;
+  transform: scale(1.05);
+}
+
+.quickButton:active {
+  transform: scale(0.95);
+}
+
+.circularSliderInput {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 220px;
+  opacity: 0;
+  cursor: pointer;
+  transform: rotate(-135deg);
+}
+
+.circularSliderInput::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.circularSliderInput::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.actionBar {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #333;
+}
+
+.actionButton {
+  padding: 12px 24px;
+  border-radius: 24px;
+  border: 1px solid #444;
+  background: transparent;
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.actionButton:hover {
+  background: #333;
+  border-color: #666;
+  color: white;
+}
+
+.actionButton.active {
+  background: #007ACC;
+  border-color: #007ACC;
+  color: white;
+}
+
+/* Dark mode card overrides */
+.card {
+  background-color: #1C1C1C !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.card-body {
+  background-color: #1C1C1C !important;
+  color: white !important;
+}
+
+/* Legacy styles for compatibility */
 .circleTrack {
   fill: none;
-  stroke: #e9ecef;
-  stroke-width: 12;
+  stroke: #333333;
+  stroke-width: 8;
   transform: rotate(135deg);
   transform-origin: 50% 50%;
 }
 
 .circleProgress {
   fill: none;
-  stroke-width: 12;
+  stroke-width: 8;
   transform: rotate(135deg);
   transform-origin: 50% 50%;
   transition: stroke-dasharray 0.4s ease;
@@ -43,10 +216,59 @@
 
 .sideButtons {
   position: absolute;
-  right: -60px;
+  right: -80px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.temperatureSlider {
+  width: 100px;
+}
+
+.circularSlider {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+  pointer-events: none;
+}
+
+.temperatureSliderCircular {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200px;
+  height: 200px;
+  opacity: 0;
+  cursor: pointer;
+  pointer-events: all;
+  transform: rotate(-135deg);
+}
+
+.temperatureSliderCircular::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #007bff;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: all;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: scale(1.2);
+}
+
+.temperatureSliderCircular::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #007bff;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: all;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: scale(1.2);
 }
 
 .modeIcon {

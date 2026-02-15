@@ -4,31 +4,20 @@ import { Text } from 'preact-i18n';
 import cx from 'classnames';
 import style from './style.css'; 
 
-const ModeIcon = ({ active, icon, onClick, colorClass }) => (
-  <i
-    className={cx(`fe fe-${icon}`, style.modeIcon, {
-      [style.modeActive]: active,
-      [colorClass]: active
-    })}
-    onClick={onClick}
-  />
-);
-
-const ThermostatTpiBox = ({ loading, error, box, targetTemp, currentTemp, isHeating, currentMode, updateTemp, changeMode }) => {
-  const radius = 80;
+const ThermostatTpiBox = ({ loading, error, targetTemp, isHeating, currentMode, updateTemp, changeMode }) => {
+  const radius = 90;
   const circumference = 2 * Math.PI * radius;
   const strokeDash = (270 / 360) * circumference;
   const progress = Math.min(Math.max((targetTemp - 10) / 20, 0), 1) * strokeDash;
+  
+  // Calculate knob position based on temperature
+  const angle = -135 + (progress / strokeDash) * 270; // Start from left, go 270 degrees
+  const knobX = 100 + radius * Math.cos(angle * Math.PI / 180);
+  const knobY = 100 + radius * Math.sin(angle * Math.PI / 180);
 
   return (
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">
-          <i class="fe fe-thermometer mr-2" />
-          {box.name}
-        </h3>
-      </div>
-      <div class="card-body">
+    <div class={style.thermostatCard}>
+      <div class="card-body p-4">
         {error && (
           <div class="alert alert-danger mb-3">
             <Text id="dashboard.boxes.thermostatTpi.error" />
@@ -37,37 +26,91 @@ const ThermostatTpiBox = ({ loading, error, box, targetTemp, currentTemp, isHeat
         <div class={cx('dimmer', { active: loading })}>
           <div class="loader" />
           <div class="dimmer-content">
-            {/* Cercle et Températures */}
+            {/* Circular Slider Container */}
             <div class={style.thermostatContainer}>
-              <svg width="200" height="200" viewBox="0 0 200 200" class={style.svgRoot}>
-                <circle cx="100" cy="100" r={radius} class={style.circleTrack} 
-                  stroke-dasharray={`${strokeDash} ${circumference}`} />
-                <circle cx="100" cy="100" r={radius} class={style.circleProgress} 
-                  stroke-dasharray={`${progress} ${circumference}`}
-                  stroke={isHeating ? '#e74c3c' : '#555'} />
+              <svg width="220" height="220" viewBox="0 0 220 220" class={style.svgRoot}>
+                {/* Background arc */}
+                <path
+                  d={`M 30 100 A 90 90 0 1 1 30 100`}
+                  fill="none"
+                  stroke="#333333"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                {/* Progress arc */}
+                <path
+                  d={`M 30 100 A 90 90 0 1 1 ${30 + progress * 2} 100`}
+                  fill="none"
+                  stroke="#FF6B35"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                />
+                {/* Knob */}
+                <circle
+                  cx={knobX}
+                  cy={knobY}
+                  r="8"
+                  fill="#FFFFFF"
+                  class={style.knob}
+                />
               </svg>
 
-              <div class={style.infoCenter}>
-                <div class={style.targetTempDisplay}>{targetTemp.toFixed(1)}°</div>
-                <div class={style.currentTempDisplay}>
-                  {currentTemp.toFixed(1)}°C <i class="fe fe-wind" />
+              {/* Central Display */}
+              <div class={style.centralDisplay}>
+                <div class={style.status}>
+                  {isHeating ? 'Actif' : 'Inactif'}
                 </div>
-                <div class="mt-2">
-                  <i class={cx('fe fe-flame mr-2', { 'text-danger': isHeating, 'text-muted': !isHeating })} />
+                <div class={style.temperatureMain}>
+                  <span class={style.tempValue}>{Math.floor(targetTemp)}</span>
+                  <span class={style.tempDecimal}>,0</span>
+                  <span class={style.tempUnit}>°C</span>
+                </div>
+                
+                {/* Quick Controls */}
+                <div class={style.quickControls}>
+                  <button 
+                    class={style.quickButton}
+                    onClick={() => updateTemp(-0.5)}
+                  >
+                    -
+                  </button>
+                  <button 
+                    class={style.quickButton}
+                    onClick={() => updateTemp(0.5)}
+                  >
+                    +
+                  </button>
                 </div>
               </div>
 
-              <div class={style.sideButtons}>
-                <button class="btn btn-outline-secondary btn-sm" onClick={() => updateTemp(0.5)}>+</button>
-                <button class="btn btn-outline-secondary btn-sm" onClick={() => updateTemp(-0.5)}>-</button>
-              </div>
+              {/* Circular Slider Input */}
+              <input
+                type="range"
+                min="10"
+                max="30"
+                step="0.5"
+                value={targetTemp}
+                onInput={(e) => updateTemp(parseFloat(e.target.value) - targetTemp)}
+                class={style.circularSliderInput}
+              />
             </div>
 
-            {/* Sélecteur de mode */}
-            <div class="d-flex justify-content-around mt-4 pt-3 border-top">
-              <ModeIcon icon="hand" active={currentMode === 0} onClick={() => changeMode(0)} colorClass="text-warning" />
-              <ModeIcon icon="thermometer" active={currentMode === 1} onClick={() => changeMode(1)} colorClass="text-info" />
-              <ModeIcon icon="zap" active={currentMode === 2} onClick={() => changeMode(2)} colorClass="text-success" />
+            {/* Bottom Action Bar */}
+            <div class={style.actionBar}>
+              <button 
+                class={cx(style.actionButton, currentMode === 1 && style.active)}
+                onClick={() => changeMode(1)}
+              >
+                <i class="fe fe-flame mr-2" />
+                Mode Chauffage
+              </button>
+              <button 
+                class={cx(style.actionButton, currentMode === 0 && style.active)}
+                onClick={() => changeMode(0)}
+              >
+                <i class="fe fe-thermometer mr-2" />
+                Confort
+              </button>
             </div>
           </div>
         </div>
