@@ -895,6 +895,64 @@
         "deleteError": "Fehler beim Löschen. Bitte versuche es erneut."
       }
     },
+    "freebox": {
+      "title": "Freebox",
+      "description": "Steuere deine Freebox-Geräte.",
+      "deviceTab": "Geräte",
+      "discoverTab": "Erkennung",
+      "setupTab": "Einrichtung",
+      "documentation": "Freebox-Dokumentation",
+      "discoverDeviceDescr": "Freebox-Geräte automatisch scannen",
+      "nameLabel": "Gerätename",
+      "namePlaceholder": "Gib den Namen deines Geräts ein",
+      "modelLabel": "Modell",
+      "roomLabel": "Raum",
+      "saveButton": "Speichern",
+      "updateButton": "Aktualisieren",
+      "alreadyCreatedButton": "Bereits erstellt",
+      "deleteButton": "Löschen",
+      "unmanagedModelButton": "Modell nicht verwaltet oder verfügbar",
+      "device": {
+        "title": "Freebox-Geräte in Gladys",
+        "editButton": "Bearbeiten",
+        "noDeviceFound": "Kein Freebox-Gerät gefunden.",
+        "featuresLabel": "Funktionen"
+      },
+      "status": {
+        "notConnected": "Gladys konnte keine Verbindung zu deiner lokalen Freebox herstellen, bitte gehe zu ",
+        "setupPageLink": "Freebox-Konfigurationsseite."
+      },
+      "discover": {
+        "title": "Auf deiner lokalen Freebox erkannte Geräte",
+        "description": "Freebox-Geräte werden automatisch erkannt. Deine Geräte müssen vorher zur Freebox hinzugefügt werden.",
+        "error": "Fehler beim Erkennen der Freebox-Geräte. Bitte überprüfe die Einrichtungsseite.",
+        "noDeviceFound": "Kein Freebox-Gerät erkannt.",
+        "scan": "Scannen",
+        "hideExistingDevices": "Bereits hinzugefügte Geräte ausblenden"
+      },
+      "setup": {
+        "title": "Freebox-Konfiguration",
+        "description": "Du kannst Gladys mit deiner Freebox verbinden, um die zugehörigen Geräte zu steuern.",
+        "warning": "Achtung! ",
+        "warningDescription": "Du musst ein Passwort für die Web-Administrationsseite deines Freebox-Routers festgelegt haben. Aktiviere die Option « Neue Zuordnungsanfragen zulassen » und überprüfe, ob die Option « Sicherer Fernzugriff auf Freebox OS » unter « Portverwaltung » > « Eingehende Verbindungen » aktiv ist.",
+        "firstConnection": "Wenn Gladys Assistant sich zum ersten Mal mit deiner Freebox verbindet, musst du die Verbindung autorisieren, indem du den Bestätigungspfeil auf der Vorderseite der Freebox drückst.",
+        "deviceName": "Freebox",
+        "boxModelName": "Freebox-Name",
+        "boxModel": "Modell",
+        "connectButton": "Verbinden",
+        "disconnectButton": "Trennen",
+        "scanButton": "Netzwerk scannen",
+        "error": "Beim Verbinden von Gladys mit der Freebox ist ein Fehler aufgetreten!",
+        "connected": "Erfolgreich mit der Freebox verbunden!",
+        "disconnected": "Von der Freebox getrennt.",
+        "noFreeboxFound": "Keine Freebox gefunden. Bist du sicher, dass du mit demselben Netzwerk wie deine Box verbunden bist und dass sie eingeschaltet ist?"
+      },
+      "error": {
+        "defaultError": "Beim Speichern des Geräts ist ein Fehler aufgetreten.",
+        "defaultDeletionError": "Beim Löschen des Geräts ist ein Fehler aufgetreten.",
+        "conflictError": "Das aktuelle Gerät ist bereits in Gladys vorhanden."
+      }
+    },
     "zigbee2mqtt": {
       "title": "Zigbee2MQTT",
       "description": "Steuere deine Zigbee-Geräte mit Zigbee2MQTT.",

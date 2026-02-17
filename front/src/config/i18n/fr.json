@@ -1056,7 +1056,8 @@
         "title": "Appareils détectés sur votre Freebox",
         "description": "Les appareils de votre Freebox sont automatiquement découverts. Vos appareils doivent être ajoutés à votre Freebox avant.",
         "noDeviceFound": "Aucun appareil Freebox n'a été découvert.",
-        "scan": "Scanner"
+        "scan": "Scanner",
+        "hideExistingDevices": "Cacher les appareils déjà ajoutés"
       },
       "setup": {
         "title": "Configuration du service Freebox",

@@ -814,15 +814,16 @@
         "featuresLabel": "Features"
       },
       "status": {
-        "notConnected": "Gladys failed to connect to your local Freebox, , please go to ",
+        "notConnected": "Gladys failed to connect to your local Freebox, please go to ",
         "setupPageLink": "Freebox configuration page."
       },
       "discover": {
         "title": "Devices detected on your local Freebox",
         "description": "Freebox devices are automatically discovered. Your Freebox devices need to be added to your Freebox before.",
-        "error": "Error discovering Tuya devices. Please verify your credentials on Setup.",
+        "error": "Error discovering Freebox devices. Please check the setup page.",
         "noDeviceFound": "No Freebox device discovered.",
-        "scan": "Scan"
+        "scan": "Scan",
+        "hideExistingDevices": "Hide already added devices"
       },
       "setup": {
         "title": "Freebox Configuration",

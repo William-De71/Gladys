@@ -11,6 +11,13 @@ import FreeboxDeviceBox from '../FreeboxDeviceBox';
 import { RequestStatus } from '../../../../../utils/consts';
 
 class DiscoverTab extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      filterExisting: true
+    };
+  }
+
   async componentWillMount() {
     this.getDiscoveredDevices();
     this.getHouses();
@@ -38,24 +45,37 @@ class DiscoverTab extends Component {
 
   async getDiscoveredDevices() {
     this.setState({
-      loading: true
+      loading: true,
+      errorLoading: false,
+      discoverError: null
     });
     try {
-      const discoveredDevices = await this.props.httpClient.get('/api/v1/service/freebox/discover');
+      const discoveredDevices = await this.props.httpClient.get('/api/v1/service/freebox/discover', {
+        filter_existing: this.state.filterExisting
+      });
       this.setState({
         discoveredDevices,
         loading: false,
         errorLoading: false
       });
     } catch (e) {
+      console.error('Freebox discover error:', e);
       this.setState({
         loading: false,
-        errorLoading: true
+        errorLoading: true,
+        discoverError: e.response && e.response.data ? e.response.data.message : e.message
       });
     }
   }
 
-  render(props, { loading, errorLoading, discoveredDevices, housesWithRooms }) {
+  toggleFilterExisting = async () => {
+    await new Promise((resolve) => {
+      this.setState((prevState) => ({ filterExisting: !prevState.filterExisting }), resolve);
+    });
+    this.getDiscoveredDevices();
+  };
+
+  render(props, { loading, errorLoading, discoverError, discoveredDevices, housesWithRooms, filterExisting }) {
     return (
       <div class="card">
         <div class="card-header">
@@ -72,6 +92,23 @@ class DiscoverTab extends Component {
             </button>
           </div>
         </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item">
+            <label class="custom-switch">
+              <input
+                type="checkbox"
+                class="custom-switch-input"
+                checked={filterExisting}
+                onClick={this.toggleFilterExisting}
+                disabled={loading}
+              />
+              <span class={cx('custom-switch-indicator', 'mr-1', { 'bg-light': loading })} />
+              <span class="custom-switch-description">
+                <Text id="integration.freebox.discover.hideExistingDevices" />
+              </span>
+            </label>
+          </li>
+        </ul>
         <div class="card-body">
           <div class="alert alert-secondary">
             <Text id="integration.freebox.discover.description" />
@@ -84,15 +121,18 @@ class DiscoverTab extends Component {
             <div class="loader" />
             <div class={cx('dimmer-content', style.freeboxListBody)}>
               {errorLoading && (
-                <p class="alert alert-warning">
+                <div class="alert alert-warning">
                   <Text id="integration.freebox.status.notConnected" />
                   <Link href="/dashboard/integration/device/freebox/setup">
                     <Text id="integration.freebox.status.setupPageLink" />
                   </Link>
-                </p>
+                  {discoverError && (
+                    <div class="mt-2"><small>{discoverError}</small></div>
+                  )}
+                </div>
               )}
               <div class="row">
-                { discoveredDevices &&
+                {discoveredDevices &&
                   discoveredDevices.map((device, index) => (
                     <FreeboxDeviceBox
                       editable={!device.created_at || device.updatable}
@@ -104,7 +144,7 @@ class DiscoverTab extends Component {
                       housesWithRooms={housesWithRooms}
                     />
                   ))}
-                {!discoveredDevices || (discoveredDevices.length === 0 && <EmptyState />)}
+                {(!discoveredDevices || discoveredDevices.length === 0) && <EmptyState />}
               </div>
             </div>
           </div>

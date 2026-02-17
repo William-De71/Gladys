@@ -37,7 +37,6 @@ function convertDevice(freeboxDevice) {
     external_id: externalId,
     selector: externalId,
     model,
-    service_id: this.serviceId,
     poll_frequency: DEVICE_POLL_FREQUENCIES.EVERY_30_SECONDS,
     should_poll: true,
   };
