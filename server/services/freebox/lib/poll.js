@@ -4,7 +4,7 @@ const { EVENTS } = require('../../../utils/constants');
 
 /**
  *
- * @description Poll values of an Tuya device.
+ * @description Poll values of a Freebox device.
  * @param {object} device - The device to poll.
  * @returns {Promise} Promise of nothing.
  * @example
@@ -12,7 +12,12 @@ const { EVENTS } = require('../../../utils/constants');
  */
 async function poll(device) {
 
-  // Token has null, we need to get a session token to login
+  // Ensure Freebox has been discovered (baseAPIURL is set)
+  if (!this.baseAPIURL) {
+    await this.discoverFreebox();
+  }
+
+  // Token is null, we need to get a session token to login
   if (this.sessionToken === null) {
     this.sessionToken = await this.getSessionToken();
   }
@@ -28,16 +33,15 @@ async function poll(device) {
   }
   
   let response = null;
-  let isTokenExpired = false;
 
-  try{
+  try {
     response = await this.request({
       method: 'GET',
       baseURL: this.baseAPIURL,
       headers: {'X-Fbx-App-Auth': this.sessionToken},
       url: `/home/tileset/${nodeId}`,
     });
-  } catch(error) {
+  } catch (error) {
 
     if (!error.response) {
       throw error;
@@ -45,7 +49,7 @@ async function poll(device) {
 
     const {status, data} = error.response;
     const { error_code: errorCode } = data;
-    isTokenExpired =
+    const isTokenExpired =
       status === 403 &&
       errorCode === 'auth_required';
 
@@ -53,47 +57,51 @@ async function poll(device) {
       throw error;
     }
 
-    // Token has expired, we need to login
+    // Token has expired, we need to login and retry
     this.sessionToken = await this.getSessionToken();
+    response = await this.request({
+      method: 'GET',
+      baseURL: this.baseAPIURL,
+      headers: {'X-Fbx-App-Auth': this.sessionToken},
+      url: `/home/tileset/${nodeId}`,
+    });
   }
 
-  if (!isTokenExpired) {
-    const { data } = response.data.result[0];
-    
-    const values = {};
-    data.forEach((feature) => {
-      values[feature.ep_id] = feature.value;
-    });
+  const { data } = response.data.result[0];
+  
+  const values = {};
+  data.forEach((feature) => {
+    values[feature.ep_id] = feature.value;
+  });
 
-    device.features.forEach((deviceFeature) => {
-      const [, , epId] = deviceFeature.external_id.split(':');
+  device.features.forEach((deviceFeature) => {
+    const [, , epId] = deviceFeature.external_id.split(':');
 
-      const value = values[epId];
-      const transformedValue = readValues[deviceFeature.category][deviceFeature.type](value);
+    const value = values[epId];
+    const transformedValue = readValues[deviceFeature.category][deviceFeature.type](value);
 
-      if (transformedValue !== null && transformedValue !== undefined) {
-        // if is a text
-        if (deviceFeature.category === 'text') {
-          const event = {
-            device_feature_external_id: deviceFeature.external_id,
-            text: transformedValue,
-          };
-          if (deviceFeature.last_value_string !== event.text) {
-            this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, event);
-          }
-        } else {
-          const event = {
-            device_feature_external_id: deviceFeature.external_id,
-            state: transformedValue,
-          };
-          if (deviceFeature.last_value !== event.state) {
-            this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, event);
-          }
+    if (transformedValue !== null && transformedValue !== undefined) {
+      // if is a text
+      if (deviceFeature.category === 'text') {
+        const event = {
+          device_feature_external_id: deviceFeature.external_id,
+          text: transformedValue,
+        };
+        if (deviceFeature.last_value_string !== event.text) {
+          this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, event);
+        }
+      } else {
+        const event = {
+          device_feature_external_id: deviceFeature.external_id,
+          state: transformedValue,
+        };
+        if (deviceFeature.last_value !== event.state) {
+          this.gladys.event.emit(EVENTS.DEVICE.NEW_STATE, event);
         }
       }
-      
-    });
-  }
+    }
+    
+  });
 
 }
 

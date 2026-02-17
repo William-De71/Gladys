@@ -13,7 +13,12 @@ const { COVER_STATE } = require('../../../utils/constants');
  */
 async function setValue(device, deviceFeature, value) {
 
-  // Token has null, we need to get a session token to login
+  // Ensure Freebox has been discovered (baseAPIURL is set)
+  if (!this.baseAPIURL) {
+    await this.discoverFreebox();
+  }
+
+  // Token is null, we need to get a session token to login
   if (this.sessionToken === null) {
     this.sessionToken = await this.getSessionToken();
   }
@@ -79,9 +84,7 @@ async function setValue(device, deviceFeature, value) {
   
   logger.debug(`Change value for devices ${nodeId}/${endpointIdtoDevice} to value ${valuetoDevice}...`);
 
-  let isTokenExpired = false;
-
-  try{
+  try {
     await this.request({
       method: 'PUT',
       baseURL: this.baseAPIURL,
@@ -91,7 +94,7 @@ async function setValue(device, deviceFeature, value) {
         value: valuetoDevice,
       }),
     });
-  } catch(error) {
+  } catch (error) {
 
     if (!error.response) {
       throw error;
@@ -99,7 +102,7 @@ async function setValue(device, deviceFeature, value) {
 
     const {status, data} = error.response;
     const { error_code: errorCode } = data;
-    isTokenExpired =
+    const isTokenExpired =
       status === 403 &&
       errorCode === 'auth_required';
 
@@ -107,8 +110,17 @@ async function setValue(device, deviceFeature, value) {
       throw error;
     }
 
-    // Token has expired, we need to login
+    // Token has expired, we need to login and retry
     this.sessionToken = await this.getSessionToken();
+    await this.request({
+      method: 'PUT',
+      baseURL: this.baseAPIURL,
+      headers: {'X-Fbx-App-Auth': this.sessionToken},
+      url: `/home/endpoints/${nodeId}/${endpointIdtoDevice}`,
+      data: JSON.stringify({
+        value: valuetoDevice,
+      }),
+    });
   }
   
 }

@@ -21,7 +21,7 @@ async function loadDeviceDetails(sessionToken, freeboxDeviceId) {
 
   const { result } = responsePage.data;
   
-  return { ...freeboxDeviceId, specifications: result };
+  return { node_id: freeboxDeviceId, specifications: result };
 }
 
 module.exports = {

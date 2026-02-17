@@ -38,7 +38,8 @@ module.exports = function FreeboxController(freeboxManager) {
    * @apiGroup Freebox
    */
   async function discoverDevices(req, res) {
-    const devices = await freeboxManager.discoverDevices();
+    const { query = {} } = req;
+    const devices = await freeboxManager.discoverDevices(query);
     res.json(devices);
   }
 

@@ -11,11 +11,12 @@ const { FREEBOX_ROOT_CA } = require('../utils/constants');
  */
 async function request(requestConfig) {
 
-    const httpsAgentConfig = {ca: FREEBOX_ROOT_CA, rejectUnauthorized: false};
-
-    this.axiosInstance = axios.create({
-        httpsAgent: new https.Agent(httpsAgentConfig),
-    });
+    if (!this.axiosInstance) {
+        const httpsAgentConfig = {ca: FREEBOX_ROOT_CA, rejectUnauthorized: false};
+        this.axiosInstance = axios.create({
+            httpsAgent: new https.Agent(httpsAgentConfig),
+        });
+    }
 
     return this.axiosInstance.request(requestConfig);
 }
