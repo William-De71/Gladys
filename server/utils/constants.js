@@ -1340,6 +1340,9 @@ const WEBSOCKET_MESSAGE_TYPES = {
     NEW_MQTT_DEVICE: 'tasmota.new-mqtt-device',
     NEW_HTTP_DEVICE: 'tasmota.new-http-device',
   },
+  EVENT_LOG: {
+    NEW: 'event-log.new',
+  },
   BLUETOOTH: {
     STATE: 'bluetooth.status',
     DISCOVER: 'bluetooth.discover',

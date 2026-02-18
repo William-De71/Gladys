@@ -51,6 +51,7 @@ import MapPage from '../routes/map';
 import MapNewAreaPage from '../routes/map/NewArea';
 import CalendarPage from '../routes/calendar';
 import ScenePage from '../routes/scene';
+import EventLogPage from '../routes/event-log';
 import NewScenePage from '../routes/scene/new-scene';
 import DuplicateScenePage from '../routes/scene/duplicate-scene';
 import EditScenePage from '../routes/scene/edit-scene';
@@ -380,6 +381,7 @@ const AppRouter = connect(
         <MapNewAreaPage path="/dashboard/maps/area/edit/:areaSelector" />
         <SafeAsyncRoute path="/dashboard/calendar" component={CalendarPage} />
         <SafeAsyncRoute path="/dashboard/scene" component={ScenePage} />
+        <SafeAsyncRoute path="/dashboard/event-log" component={EventLogPage} />
         <NewScenePage path="/dashboard/scene/new" />
         <DuplicateScenePage path="/dashboard/scene/:scene_selector/duplicate" />
         <EditScenePage path="/dashboard/scene/:scene_selector" />

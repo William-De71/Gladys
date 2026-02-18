@@ -7,6 +7,7 @@ const Brain = require('./brain');
 const Calendar = require('./calendar');
 const Dashboard = require('./dashboard');
 const Event = require('./event');
+const EventLog = require('./event-log');
 const House = require('./house');
 const Gateway = require('./gateway');
 const Http = require('./http');
@@ -59,6 +60,7 @@ function Gladys(params = {}) {
   const area = new Area(event);
   const dashboard = new Dashboard();
   const stateManager = new StateManager(event);
+  const eventLog = new EventLog(event, stateManager);
   const session = new Session(params.jwtSecret, cache);
   const house = new House(event, stateManager, session);
   const room = new Room(brain);
@@ -110,6 +112,7 @@ function Gladys(params = {}) {
     config,
     dashboard,
     event,
+    eventLog,
     house,
     http,
     job,
@@ -180,6 +183,8 @@ function Gladys(params = {}) {
       if (!params.disableGladysUpgradedCheck) {
         await system.checkIfGladysUpgraded(gateway);
       }
+
+      eventLog.listen();
 
       event.emit(EVENTS.TRIGGERS.CHECK, {
         type: EVENTS.SYSTEM.START,

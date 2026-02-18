@@ -184,6 +184,16 @@ class Header extends Component {
                       </Link>
                     </li>
                   )}
+                  <li class="nav-item">
+                    <Link
+                      href="/dashboard/event-log"
+                      class={cx('nav-link', {
+                        active: props.currentUrl === '/dashboard/event-log'
+                      })}
+                    >
+                      <i class="fe fe-book-open" /> <Text id="header.eventLog" />
+                    </Link>
+                  </li>
                 </ul>
               </div>
             </div>

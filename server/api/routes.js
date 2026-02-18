@@ -20,6 +20,7 @@ const SystemController = require('./controllers/system.controller');
 const VariableController = require('./controllers/variable.controller');
 const WeatherController = require('./controllers/weather.controller');
 const EnergyPriceController = require('./controllers/energy-price.controller');
+const EventLogController = require('./controllers/event-log.controller');
 
 /**
  * @description Return object of routes.
@@ -51,6 +52,7 @@ function getRoutes(gladys) {
   const systemController = SystemController(gladys);
   const weatherController = WeatherController(gladys);
   const energyPriceController = EnergyPriceController(gladys);
+  const eventLogController = EventLogController(gladys);
 
   const routes = {};
 
@@ -587,6 +589,20 @@ function getRoutes(gladys) {
     'get /api/v1/house/:house_selector/weather': {
       authenticated: true,
       controller: weatherController.getByHouse,
+    },
+    // event log
+    'get /api/v1/event_log': {
+      authenticated: true,
+      controller: eventLogController.get,
+    },
+    'post /api/v1/event_log': {
+      authenticated: true,
+      controller: eventLogController.create,
+    },
+    'post /api/v1/event_log/purge': {
+      authenticated: true,
+      admin: true,
+      controller: eventLogController.purge,
     },
     // energy price
     'get /api/v1/energy_price': {
