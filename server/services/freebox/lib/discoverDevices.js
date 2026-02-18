@@ -1,5 +1,6 @@
 const logger = require('../../../utils/logger');
 const { mergeDevices } = require('../../../utils/device');
+const { DEVICE_FEATURE_CATEGORIES } = require('../../../utils/constants');
 
 const { convertDevice } = require('./device/convertDevice');
 
@@ -23,6 +24,17 @@ async function discoverDevices(filters = {}) {
   logger.debug(`Freebox discoverDevices: sessionToken obtained`);
 
   logger.debug('Looking for Freebox devices...');
+
+  // Look up the rtsp-camera service ID so camera devices can be assigned to it
+  let rtspCameraServiceId = null;
+  try {
+    const rtspService = await this.gladys.service.getLocalServiceByName('rtsp-camera');
+    if (rtspService) {
+      rtspCameraServiceId = rtspService.id;
+    }
+  } catch (e) {
+    logger.warn('Freebox: rtsp-camera service not found, cameras will use freebox service');
+  }
   
   // Reset already discovered devices
   this.discoveredDevices = [];
@@ -43,9 +55,14 @@ async function discoverDevices(filters = {}) {
   let result = this.discoveredDevices
     .map((device) => {
       try {
+        const converted = convertDevice(device);
+        // Assign camera devices to the rtsp-camera service for image polling/streaming
+        const isCamera = converted.features.some(
+          (f) => f.category === DEVICE_FEATURE_CATEGORIES.CAMERA,
+        );
         return {
-          ...convertDevice(device),
-          service_id: this.serviceId,
+          ...converted,
+          service_id: isCamera && rtspCameraServiceId ? rtspCameraServiceId : this.serviceId,
         };
       } catch (e) {
         logger.error(`Freebox discoverDevices: error converting device`, e);

@@ -1,6 +1,6 @@
 const { BadParameters } = require('../../../utils/coreErrors');
 const { readValues } = require('./device/deviceMapping');
-const { EVENTS } = require('../../../utils/constants');
+const { EVENTS, DEVICE_FEATURE_CATEGORIES } = require('../../../utils/constants');
 
 /**
  *
@@ -75,6 +75,12 @@ async function poll(device) {
   });
 
   device.features.forEach((deviceFeature) => {
+    // Skip camera features: their value is a URL string, not numeric.
+    // Image capture is handled by the RTSP camera service.
+    if (deviceFeature.category === DEVICE_FEATURE_CATEGORIES.CAMERA) {
+      return;
+    }
+
     const [, , epId] = deviceFeature.external_id.split(':');
 
     const value = values[epId];

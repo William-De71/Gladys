@@ -6,8 +6,8 @@ const BATTERY = 'battery_warning';
 const CONTROL = 'stop';
 const POSITION = 'position';
 
-/*
 const CAMERA = 'cam';
+/*
 const STATE = 'state';
 const PUSHED = 'pushed';
 const ALARM1 = 'alarm1';
@@ -41,6 +41,11 @@ const mappings = {
     type: DEVICE_FEATURE_TYPES.SHUTTER.POSITION,
   },
   
+  [CAMERA]: {
+    category: DEVICE_FEATURE_CATEGORIES.CAMERA,
+    type: DEVICE_FEATURE_TYPES.CAMERA.IMAGE,
+  },
+
   /*
   [PUSHED]: {
     category: DEVICE_FEATURE_CATEGORIES.BUTTON,
@@ -55,11 +60,6 @@ const mappings = {
   [STATE]: {
     category: DEVICE_FEATURE_CATEGORIES.TEXT,
     type: DEVICE_FEATURE_TYPES.TEXT.TEXT,
-  },
-  
-  [CAMERA]: {
-    category: DEVICE_FEATURE_CATEGORIES.CAMERA,
-    type: DEVICE_FEATURE_TYPES.CAMERA.IMAGE,
   },
   */
 };
@@ -110,6 +110,12 @@ const readValues = {
     },
   },
 
+  [DEVICE_FEATURE_CATEGORIES.CAMERA]: {
+    [DEVICE_FEATURE_TYPES.CAMERA.IMAGE]: (valueFromDevice) => {
+      return valueFromDevice;
+    },
+  },
+
   /*
   [DEVICE_FEATURE_CATEGORIES.BUTTON]: {
     [DEVICE_FEATURE_TYPES.BUTTON.CLICK]: (valueFromDevice) => {
@@ -131,12 +137,6 @@ const readValues = {
       return valueFromDevice;
     }
   },
-
-  [DEVICE_FEATURE_CATEGORIES.CAMERA]: {
-    [DEVICE_FEATURE_TYPES.CAMERA.IMAGE]: (valueFromDevice) => {
-      return valueFromDevice;
-    }
-  }
   */
 };
 

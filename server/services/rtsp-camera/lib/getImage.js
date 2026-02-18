@@ -41,7 +41,12 @@ async function getImage(device) {
       `camera-${device.id}-${now.getMilliseconds()}-${now.getSeconds()}-${now.getMinutes()}-${now.getHours()}.jpg`,
     );
 
-    const args = ['-i', cameraUrlParam.value, '-f', 'image2', '-vframes', '1', '-qscale:v', '15'];
+    const args = [
+      '-analyzeduration', '10000000',
+      '-probesize', '10000000',
+      '-i', cameraUrlParam.value,
+      '-f', 'image2', '-vframes', '1', '-qscale:v', '15',
+    ];
 
     // For rtsp protocol, add tcp transport to avoid green band of pixels)
     if (cameraUrlParam.value.includes('rtsp')) {
