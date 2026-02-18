@@ -2909,7 +2909,16 @@
     "confirm": "Confirm",
     "cancel": "Cancel",
     "purgeSQliteTitle": "Purge SQLite states",
-    "purgeSQliteDescription": "Once all states are deleted from SQLite, you will need to perform a \"database cleanup\" on the tab to the right to free up disk space. This step may take some time."
+    "purgeSQliteDescription": "Once all states are deleted from SQLite, you will need to perform a \"database cleanup\" on the tab to the right to free up disk space. This step may take some time.",
+    "logs": {
+      "title": "Gladys Logs",
+      "lines": "lines",
+      "error": "Unable to retrieve logs.",
+      "empty": "No logs available.",
+      "clickRefresh": "Click the refresh button to load logs.",
+      "sourceDocker": "Source: Docker container",
+      "sourceBuffer": "Source: process memory"
+    }
   },
   "newArea": {
     "createNewZoneButton": "Create new zone",

@@ -1,3 +1,22 @@
 .textDecorationNone {
   text-decoration: none !important;
 }
+
+.logsSelectWidth {
+  width: auto;
+}
+
+.logsContainer {
+  max-height: 500px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background-color: #1e2433;
+  color: #e8eaf0;
+}
+
+.logsLine {
+  line-height: 1.4;
+}

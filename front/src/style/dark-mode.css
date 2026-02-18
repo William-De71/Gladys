@@ -168,6 +168,11 @@ body.dark-mode {
   filter: none;
 }
 
+/* Log viewer: double-invert to cancel global inversion and keep terminal colors intact */
+.dark-mode .gladys-logs-container {
+  filter: invert(100%) hue-rotate(180deg);
+}
+
 /* Dark mode toggle button */
 .mode-toggle {
   padding: 0.5rem;

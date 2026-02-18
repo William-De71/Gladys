@@ -71,6 +71,16 @@ module.exports = function SystemController(gladys) {
     });
   }
 
+  /**
+   * @api {get} /api/v1/system/logs
+   * @apiName getLogs
+   * @apiGroup System
+   */
+  async function getLogs(req, res) {
+    const result = await gladys.system.getLogs({ tail: req.query.tail });
+    res.json(result);
+  }
+
   return Object.freeze({
     installUpgrade: asyncMiddleware(installUpgrade),
     getSystemInfos: asyncMiddleware(getSystemInfos),
@@ -78,5 +88,6 @@ module.exports = function SystemController(gladys) {
     getContainers: asyncMiddleware(getContainers),
     shutdown: asyncMiddleware(shutdown),
     vacuum: asyncMiddleware(vacuum),
+    getLogs: asyncMiddleware(getLogs),
   });
 };

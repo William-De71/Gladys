@@ -24,6 +24,7 @@ const { getNetworkMode } = require('./system.getNetworkMode');
 const { vacuum } = require('./system.vacuum');
 const { checkIfGladysUpgraded } = require('./system.checkIfGladysUpgraded');
 const { setDuckDbTimezone } = require('./system.setDuckDbTimezone');
+const { getLogs } = require('./system.getLogs');
 
 const { shutdown } = require('./system.shutdown');
 
@@ -72,5 +73,6 @@ System.prototype.getNetworkMode = getNetworkMode;
 System.prototype.vacuum = vacuum;
 System.prototype.setDuckDbTimezone = setDuckDbTimezone;
 System.prototype.shutdown = shutdown;
+System.prototype.getLogs = getLogs;
 
 module.exports = System;

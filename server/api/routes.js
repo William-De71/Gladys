@@ -573,6 +573,11 @@ function getRoutes(gladys) {
       admin: true,
       controller: systemController.vacuum,
     },
+    'get /api/v1/system/logs': {
+      authenticated: true,
+      admin: true,
+      controller: systemController.getLogs,
+    },
     // user
     'post /api/v1/user': {
       authenticated: true,
