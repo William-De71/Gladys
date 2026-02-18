@@ -55,7 +55,7 @@ function convertFeature(freeboxFunctions, externalId) {
 
   if ((mapping === 'cam') || (mapping === 'state')) {
     feature.max = 0;
-    feature.read_only = false;
+    feature.read_only = true;
     feature.keep_history = false;
   }
   

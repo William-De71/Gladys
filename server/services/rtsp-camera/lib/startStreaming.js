@@ -106,6 +106,8 @@ async function startStreaming(cameraSelector, isGladysGateway, segmentDuration =
 
     // Build the array of parameters
     const args = [
+      '-analyzeduration', '10000000',
+      '-probesize', '10000000',
       '-i',
       cameraUrlParam.value,
       '-c:v',
@@ -165,7 +167,14 @@ async function startStreaming(cameraSelector, isGladysGateway, segmentDuration =
         break;
     }
 
-    args.splice(8, 0, '-vf', cameraRotationArgs);
+    // For rtsp protocol, add tcp transport
+    if (cameraUrlParam.value.includes('rtsp')) {
+      args.unshift('-rtsp_transport', 'tcp');
+    }
+
+    // Insert -vf after -c:v h264 (index 12 = after analyzeduration, probesize, -i, url, -c:v, h264)
+    const cvIndex = args.indexOf('-c:v');
+    args.splice(cvIndex + 2, 0, '-vf', cameraRotationArgs);
 
     const options = {
       timeout: 5 * 60 * 1000, // 5 minutes
