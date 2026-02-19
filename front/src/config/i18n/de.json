@@ -2911,13 +2911,11 @@
     "purgeSQliteTitle": "SQLite-Zustände löschen",
     "purgeSQliteDescription": "Sobald alle Zustände aus SQLite gelöscht wurden, müssen Sie auf der rechten Registerkarte eine \"Datenbankbereinigung\" durchführen, um Speicherplatz freizugeben. Dieser Schritt kann einige Zeit in Anspruch nehmen.",
     "logs": {
-      "title": "Gladys Logs",
+      "title": "Logs",
       "lines": "Zeilen",
       "error": "Logs konnten nicht abgerufen werden.",
       "empty": "Keine Logs verfügbar.",
-      "clickRefresh": "Klicken Sie auf die Schaltfläche Aktualisieren, um die Logs zu laden.",
-      "sourceDocker": "Quelle: Docker-Container",
-      "sourceBuffer": "Quelle: Prozessspeicher"
+      "clickRefresh": "Klicken Sie auf die Schaltfläche Aktualisieren, um die Logs zu laden."
     }
   },
   "newArea": {

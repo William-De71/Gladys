@@ -13,7 +13,6 @@ class SettingsSystemLogs extends Component {
       tail: 200,
       status: null,
       autoScroll: true,
-      source: null,
     };
     this.logsEndRef = null;
   }
@@ -22,7 +21,7 @@ class SettingsSystemLogs extends Component {
     this.setState({ status: RequestStatus.Getting });
     try {
       const result = await this.props.httpClient.get(`/api/v1/system/logs?tail=${this.state.tail}`);
-      this.setState({ logs: result.logs, source: result.source, status: RequestStatus.Success }, () => {
+      this.setState({ logs: result.logs, status: RequestStatus.Success }, () => {
         if (this.state.autoScroll && this.logsEndRef) {
           this.logsEndRef.scrollIntoView({ behavior: 'smooth' });
         }
@@ -41,23 +40,16 @@ class SettingsSystemLogs extends Component {
     this.setState(prev => ({ autoScroll: !prev.autoScroll }));
   };
 
-  render(props, { logs, tail, status, autoScroll, source }) {
+  render(props, { logs, tail, status, autoScroll }) {
     const loading = status === RequestStatus.Getting;
     const error = status === RequestStatus.Error;
 
     return (
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <div>
-            <h4 class="mb-0">
-              <Text id="systemSettings.logs.title" />
-            </h4>
-            {source && (
-              <small class="text-muted">
-                <Text id={`systemSettings.logs.source${source === 'docker' ? 'Docker' : 'Buffer'}`} />
-              </small>
-            )}
-          </div>
+          <h4 class="mb-0">
+            <Text id="systemSettings.logs.title" />
+          </h4>
           <div class="d-flex align-items-center">
             <select
               class={`form-control form-control-sm mr-2 ${style.logsSelectWidth}`}
@@ -100,7 +92,7 @@ class SettingsSystemLogs extends Component {
             </div>
           )}
           {(status === RequestStatus.Success || loading) && (
-            <div class={`p-3 gladys-logs-container ${style.logsContainer}`}>
+            <div class={`p-3 ${style.logsContainer}`}>
               {logs.length === 0 && !loading && (
                 <span class="text-muted">
                   <Text id="systemSettings.logs.empty" />
