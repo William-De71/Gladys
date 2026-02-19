@@ -563,6 +563,11 @@ function getRoutes(gladys) {
       admin: true,
       controller: systemController.shutdown,
     },
+    'post /api/v1/system/restart': {
+      authenticated: true,
+      admin: true,
+      controller: systemController.restart,
+    },
     'post /api/v1/system/upgrade': {
       authenticated: true,
       admin: true,

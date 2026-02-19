@@ -16,6 +16,17 @@ class SettingsSystem extends Component {
     };
   }
 
+  restartGladys = async () => {
+    this.setState({ SystemRestartStatus: RequestStatus.Getting });
+    try {
+      await this.props.httpClient.post('/api/v1/system/restart');
+      this.setState({ SystemRestartStatus: RequestStatus.Success });
+    } catch (e) {
+      console.error(e);
+      this.setState({ SystemRestartStatus: RequestStatus.Error });
+    }
+  };
+
   upgradeGladys = async () => {
     this.setState({
       SystemUpgradeStatus: RequestStatus.Getting,
@@ -108,7 +119,7 @@ class SettingsSystem extends Component {
     }
   };
 
-  render(props, { SystemUpgradeStatus, watchtowerLogs, websocketConnected, SystemGetInfosStatus, systemInfos }) {
+  render(props, { SystemUpgradeStatus, watchtowerLogs, websocketConnected, SystemGetInfosStatus, systemInfos, SystemRestartStatus }) {
     return (
       <SettingsSystemPage
         {...props}
@@ -120,6 +131,8 @@ class SettingsSystem extends Component {
         SystemGetInfosStatus={SystemGetInfosStatus}
         getInfos={this.getInfos}
         systemInfos={systemInfos}
+        restartGladys={this.restartGladys}
+        SystemRestartStatus={SystemRestartStatus}
       />
     );
   }

@@ -34,6 +34,7 @@
   "author": "Pierre-Gilles Leymarie",
   "license": "Apache-2.0",
   "nodemonConfig": {
+    "exitcrash": true,
     "ignore": [
       "test/*",
       "persist/*"

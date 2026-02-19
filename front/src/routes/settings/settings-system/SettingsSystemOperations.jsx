@@ -1,5 +1,6 @@
 import { connect } from 'unistore/preact';
 import { Text } from 'preact-i18n';
+import { useState } from 'preact/hooks';
 import { RequestStatus } from '../../../utils/consts';
 import style from './style.css';
 
@@ -10,8 +11,20 @@ const SettingsSystemOperations = ({
   watchtowerLogs,
   websocketConnected,
   SystemGetInfosStatus,
-  checkForUpdates
-}) => (
+  checkForUpdates,
+  restartGladys,
+  SystemRestartStatus
+}) => {
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+
+  const handleRestartClick = () => setShowRestartConfirm(true);
+  const handleRestartCancel = () => setShowRestartConfirm(false);
+  const handleRestartConfirm = () => {
+    setShowRestartConfirm(false);
+    restartGladys();
+  };
+
+  return (
   <div class="card">
     <div class={SystemGetInfosStatus === RequestStatus.Getting ? 'dimmer active' : 'dimmer'}>
       <div class="loader" />
@@ -113,9 +126,38 @@ const SettingsSystemOperations = ({
             </table>
           </div>
         )}
+
+        <div class="card-footer">
+          {SystemRestartStatus === RequestStatus.Error && (
+            <div class="alert alert-danger mb-2">
+              <Text id="systemSettings.restartError" />
+            </div>
+          )}
+          <p>
+            {SystemRestartStatus === RequestStatus.Getting ? (
+              <span>
+                <Text id="systemSettings.restartingGladys" />
+              </span>
+            ) : !showRestartConfirm ? (
+              <button class="btn btn-danger" onClick={handleRestartClick}>
+                <Text id="systemSettings.restartGladys" />
+              </button>
+            ) : (
+              <span>
+                <button onClick={handleRestartConfirm} class="btn btn-primary mr-2">
+                  <Text id="systemSettings.confirm" />
+                </button>
+                <button onClick={handleRestartCancel} class="btn btn-danger">
+                  <Text id="systemSettings.cancel" />
+                </button>
+              </span>
+            )}
+          </p>
+        </div>
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default connect('', {})(SettingsSystemOperations);

@@ -59,6 +59,19 @@ module.exports = function SystemController(gladys) {
   }
 
   /**
+   * @api {post} /api/v1/system/restart
+   * @apiName restartSystem
+   * @apiGroup System
+   */
+  async function restart(req, res) {
+    res.json({
+      success: true,
+      message: 'System will restart soon',
+    });
+    gladys.system.restart();
+  }
+
+  /**
    * @api {post} /api/v1/system/vacuum
    * @apiName vacuumSystem
    * @apiGroup System
@@ -77,6 +90,7 @@ module.exports = function SystemController(gladys) {
     getDiskSpace: asyncMiddleware(getDiskSpace),
     getContainers: asyncMiddleware(getContainers),
     shutdown: asyncMiddleware(shutdown),
+    restart: asyncMiddleware(restart),
     vacuum: asyncMiddleware(vacuum),
   });
 };
