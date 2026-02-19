@@ -94,6 +94,8 @@ const SystemPage = ({ children, ...props }) => (
           checkForUpdates={props.checkForUpdates}
           SystemGetInfosStatus={props.SystemGetInfosStatus}
           systemInfos={props.systemInfos}
+          restartGladys={props.restartGladys}
+          SystemRestartStatus={props.SystemRestartStatus}
         />
         <SettingsSystemDuckDbMigration />
         <SettingsSystemKeepDeviceHistory />
