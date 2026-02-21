@@ -1,0 +1,117 @@
+.gaugeContainer {
+  width: 100%;
+  max-width: 220px;
+}
+
+.gaugeSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.arcLabel {
+  font-size: 9px;
+  fill: #adb5bd;
+}
+
+.currentTempText {
+  font-size: 16px;
+  fill: #495057;
+  font-weight: 600;
+}
+
+.humidityText {
+  font-size: 13px;
+  fill: #6c757d;
+}
+
+.activeIconHeating {
+  font-size: 18px;
+}
+
+.activeIconCooling {
+  font-size: 18px;
+}
+
+.tempMain {
+  font-size: 50px;
+  fill: #212529;
+  font-weight: 700;
+}
+
+.tempDecimal {
+  font-size: 22px;
+  fill: #495057;
+  font-weight: 500;
+}
+
+.tempUnit {
+  font-size: 16px;
+  fill: #adb5bd;
+}
+
+.modeIcon {
+  font-size: 20px !important;
+}
+
+.presetWrapper {
+  position: relative;
+}
+
+.presetMenu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 0;
+  background: #fff;
+  border: 1px solid rgba(0, 40, 100, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 160px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+}
+
+.presetItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(0, 40, 100, 0.06);
+  color: #495057;
+  font-size: 0.875rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.presetItem:last-child {
+  border-bottom: none;
+}
+
+.presetItem:hover {
+  background: #f8f9fa;
+}
+
+.presetItemActive {
+  color: #467fcf;
+  font-weight: 600;
+}
+
+.presetLabel {
+  flex: 1;
+}
+
+.presetTemp {
+  font-size: 0.8rem;
+  color: #adb5bd;
+  margin-left: 8px;
+}
+
+.presetItemActive .presetTemp {
+  color: #467fcf;
+}

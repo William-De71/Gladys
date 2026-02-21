@@ -288,7 +288,8 @@
       "gauge": "Jauge",
       "energy-consumption": "Consommation Énergétique",
       "voice-assistant": "Assistant vocal",
-      "link": "Lien"
+      "link": "Lien",
+      "thermostat": "Thermostat"
     },
     "boxes": {
       "column": "Colonne {{index}}",
@@ -505,6 +506,35 @@
         "thresholdsLegendLabel": "Seuils :",
         "editNameLabel": "Nom du widget (optionnel)",
         "editNamePlaceholder": "Nom affiché sur le tableau de bord"
+      },
+      "thermostat": {
+        "defaultTitle": "Thermostat",
+        "editNameLabel": "Nom du widget (optionnel)",
+        "editNamePlaceholder": "Ex: Thermostat Salon",
+        "thermostatFeatureLabel": "Fonctionnalité thermostat (consigne)",
+        "thermostatFeatureHelp": "Sélectionnez la fonctionnalité qui contrôle la température cible.",
+        "temperatureFeatureLabel": "Capteur de température actuelle (optionnel)",
+        "temperatureFeatureHelp": "Sélectionnez le capteur qui mesure la température ambiante.",
+        "humidityFeatureLabel": "Capteur d'humidité (optionnel)",
+        "tempMinLabel": "Température min",
+        "tempMaxLabel": "Température max",
+        "presetsLabel": "Températures des préréglages",
+        "selectPlaceholder": "Sélectionner...",
+        "inactive": "Inactif",
+        "current": "Actuel",
+        "modeHeating": "Mode Chauffage",
+        "modeCooling": "Mode Climatisation",
+        "modeOff": "Mode Arrêt",
+        "noConfig": "Veuillez configurer le widget en cliquant sur le bouton d'édition.",
+        "error": "Erreur lors du chargement des données du thermostat.",
+        "preset": {
+          "off": "Arrêt",
+          "frost": "Hors-gel",
+          "away": "Absent",
+          "comfort": "Confort",
+          "eco": "Éco",
+          "night": "Nuit"
+        }
       },
       "energyConsumption": {
         "editName": "Nom du widget (optionnel)",

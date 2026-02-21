@@ -288,7 +288,8 @@
       "gauge": "Gauge",
       "energy-consumption": "Energy Consumption",
       "voice-assistant": "Voice assistant",
-      "link": "Link"
+      "link": "Link",
+      "thermostat": "Thermostat"
     },
     "boxes": {
       "column": "Column {{index}}",
@@ -466,6 +467,35 @@
         "thresholdsLegendLabel": "Thresholds:",
         "editNameLabel": "Widget name (optional)",
         "editNamePlaceholder": "Name displayed on the dashboard"
+      },
+      "thermostat": {
+        "defaultTitle": "Thermostat",
+        "editNameLabel": "Widget name (optional)",
+        "editNamePlaceholder": "e.g. Living Room Thermostat",
+        "thermostatFeatureLabel": "Thermostat feature (setpoint)",
+        "thermostatFeatureHelp": "Select the feature that controls the target temperature.",
+        "temperatureFeatureLabel": "Current temperature sensor (optional)",
+        "temperatureFeatureHelp": "Select the sensor that measures the ambient temperature.",
+        "humidityFeatureLabel": "Humidity sensor (optional)",
+        "tempMinLabel": "Min temperature",
+        "tempMaxLabel": "Max temperature",
+        "presetsLabel": "Preset temperatures",
+        "selectPlaceholder": "Select...",
+        "inactive": "Inactive",
+        "current": "Current",
+        "modeHeating": "Heating Mode",
+        "modeCooling": "Cooling Mode",
+        "modeOff": "Off Mode",
+        "noConfig": "Please configure the widget by clicking the edit button.",
+        "error": "Error loading thermostat data.",
+        "preset": {
+          "off": "Off",
+          "frost": "Frost protection",
+          "away": "Away",
+          "comfort": "Comfort",
+          "eco": "Eco",
+          "night": "Night"
+        }
       },
       "energyConsumption": {
         "editName": "Widget Name (optional)",
