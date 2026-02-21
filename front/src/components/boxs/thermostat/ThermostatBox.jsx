@@ -91,6 +91,7 @@ class ThermostatBox extends Component {
   };
 
   svgRef = null;
+  presetRef = null;
 
   getMinTemp = () => Number(this.props.box.temp_min) || DEFAULT_MIN;
   getMaxTemp = () => Number(this.props.box.temp_max) || DEFAULT_MAX;
@@ -174,6 +175,7 @@ class ThermostatBox extends Component {
     this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.DEVICE.NEW_STATE, this.handleWebsocketMessage);
     this.props.session.dispatcher.removeListener('websocket.connected', this.handleWebsocketConnected);
     this.stopDrag();
+    document.removeEventListener('click', this.handleOutsideClick);
   }
 
   componentDidUpdate(prevProps) {
@@ -269,10 +271,26 @@ class ThermostatBox extends Component {
 
   togglePresetMenu = e => {
     e.stopPropagation();
-    this.setState(s => ({ presetOpen: !s.presetOpen }));
+    this.setState(s => {
+      const next = !s.presetOpen;
+      if (next) {
+        document.addEventListener('click', this.handleOutsideClick);
+      } else {
+        document.removeEventListener('click', this.handleOutsideClick);
+      }
+      return { presetOpen: next };
+    });
+  };
+
+  handleOutsideClick = e => {
+    if (this.presetRef && !this.presetRef.contains(e.target)) {
+      this.setState({ presetOpen: false });
+      document.removeEventListener('click', this.handleOutsideClick);
+    }
   };
 
   selectPreset = preset => {
+    document.removeEventListener('click', this.handleOutsideClick);
     if (preset.key === 'off') {
       this.setState({ activePreset: 'off', presetOpen: false, mode: 'off' });
     } else {
@@ -292,7 +310,7 @@ class ThermostatBox extends Component {
     const minTemp = this.getMinTemp();
     const maxTemp = this.getMaxTemp();
     const presets = this.getPresets();
-    const activePresetData = presets.find(p => p.key === activePreset) || presets[1];
+    const activePresetData = presets.find(p => p.key === activePreset) || presets[0];
     const isActive = mode === 'heating'
       ? (currentTemp !== null && currentTemp !== undefined && currentTemp < setpoint)
       : mode === 'cooling'
@@ -363,9 +381,9 @@ class ThermostatBox extends Component {
                 </div>
 
                 <div class="col-6">
-                  <div class={style.presetWrapper}>
+                  <div class={style.presetWrapper} ref={el => (this.presetRef = el)}>
                     <button
-                      class={`btn btn-block ${activePreset === 'comfort' ? 'btn-primary' : 'btn-outline-primary'}`}
+                      class={`btn btn-block ${activePreset !== 'off' ? 'btn-primary' : 'btn-outline-secondary'}`}
                       onClick={this.togglePresetMenu}
                     >
                       <div class="pb-1">
