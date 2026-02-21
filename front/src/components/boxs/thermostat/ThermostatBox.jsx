@@ -96,6 +96,26 @@ class ThermostatBox extends Component {
   getMinTemp = () => Number(this.props.box.temp_min) || DEFAULT_MIN;
   getMaxTemp = () => Number(this.props.box.temp_max) || DEFAULT_MAX;
 
+  getStorageKey = suffix => `thermostat_${suffix}_${this.props.box.thermostat_feature || 'default'}`;
+
+  loadMode = () => {
+    try {
+      const savedMode = localStorage.getItem(this.getStorageKey('mode'));
+      const savedPreset = localStorage.getItem(this.getStorageKey('preset'));
+      const update = {};
+      if (savedMode) update.mode = savedMode;
+      if (savedPreset) update.activePreset = savedPreset;
+      if (Object.keys(update).length) this.setState(update);
+    } catch (e) { /* ignore */ }
+  };
+
+  saveMode = (mode, preset) => {
+    try {
+      localStorage.setItem(this.getStorageKey('mode'), mode);
+      if (preset !== undefined) localStorage.setItem(this.getStorageKey('preset'), preset);
+    } catch (e) { /* ignore */ }
+  };
+
   getPresets = () => {
     const { box } = this.props;
     return [
@@ -166,6 +186,7 @@ class ThermostatBox extends Component {
   };
 
   componentDidMount() {
+    this.loadMode();
     this.getDeviceData();
     this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.DEVICE.NEW_STATE, this.handleWebsocketMessage);
     this.props.session.dispatcher.addListener('websocket.connected', this.handleWebsocketConnected);
@@ -292,8 +313,10 @@ class ThermostatBox extends Component {
   selectPreset = preset => {
     document.removeEventListener('click', this.handleOutsideClick);
     if (preset.key === 'off') {
+      this.saveMode('off', 'off');
       this.setState({ activePreset: 'off', presetOpen: false, mode: 'off' });
     } else {
+      this.saveMode(this.state.mode, preset.key);
       this.setState({ activePreset: preset.key, setpoint: preset.temp, presetOpen: false });
       this.sendSetpoint(preset.temp);
     }
@@ -302,6 +325,7 @@ class ThermostatBox extends Component {
   cycleActiveMode = () => {
     this.setState(s => {
       const next = s.mode === 'heating' ? 'cooling' : 'heating';
+      this.saveMode(next);
       return { mode: next };
     });
   };
