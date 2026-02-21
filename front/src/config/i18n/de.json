@@ -285,7 +285,8 @@
       "scene": "Szene",
       "music": "Musik",
       "gauge": "Messanzeige",
-      "energy-consumption": "Energieverbrauch"
+      "energy-consumption": "Energieverbrauch",
+      "thermostat": "Thermostat"
     },
     "boxes": {
       "column": "Spalte {{index}}",
@@ -475,6 +476,35 @@
       },
       "music": {
         "selectDeviceLabel": "Wähle das zu steuernde Gerät aus"
+      },
+      "thermostat": {
+        "defaultTitle": "Thermostat",
+        "editNameLabel": "Widget-Name (optional)",
+        "editNamePlaceholder": "z.B. Wohnzimmer Thermostat",
+        "thermostatFeatureLabel": "Thermostat-Funktion (Sollwert)",
+        "thermostatFeatureHelp": "Wähle die Funktion aus, die die Zieltemperatur steuert.",
+        "temperatureFeatureLabel": "Aktueller Temperatursensor (optional)",
+        "temperatureFeatureHelp": "Wähle den Sensor aus, der die Umgebungstemperatur misst.",
+        "humidityFeatureLabel": "Feuchtigkeitssensor (optional)",
+        "tempMinLabel": "Min-Temperatur",
+        "tempMaxLabel": "Max-Temperatur",
+        "presetsLabel": "Voreinstellungstemperaturen",
+        "selectPlaceholder": "Auswählen...",
+        "inactive": "Inaktiv",
+        "current": "Aktuell",
+        "modeHeating": "Heizmodus",
+        "modeCooling": "Kühlmodus",
+        "modeOff": "Aus-Modus",
+        "noConfig": "Bitte konfiguriere das Widget über die Bearbeitungsschaltfläche.",
+        "error": "Fehler beim Laden der Thermostatdaten.",
+        "preset": {
+          "off": "Aus",
+          "frost": "Frostschutz",
+          "away": "Abwesend",
+          "comfort": "Komfort",
+          "eco": "Öko",
+          "night": "Nacht"
+        }
       },
       "energyConsumption": {
         "editName": "Widget-Name (optional)",

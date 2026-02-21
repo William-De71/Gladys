@@ -17,6 +17,7 @@ import EditAlarmBox from '../../../components/boxs/alarm/EditAlarm';
 import EditEdfTempoBox from '../../../components/boxs/edf-tempo/EditEdfTempo';
 import EditGaugeBox from '../../../components/boxs/gauge/EditGaugeBox';
 import EditEnergyConsumptionBox from '../../../components/boxs/energy-consumption/EditEnergyConsumption';
+import EditThermostatBox from '../../../components/boxs/thermostat/EditThermostatBox';
 
 const Box = ({ children, ...props }) => {
   switch (props.box.type) {
@@ -52,6 +53,8 @@ const Box = ({ children, ...props }) => {
       return <EditGaugeBox {...props} />;
     case 'energy-consumption':
       return <EditEnergyConsumptionBox {...props} />;
+    case 'thermostat':
+      return <EditThermostatBox {...props} />;
     default:
       return <SelectBoxType {...props} />;
   }

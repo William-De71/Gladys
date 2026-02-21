@@ -1410,6 +1410,7 @@ const DASHBOARD_BOX_TYPE = {
   MUSIC: 'music',
   GAUGE: 'gauge',
   ENERGY_CONSUMPTION: 'energy-consumption',
+  THERMOSTAT: 'thermostat',
 };
 
 const ERROR_MESSAGES = {
