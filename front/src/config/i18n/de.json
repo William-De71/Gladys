@@ -510,6 +510,7 @@
         "modeCooling": "Kühlmodus",
         "modeOff": "Aus-Modus",
         "noConfig": "Bitte konfiguriere das Widget über die Bearbeitungsschaltfläche.",
+        "manualMode": "Manueller Modus",
         "error": "Fehler beim Laden der Thermostatdaten.",
         "preset": {
           "off": "Aus",

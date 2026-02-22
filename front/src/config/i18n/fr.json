@@ -510,6 +510,7 @@
         "modeCooling": "Mode Climatisation",
         "modeOff": "Mode Arrêt",
         "noConfig": "Veuillez configurer le widget en cliquant sur le bouton d'édition.",
+        "manualMode": "Mode manuel",
         "error": "Erreur lors du chargement des données du thermostat.",
         "preset": {
           "off": "Arrêt",

@@ -489,6 +489,7 @@
         "modeCooling": "Cooling Mode",
         "modeOff": "Off Mode",
         "noConfig": "Please configure the widget by clicking the edit button.",
+        "manualMode": "Manual mode",
         "error": "Error loading thermostat data.",
         "preset": {
           "off": "Off",
