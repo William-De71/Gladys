@@ -11,6 +11,8 @@ const ARC_DEGREES = 240;
 const ARC_START_ANGLE = 150;
 const DEFAULT_PRESET_TEMPS = { off: null, frost: 7, away: 16, comfort: 21, eco: 18, night: 17 };
 const PRESET_ICONS = { off: 'fe-power', frost: 'fe-cloud-snow', away: 'fe-user-x', comfort: 'fe-sun', eco: 'fe-feather', night: 'fe-moon' };
+const HEATING_PRESETS = ['off', 'frost', 'away', 'eco', 'night', 'comfort'];
+const COOLING_PRESETS = ['off', 'comfort'];
 
 function polarToCartesian(cx, cy, r, angleDeg) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
@@ -98,7 +100,6 @@ class ThermostatBox extends Component {
     humidity: null,
     presetOpen: false,
     activePreset: 'comfort',
-    mode: 'off',
     error: false,
     noConfig: false
   };
@@ -113,32 +114,30 @@ class ThermostatBox extends Component {
 
   loadMode = () => {
     try {
-      const savedMode = localStorage.getItem(this.getStorageKey('mode'));
       const savedPreset = localStorage.getItem(this.getStorageKey('preset'));
-      const update = {};
-      if (savedMode) update.mode = savedMode;
-      if (savedPreset) update.activePreset = savedPreset;
-      if (Object.keys(update).length) this.setState(update);
+      if (savedPreset) this.setState({ activePreset: savedPreset });
     } catch (e) { /* ignore */ }
   };
 
-  saveMode = (mode, preset) => {
+  savePreset = preset => {
     try {
-      localStorage.setItem(this.getStorageKey('mode'), mode);
-      if (preset !== undefined) localStorage.setItem(this.getStorageKey('preset'), preset);
+      localStorage.setItem(this.getStorageKey('preset'), preset);
     } catch (e) { /* ignore */ }
   };
 
   getPresets = () => {
     const { box } = this.props;
-    return [
-      { key: 'off', icon: PRESET_ICONS.off, temp: null },
-      { key: 'frost', icon: PRESET_ICONS.frost, temp: Number(box.preset_frost) || DEFAULT_PRESET_TEMPS.frost },
-      { key: 'away', icon: PRESET_ICONS.away, temp: Number(box.preset_away) || DEFAULT_PRESET_TEMPS.away },
-      { key: 'comfort', icon: PRESET_ICONS.comfort, temp: Number(box.preset_comfort) || DEFAULT_PRESET_TEMPS.comfort },
-      { key: 'eco', icon: PRESET_ICONS.eco, temp: Number(box.preset_eco) || DEFAULT_PRESET_TEMPS.eco },
-      { key: 'night', icon: PRESET_ICONS.night, temp: Number(box.preset_night) || DEFAULT_PRESET_TEMPS.night }
-    ];
+    const mode = box.default_mode || 'heating';
+    const keys = mode === 'cooling' ? COOLING_PRESETS : HEATING_PRESETS;
+    const allPresets = {
+      off: { key: 'off', icon: PRESET_ICONS.off, temp: null },
+      frost: { key: 'frost', icon: PRESET_ICONS.frost, temp: Number(box.preset_frost) || DEFAULT_PRESET_TEMPS.frost },
+      away: { key: 'away', icon: PRESET_ICONS.away, temp: Number(box.preset_away) || DEFAULT_PRESET_TEMPS.away },
+      comfort: { key: 'comfort', icon: PRESET_ICONS.comfort, temp: Number(box.preset_comfort) || DEFAULT_PRESET_TEMPS.comfort },
+      eco: { key: 'eco', icon: PRESET_ICONS.eco, temp: Number(box.preset_eco) || DEFAULT_PRESET_TEMPS.eco },
+      night: { key: 'night', icon: PRESET_ICONS.night, temp: Number(box.preset_night) || DEFAULT_PRESET_TEMPS.night }
+    };
+    return keys.map(k => allPresets[k]);
   };
 
   getDeviceData = async () => {
@@ -336,29 +335,23 @@ class ThermostatBox extends Component {
 
   selectPreset = preset => {
     document.removeEventListener('click', this.handleOutsideClick);
+    const mode = this.props.box.default_mode || 'heating';
     if (preset.key === 'off') {
-      this.saveMode('off', 'off');
-      this.setState({ activePreset: 'off', presetOpen: false, mode: 'off' });
+      this.savePreset('off');
+      this.sendMode('off');
+      this.setState({ activePreset: 'off', presetOpen: false });
     } else {
-      this.saveMode(this.state.mode, preset.key);
+      this.savePreset(preset.key);
+      this.sendMode(mode);
       this.setState({ activePreset: preset.key, setpoint: preset.temp, presetOpen: false });
       this.sendSetpoint(preset.temp);
     }
   };
 
-  cycleActiveMode = () => {
-    this.setState(s => {
-      const next = s.mode === 'heating' ? 'cooling' : 'heating';
-      this.saveMode(next);
-      this.sendMode(next);
-      this.sendSetpoint(s.setpoint);
-      return { mode: next };
-    });
-  };
-
-  render(props, { setpoint, currentTemp, humidity, presetOpen, activePreset, mode, error, noConfig }) {
+  render(props, { setpoint, currentTemp, humidity, presetOpen, activePreset, error, noConfig }) {
     const minTemp = this.getMinTemp();
     const maxTemp = this.getMaxTemp();
+    const mode = props.box.default_mode || 'heating';
     const presets = this.getPresets();
     const activePresetData = presets.find(p => p.key === activePreset) || presets[0];
     const isActive = mode === 'heating'
@@ -366,10 +359,6 @@ class ThermostatBox extends Component {
       : mode === 'cooling'
         ? (currentTemp !== null && currentTemp !== undefined && currentTemp > setpoint)
         : false;
-
-    const modeBtnClass = mode === 'heating' ? 'btn-warning' : mode === 'cooling' ? 'btn-info' : 'btn-outline-secondary';
-    const modeIcon = mode === 'cooling' ? 'fe-wind' : mode === 'off' ? 'fe-power' : 'fe-thermometer';
-    const modeKey = mode === 'cooling' ? 'dashboard.boxes.thermostat.modeCooling' : mode === 'off' ? 'dashboard.boxes.thermostat.modeOff' : 'dashboard.boxes.thermostat.modeHeating';
 
     return (
       <div class="card">
@@ -414,16 +403,7 @@ class ThermostatBox extends Component {
               </div>
 
               <div class="row">
-                <div class="col-6">
-                  <button class={`btn btn-block ${modeBtnClass}`} onClick={this.cycleActiveMode}>
-                    <div class="pb-1">
-                      <i class={`fe ${modeIcon} ${style.modeIcon}`} />
-                    </div>
-                    <div><Text id={modeKey} /></div>
-                  </button>
-                </div>
-
-                <div class="col-6">
+                <div class="col-12">
                   <div class={style.presetWrapper} ref={el => (this.presetRef = el)}>
                     <button
                       class={`btn btn-block ${activePreset !== 'off' ? 'btn-primary' : 'btn-outline-secondary'}`}
@@ -463,6 +443,7 @@ class ThermostatBox extends Component {
       </div>
     );
   }
+
 }
 
 export default connect('httpClient,session', {})(withIntlAsProp(ThermostatBox));

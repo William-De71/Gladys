@@ -46,15 +46,13 @@ class EditThermostatBoxComponent extends Component {
     this.props.updateBoxConfig(this.props.x, this.props.y, { name: e.target.value || undefined });
   };
 
-  updateNumberField = field => e => {
-    const val = parseFloat(e.target.value);
-    this.props.updateBoxConfig(this.props.x, this.props.y, { [field]: isNaN(val) ? undefined : val });
+  updateDefaultMode = mode => {
+    this.props.updateBoxConfig(this.props.x, this.props.y, { default_mode: mode });
   };
 
-  stepValue = (field, def, step, min, max, delta) => {
-    const current = this.props.box[field] !== undefined ? Number(this.props.box[field]) : def;
-    const next = Math.min(max, Math.max(min, Math.round((current + delta * step) * 10) / 10));
-    this.props.updateBoxConfig(this.props.x, this.props.y, { [field]: next });
+  updateNumberField = (field, e) => {
+    const val = parseFloat(e.target.value);
+    this.props.updateBoxConfig(this.props.x, this.props.y, { [field]: isNaN(val) ? undefined : val });
   };
 
   buildOptions = (devices, filterFn) => {
@@ -123,6 +121,10 @@ class EditThermostatBoxComponent extends Component {
     const placeholder = props.intl && props.intl.dictionary
       ? props.intl.dictionary.dashboard.boxes.thermostat.selectPlaceholder
       : '';
+    const currentMode = props.box.default_mode || 'heating';
+    const heatingPresets = [['frost', 7], ['away', 16], ['eco', 18], ['night', 17], ['comfort', 21]];
+    const coolingPresets = [['comfort', 21]];
+    const activePresets = currentMode === 'cooling' ? coolingPresets : heatingPresets;
 
     return (
       <BaseEditBox {...props} titleKey="dashboard.boxTitle.thermostat">
@@ -195,33 +197,45 @@ class EditThermostatBoxComponent extends Component {
           </small>
         </div>
 
+        <div class="form-group">
+          <label class="form-label">
+            <Text id="dashboard.boxes.thermostat.defaultModeLabel" />
+          </label>
+          <div class="btn-group btn-group-toggle d-flex">
+            <button
+              type="button"
+              class={`btn btn-outline-warning flex-fill${currentMode === 'heating' ? ' active' : ''}`}
+              onClick={() => this.updateDefaultMode('heating')}
+            >
+              <i class="fe fe-thermometer mr-1" />
+              <Text id="dashboard.boxes.thermostat.modeHeating" />
+            </button>
+            <button
+              type="button"
+              class={`btn btn-outline-info flex-fill${currentMode === 'cooling' ? ' active' : ''}`}
+              onClick={() => this.updateDefaultMode('cooling')}
+            >
+              <i class="fe fe-wind mr-1" />
+              <Text id="dashboard.boxes.thermostat.modeCooling" />
+            </button>
+          </div>
+        </div>
+
         <div class="row">
           <div class="col-6">
             <div class="form-group">
               <label class="form-label">
                 <Text id="dashboard.boxes.thermostat.tempMinLabel" />
               </label>
-              <div class="input-group">
-                <div class="input-group-prepend">
-                  <button class="btn btn-outline-secondary" type="button" onClick={() => this.stepValue('temp_min', 5, 1, -20, 40, -1)}>
-                    <i class="fe fe-minus" />
-                  </button>
-                </div>
-                <input
-                  type="number"
-                  class="form-control text-center"
-                  value={props.box.temp_min !== undefined ? props.box.temp_min : 5}
-                  onInput={this.updateNumberField('temp_min')}
-                  min="-20"
-                  max="40"
-                  step="1"
-                />
-                <div class="input-group-append">
-                  <button class="btn btn-outline-secondary" type="button" onClick={() => this.stepValue('temp_min', 5, 1, -20, 40, 1)}>
-                    <i class="fe fe-plus" />
-                  </button>
-                </div>
-              </div>
+              <input
+                type="number"
+                class="form-control"
+                value={props.box.temp_min !== undefined ? props.box.temp_min : 5}
+                onInput={e => this.updateNumberField('temp_min', e)}
+                min="-20"
+                max="40"
+                step="1"
+              />
             </div>
           </div>
           <div class="col-6">
@@ -229,27 +243,15 @@ class EditThermostatBoxComponent extends Component {
               <label class="form-label">
                 <Text id="dashboard.boxes.thermostat.tempMaxLabel" />
               </label>
-              <div class="input-group">
-                <div class="input-group-prepend">
-                  <button class="btn btn-outline-secondary" type="button" onClick={() => this.stepValue('temp_max', 35, 1, -20, 40, -1)}>
-                    <i class="fe fe-minus" />
-                  </button>
-                </div>
-                <input
-                  type="number"
-                  class="form-control text-center"
-                  value={props.box.temp_max !== undefined ? props.box.temp_max : 35}
-                  onInput={this.updateNumberField('temp_max')}
-                  min="-20"
-                  max="40"
-                  step="1"
-                />
-                <div class="input-group-append">
-                  <button class="btn btn-outline-secondary" type="button" onClick={() => this.stepValue('temp_max', 35, 1, -20, 40, 1)}>
-                    <i class="fe fe-plus" />
-                  </button>
-                </div>
-              </div>
+              <input
+                type="number"
+                class="form-control"
+                value={props.box.temp_max !== undefined ? props.box.temp_max : 35}
+                onInput={e => this.updateNumberField('temp_max', e)}
+                min="-20"
+                max="40"
+                step="1"
+              />
             </div>
           </div>
         </div>
@@ -258,33 +260,21 @@ class EditThermostatBoxComponent extends Component {
           <Text id="dashboard.boxes.thermostat.presetsLabel" />
         </label>
         <div class="row">
-          {[['frost', 7], ['away', 16], ['comfort', 21], ['eco', 18], ['night', 17]].map(([key, def]) => (
+          {activePresets.map(([key, def]) => (
             <div class="col-6" key={key}>
               <div class="form-group">
                 <label class="form-label">
                   <Text id={`dashboard.boxes.thermostat.preset.${key}`} />
                 </label>
-                <div class="input-group">
-                  <div class="input-group-prepend">
-                    <button class="btn btn-outline-secondary" type="button" onClick={() => this.stepValue(`preset_${key}`, def, 0.5, -20, 40, -1)}>
-                      <i class="fe fe-minus" />
-                    </button>
-                  </div>
-                  <input
-                    type="number"
-                    class="form-control text-center"
-                    value={props.box[`preset_${key}`] !== undefined ? props.box[`preset_${key}`] : def}
-                    onInput={this.updateNumberField(`preset_${key}`)}
-                    min="-20"
-                    max="40"
-                    step="0.5"
-                  />
-                  <div class="input-group-append">
-                    <button class="btn btn-outline-secondary" type="button" onClick={() => this.stepValue(`preset_${key}`, def, 0.5, -20, 40, 1)}>
-                      <i class="fe fe-plus" />
-                    </button>
-                  </div>
-                </div>
+                <input
+                  type="number"
+                  class="form-control"
+                  value={props.box[`preset_${key}`] !== undefined ? props.box[`preset_${key}`] : def}
+                  onInput={e => this.updateNumberField(`preset_${key}`, e)}
+                  min="-20"
+                  max="40"
+                  step="0.5"
+                />
               </div>
             </div>
           ))}
