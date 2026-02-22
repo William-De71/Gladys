@@ -21,6 +21,18 @@
   stroke-width: 1.5;
 }
 
+:global(.dark-mode) .arcBtnCircle {
+  fill: #ced8e6;
+}
+
+:global(.dark-mode) .arcBtnGroup:hover .arcBtnCircle {
+  fill: #b8c4d4;
+}
+
+:global(.dark-mode) .arcBtnGroup:active .arcBtnCircle {
+  fill: #a8b4c4;
+}
+
 .arcBtnText {
   font-size: 18px;
   fill: #495057;

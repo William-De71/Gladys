@@ -129,11 +129,12 @@ class ThermostatBox extends Component {
     const { box } = this.props;
     const mode = box.default_mode || 'heating';
     const keys = mode === 'cooling' ? COOLING_PRESETS : HEATING_PRESETS;
+    const comfortIcon = mode === 'cooling' ? 'fe-cloud-snow' : 'fe-thermometer';
     const allPresets = {
       off: { key: 'off', icon: PRESET_ICONS.off, temp: null },
       frost: { key: 'frost', icon: PRESET_ICONS.frost, temp: Number(box.preset_frost) || DEFAULT_PRESET_TEMPS.frost },
       away: { key: 'away', icon: PRESET_ICONS.away, temp: Number(box.preset_away) || DEFAULT_PRESET_TEMPS.away },
-      comfort: { key: 'comfort', icon: PRESET_ICONS.comfort, temp: Number(box.preset_comfort) || DEFAULT_PRESET_TEMPS.comfort },
+      comfort: { key: 'comfort', icon: comfortIcon, temp: Number(box.preset_comfort) || DEFAULT_PRESET_TEMPS.comfort },
       eco: { key: 'eco', icon: PRESET_ICONS.eco, temp: Number(box.preset_eco) || DEFAULT_PRESET_TEMPS.eco },
       night: { key: 'night', icon: PRESET_ICONS.night, temp: Number(box.preset_night) || DEFAULT_PRESET_TEMPS.night }
     };
