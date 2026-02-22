@@ -50,6 +50,11 @@ class EditThermostatBoxComponent extends Component {
     this.props.updateBoxConfig(this.props.x, this.props.y, { default_mode: mode });
   };
 
+  updateControlType = option => {
+    this.props.updateBoxConfig(this.props.x, this.props.y, { control_type: option ? option.value : 'hysteresis' });
+    this.setState({ selectedControlType: option });
+  };
+
   toggleAdvancedOptions = () => {
     this.setState(prevState => ({
       showAdvancedOptions: !prevState.showAdvancedOptions
@@ -101,6 +106,11 @@ class EditThermostatBoxComponent extends Component {
       humidityOptions.forEach(group => group.options.forEach(opt => {
         if (opt.value === this.props.box.humidity_feature) selectedHumidityOption = opt;
       }));
+      const controlType = this.props.box.control_type || 'hysteresis';
+      const selectedControlType = controlType === 'tpi'
+        ? { value: 'tpi', label: this.props.intl.dictionary.dashboard.boxes.thermostat.controlTypeTPI }
+        : { value: 'hysteresis', label: this.props.intl.dictionary.dashboard.boxes.thermostat.controlTypeHysteresis };
+      
       this.setState({
         thermostatOptions,
         temperatureOptions,
@@ -108,6 +118,7 @@ class EditThermostatBoxComponent extends Component {
         selectedThermostatOption,
         selectedTemperatureOption,
         selectedHumidityOption,
+        selectedControlType,
         loading: false,
         showAdvancedOptions: false
       });
@@ -124,12 +135,13 @@ class EditThermostatBoxComponent extends Component {
   render(props, {
     thermostatOptions, temperatureOptions, humidityOptions,
     selectedThermostatOption, selectedTemperatureOption, selectedHumidityOption,
-    showAdvancedOptions
+    selectedControlType, showAdvancedOptions
   }) {
     const placeholder = props.intl && props.intl.dictionary
       ? props.intl.dictionary.dashboard.boxes.thermostat.selectPlaceholder
       : '';
     const currentMode = props.box.default_mode || 'heating';
+    const controlType = props.box.control_type || 'hysteresis';
     const heatingPresets = [['frost', 7], ['away', 16], ['eco', 18], ['night', 17], ['comfort', 21]];
     const coolingPresets = [['comfort', 21]];
     const activePresets = currentMode === 'cooling' ? coolingPresets : heatingPresets;
@@ -237,6 +249,25 @@ class EditThermostatBoxComponent extends Component {
 
             <div class="form-group">
               <label class="form-label">
+                <Text id="dashboard.boxes.thermostat.controlTypeLabel" />
+              </label>
+              <Select
+                value={selectedControlType}
+                onChange={this.updateControlType}
+                options={[
+                  { value: 'hysteresis', label: props.intl.dictionary.dashboard.boxes.thermostat.controlTypeHysteresis },
+                  { value: 'tpi', label: props.intl.dictionary.dashboard.boxes.thermostat.controlTypeTPI }
+                ]}
+                className="react-select-container"
+                classNamePrefix="react-select"
+              />
+              <small class="form-text text-muted">
+                <Text id="dashboard.boxes.thermostat.controlTypeHelp" />
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
                 <Text id="dashboard.boxes.thermostat.tempMinLabel" />
               </label>
               <input
@@ -265,41 +296,85 @@ class EditThermostatBoxComponent extends Component {
               />
             </div>
 
-            <div class="form-group">
-              <label class="form-label">
-                <Text id="dashboard.boxes.thermostat.hysteresisStartLabel" />
-              </label>
-              <input
-                type="number"
-                class="form-control"
-                value={props.box.hysteresis_start !== undefined ? props.box.hysteresis_start : 0.5}
-                onInput={e => this.updateNumberField('hysteresis_start', e)}
-                min="0"
-                max="5"
-                step="0.1"
-              />
-              <small class="form-text text-muted">
-                <Text id="dashboard.boxes.thermostat.hysteresisStartHelp" />
-              </small>
-            </div>
+            {controlType === 'hysteresis' && (
+              <>
+                <div class="form-group">
+                  <label class="form-label">
+                    <Text id="dashboard.boxes.thermostat.hysteresisStartLabel" />
+                  </label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    value={props.box.hysteresis_start !== undefined ? props.box.hysteresis_start : 0.5}
+                    onInput={e => this.updateNumberField('hysteresis_start', e)}
+                    min="0"
+                    max="5"
+                    step="0.1"
+                  />
+                  <small class="form-text text-muted">
+                    <Text id="dashboard.boxes.thermostat.hysteresisStartHelp" />
+                  </small>
+                </div>
 
-            <div class="form-group">
-              <label class="form-label">
-                <Text id="dashboard.boxes.thermostat.hysteresisStopLabel" />
-              </label>
-              <input
-                type="number"
-                class="form-control"
-                value={props.box.hysteresis_stop !== undefined ? props.box.hysteresis_stop : 0.5}
-                onInput={e => this.updateNumberField('hysteresis_stop', e)}
-                min="0"
-                max="5"
-                step="0.1"
-              />
-              <small class="form-text text-muted">
-                <Text id="dashboard.boxes.thermostat.hysteresisStopHelp" />
-              </small>
-            </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    <Text id="dashboard.boxes.thermostat.hysteresisStopLabel" />
+                  </label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    value={props.box.hysteresis_stop !== undefined ? props.box.hysteresis_stop : 0.5}
+                    onInput={e => this.updateNumberField('hysteresis_stop', e)}
+                    min="0"
+                    max="5"
+                    step="0.1"
+                  />
+                  <small class="form-text text-muted">
+                    <Text id="dashboard.boxes.thermostat.hysteresisStopHelp" />
+                  </small>
+                </div>
+              </>
+            )}
+
+            {controlType === 'tpi' && (
+              <>
+                <div class="form-group">
+                  <label class="form-label">
+                    <Text id="dashboard.boxes.thermostat.tpiCycleTimeLabel" />
+                  </label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    value={props.box.tpi_cycle_time !== undefined ? props.box.tpi_cycle_time : 30}
+                    onInput={e => this.updateNumberField('tpi_cycle_time', e)}
+                    min="5"
+                    max="120"
+                    step="5"
+                  />
+                  <small class="form-text text-muted">
+                    <Text id="dashboard.boxes.thermostat.tpiCycleTimeHelp" />
+                  </small>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">
+                    <Text id="dashboard.boxes.thermostat.tpiProportionalBandLabel" />
+                  </label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    value={props.box.tpi_proportional_band !== undefined ? props.box.tpi_proportional_band : 2}
+                    onInput={e => this.updateNumberField('tpi_proportional_band', e)}
+                    min="0.5"
+                    max="10"
+                    step="0.5"
+                  />
+                  <small class="form-text text-muted">
+                    <Text id="dashboard.boxes.thermostat.tpiProportionalBandHelp" />
+                  </small>
+                </div>
+              </>
+            )}
 
             <label class="form-label">
               <Text id="dashboard.boxes.thermostat.presetsLabel" />
