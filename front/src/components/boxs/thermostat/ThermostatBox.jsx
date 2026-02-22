@@ -26,7 +26,7 @@ function describeArc(cx, cy, r, startAngle, endAngle) {
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
 }
 
-const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncrement, onDecrement, minTemp, maxTemp, mode, isActive }) => {
+const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncrement, onDecrement, minTemp, maxTemp, mode, isActive, isManualMode }) => {
   const cx = 110;
   const cy = 110;
   const r = 88;
@@ -48,8 +48,30 @@ const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncre
 
   return (
     <svg viewBox="0 0 220 220" class={style.gaugeSvg} onPointerDown={onPointerDown}>
+      <defs>
+        <filter id="arcGlow">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur">
+            {isActive && (
+              <animate attributeName="stdDeviation" values="2;4;2" dur="2s" repeatCount="indefinite" />
+            )}
+          </feGaussianBlur>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
       <path d={bgPath} fill="none" stroke="#e9ecef" strokeWidth={sw} strokeLinecap="round" />
-      {fgPath && <path d={fgPath} fill="none" stroke={arcColor} strokeWidth={sw} strokeLinecap="round" />}
+      {fgPath && (
+        <path 
+          d={fgPath} 
+          fill="none" 
+          stroke={arcColor} 
+          strokeWidth={sw} 
+          strokeLinecap="round"
+          filter={isActive ? 'url(#arcGlow)' : 'none'}
+        />
+      )}
       <circle cx={knob.x} cy={knob.y} r="9" fill="white" stroke={arcColor} strokeWidth="2.5" />
 
       {/* Current temp + humidity: above setpoint */}
@@ -87,6 +109,14 @@ const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncre
         <g onClick={onDecrement} onPointerDown={e => e.stopPropagation()} class={style.arcBtnGroup}>
           <circle cx="180" cy="180" r="15" class={style.arcBtnCircle} />
           <text x="180" y="180" textAnchor="middle" dominantBaseline="middle" class={style.arcBtnText}>−</text>
+        </g>
+      )}
+      
+      {/* Manual mode indicator icon between +/- buttons */}
+      {isManualMode && (
+        <g class={style.manualModeIcon}>
+          <circle cx="180" cy="110" r="2" fill="#ffc107" />
+          <circle cx="180" cy="110" r="8" fill="none" stroke="#ffc107" strokeWidth="1.5" />
         </g>
       )}
     </svg>
@@ -208,8 +238,6 @@ class ThermostatBox extends Component {
   componentWillUnmount() {
     this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.DEVICE.NEW_STATE, this.handleWebsocketMessage);
     this.props.session.dispatcher.removeListener('websocket.connected', this.handleWebsocketConnected);
-    this.stopDrag();
-    document.removeEventListener('click', this.handleOutsideClick);
   }
 
   componentDidUpdate(prevProps) {
@@ -277,7 +305,7 @@ class ThermostatBox extends Component {
     e.preventDefault();
     const angle = this.getAngleFromPointer(e, this.svgRef);
     if (!this.isAngleInArc(angle)) return;
-    this.setState({ setpoint: this.angleToTemp(angle) });
+    this.setState({ setpoint: this.angleToTemp(angle), isDragging: true });
     this._onMove = ev => {
       ev.preventDefault();
       const a = this.getAngleFromPointer(ev, this.svgRef);
@@ -300,62 +328,78 @@ class ThermostatBox extends Component {
     if (this._onUp) window.removeEventListener('pointerup', this._onUp);
     if (this._onMove) window.removeEventListener('touchmove', this._onMove);
     if (this._onUp) window.removeEventListener('touchend', this._onUp);
+    this.setState({ isDragging: false });
+  };
+
+  onPointerMove = e => {
+    if (!this.state.isDragging) return;
+    e.preventDefault();
+    const rect = this.svgRef.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const x = (e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX) || 0) - centerX;
+    const y = (e.clientY || (e.touches && e.touches[0] && e.touches[0].clientY) || 0) - centerY;
+    let angle = Math.atan2(y, x) * (180 / Math.PI);
+    angle = (angle + 360 - ARC_START_ANGLE) % 360;
+    if (angle > ARC_DEGREES) {
+      const distToStart = angle;
+      const distToEnd = 360 - angle + ARC_DEGREES;
+      if (distToStart < distToEnd && distToStart < 30) angle = 0;
+      else if (distToEnd < 30) angle = ARC_DEGREES;
+      else return;
+    }
+    const minTemp = this.getMinTemp();
+    const maxTemp = this.getMaxTemp();
+    const newSetpoint = minTemp + (angle / ARC_DEGREES) * (maxTemp - minTemp);
+    const rounded = Math.round(newSetpoint * 2) / 2;
+    this.setState({ setpoint: rounded, isManualMode: true });
   };
 
   increment = () => {
-    const newVal = Math.min(this.getMaxTemp(), Math.round((this.state.setpoint + 0.5) * 2) / 2);
-    this.setState({ setpoint: newVal });
-    this.sendSetpoint(newVal);
-  };
-
-  decrement = () => {
-    const newVal = Math.max(this.getMinTemp(), Math.round((this.state.setpoint - 0.5) * 2) / 2);
-    this.setState({ setpoint: newVal });
-    this.sendSetpoint(newVal);
-  };
-
-  togglePresetMenu = e => {
-    e.stopPropagation();
-    this.setState(s => {
-      const next = !s.presetOpen;
-      if (next) {
-        document.addEventListener('click', this.handleOutsideClick);
-      } else {
-        document.removeEventListener('click', this.handleOutsideClick);
-      }
-      return { presetOpen: next };
+    const maxTemp = this.getMaxTemp();
+    this.setState(prevState => {
+      const newSetpoint = Math.min(prevState.setpoint + 0.5, maxTemp);
+      this.sendSetpoint(newSetpoint);
+      return { setpoint: newSetpoint, isManualMode: true };
     });
   };
 
-  handleOutsideClick = e => {
-    if (this.presetRef && !this.presetRef.contains(e.target)) {
-      this.setState({ presetOpen: false });
-      document.removeEventListener('click', this.handleOutsideClick);
-    }
+  decrement = () => {
+    const minTemp = this.getMinTemp();
+    this.setState(prevState => {
+      const newSetpoint = Math.max(prevState.setpoint - 0.5, minTemp);
+      this.sendSetpoint(newSetpoint);
+      return { setpoint: newSetpoint, isManualMode: true };
+    });
   };
 
   selectPreset = preset => {
-    document.removeEventListener('click', this.handleOutsideClick);
-    const mode = this.props.box.default_mode || 'heating';
-    if (preset.key === 'off') {
-      this.savePreset('off');
-      this.sendMode('off');
-      this.setState({ activePreset: 'off', presetOpen: false });
-    } else {
-      this.savePreset(preset.key);
-      this.sendMode(mode);
-      this.setState({ activePreset: preset.key, setpoint: preset.temp, presetOpen: false });
-      this.sendSetpoint(preset.temp);
+    const { box } = this.props;
+    const newSetpoint = preset.temp;
+    const mode = preset.key === 'off' ? 'off' : (box.default_mode || 'heating');
+    
+    this.setState({ 
+      setpoint: newSetpoint, 
+      activePreset: preset.key,
+      isManualMode: false
+    });
+    this.savePreset(preset.key);
+    
+    if (newSetpoint !== null) {
+      this.sendSetpoint(newSetpoint);
+    }
+    if (box.mode_feature) {
+      const modeValue = mode === 'heating' ? AC_MODE.HEATING : mode === 'cooling' ? AC_MODE.COOLING : AC_MODE.AUTO;
+      this.sendMode(modeValue);
     }
   };
 
-  render(props, { setpoint, currentTemp, humidity, presetOpen, activePreset, error, noConfig }) {
+  render(props, { setpoint, currentTemp, humidity, activePreset, isManualMode, error, noConfig }) {
     const minTemp = this.getMinTemp();
     const maxTemp = this.getMaxTemp();
     const configMode = props.box.default_mode || 'heating';
     const mode = activePreset === 'off' ? 'off' : configMode;
     const presets = this.getPresets();
-    const activePresetData = presets.find(p => p.key === activePreset) || presets[0];
     const hystStart = Number(props.box.hysteresis_start) || 0.5;
     const hystStop = Number(props.box.hysteresis_stop) || 0.5;
     const hasCurrent = currentTemp !== null && currentTemp !== undefined;
@@ -409,44 +453,30 @@ class ThermostatBox extends Component {
                     maxTemp={maxTemp}
                     mode={mode}
                     isActive={showActive}
+                    isManualMode={isManualMode}
                   />
                 </div>
               </div>
 
-              <div class="row">
-                <div class="col-12">
-                  <div class={style.presetWrapper} ref={el => (this.presetRef = el)}>
+              <div class={style.segmentedControl}>
+                {presets.map(preset => {
+                  const presetTitle = props.intl && props.intl.dictionary && props.intl.dictionary.dashboard 
+                    && props.intl.dictionary.dashboard.boxes && props.intl.dictionary.dashboard.boxes.thermostat
+                    && props.intl.dictionary.dashboard.boxes.thermostat.preset
+                    && props.intl.dictionary.dashboard.boxes.thermostat.preset[preset.key]
+                    ? props.intl.dictionary.dashboard.boxes.thermostat.preset[preset.key]
+                    : preset.key;
+                  return (
                     <button
-                      class={`btn btn-block ${style[`presetBtn_${activePreset === 'comfort' ? `comfort_${configMode}` : activePreset}`] || 'btn-outline-secondary'}`}
-                      onClick={this.togglePresetMenu}
+                      key={preset.key}
+                      class={`${style.segmentBtn} ${activePreset === preset.key ? style.segmentBtnActive : ''} ${style[`segmentBtn_${preset.key === 'comfort' ? `comfort_${configMode}` : preset.key}`] || ''}`}
+                      onClick={() => this.selectPreset(preset)}
+                      title={presetTitle}
                     >
-                      <div class="pb-1">
-                        <i class={`fe ${activePresetData.icon} ${style.modeIcon}`} />
-                      </div>
-                      <div><Text id={`dashboard.boxes.thermostat.preset.${activePreset}`} /></div>
+                      <i class={`fe ${preset.icon}`} />
                     </button>
-
-                    {presetOpen && (
-                      <div class={style.presetMenu}>
-                        {presets.map(preset => (
-                          <button
-                            key={preset.key}
-                            class={`${style.presetItem} ${style[`presetColor_${preset.key === 'comfort' ? `comfort_${configMode}` : preset.key}`] || ''} ${activePreset === preset.key ? style.presetItemActive : ''}`}
-                            onClick={() => this.selectPreset(preset)}
-                          >
-                            <i class={`fe ${preset.icon} mr-2`} />
-                            <span class={style.presetLabel}>
-                              <Text id={`dashboard.boxes.thermostat.preset.${preset.key}`} />
-                            </span>
-                            {preset.temp !== null && (
-                              <span class={style.presetTemp}>{preset.temp}°</span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  );
+                })}
               </div>
             </div>
           )}

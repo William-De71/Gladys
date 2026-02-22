@@ -79,6 +79,21 @@
   100% { opacity: 1;   transform: rotate(360deg) scale(1); }
 }
 
+@keyframes arcGlowPulse {
+  0%, 100% { 
+    opacity: 1;
+    filter: drop-shadow(0 0 4px currentColor);
+  }
+  50% { 
+    opacity: 0.85;
+    filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 12px currentColor);
+  }
+}
+
+.arcGlow {
+  animation: arcGlowPulse 2s ease-in-out infinite;
+}
+
 .activeIconHeating {
   font-size: 22px;
   animation: flamePulse 1.4s ease-in-out infinite;
@@ -200,3 +215,99 @@
 
 .presetColor_comfort_cooling { color: #3b82f6; }
 .presetColor_comfort_cooling i { color: #3b82f6; }
+
+/* Segmented Control */
+.segmentedControl {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 0 16px;
+}
+
+.segmentBtn {
+  flex: 1;
+  max-width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  color: #adb5bd;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  outline: none;
+}
+
+.segmentBtn:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.segmentBtn:hover {
+  transform: translateY(-2px);
+}
+
+.segmentBtn i {
+  transition: all 0.25s ease;
+}
+
+.segmentBtn:active {
+  transform: translateY(0);
+}
+
+.segmentBtn:active i {
+  transform: scale(0.85);
+}
+
+/* Active segment button - only icon colored */
+.segmentBtnActive.segmentBtn_off i {
+  color: #dc3545;
+  filter: drop-shadow(0 2px 4px rgba(220, 53, 69, 0.4));
+}
+
+.segmentBtnActive.segmentBtn_frost i {
+  color: #74c0fc;
+  filter: drop-shadow(0 2px 4px rgba(116, 192, 252, 0.4));
+}
+
+.segmentBtnActive.segmentBtn_away i {
+  color: #f59f00;
+  filter: drop-shadow(0 2px 4px rgba(245, 159, 0, 0.4));
+}
+
+.segmentBtnActive.segmentBtn_eco i {
+  color: #2fb344;
+  filter: drop-shadow(0 2px 4px rgba(47, 179, 68, 0.4));
+}
+
+.segmentBtnActive.segmentBtn_night i {
+  color: #7048e8;
+  filter: drop-shadow(0 2px 4px rgba(112, 72, 232, 0.4));
+}
+
+.segmentBtnActive.segmentBtn_comfort_heating i {
+  color: #f97316;
+  filter: drop-shadow(0 2px 4px rgba(249, 115, 22, 0.4));
+}
+
+.segmentBtnActive.segmentBtn_comfort_cooling i {
+  color: #3b82f6;
+  filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.4));
+}
+
+
+/* Manual mode icon in SVG */
+.manualModeIcon {
+  font-size: 18px;
+  opacity: 0.7;
+  animation: manualModePulse 2s ease-in-out infinite;
+}
+
+@keyframes manualModePulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
