@@ -51,8 +51,11 @@ const boxesSchema = Joi.array().items(
       preset_eco: Joi.number(),
       preset_night: Joi.number(),
       default_mode: Joi.string().valid('heating', 'cooling').allow(null),
+      control_type: Joi.string().valid('hysteresis', 'tpi').allow(null),
       hysteresis_start: Joi.number().min(0).max(5),
       hysteresis_stop: Joi.number().min(0).max(5),
+      tpi_cycle_time: Joi.number().min(5).max(120),
+      tpi_proportional_band: Joi.number().min(0.5).max(10),
     }),
   ),
 );
