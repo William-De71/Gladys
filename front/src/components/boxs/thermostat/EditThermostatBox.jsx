@@ -256,6 +256,47 @@ class EditThermostatBoxComponent extends Component {
           </div>
         </div>
 
+        <div class="row">
+          <div class="col-6">
+            <div class="form-group">
+              <label class="form-label">
+                <Text id="dashboard.boxes.thermostat.hysteresisStartLabel" />
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                value={props.box.hysteresis_start !== undefined ? props.box.hysteresis_start : 0.5}
+                onInput={e => this.updateNumberField('hysteresis_start', e)}
+                min="0"
+                max="5"
+                step="0.1"
+              />
+              <small class="form-text text-muted">
+                <Text id="dashboard.boxes.thermostat.hysteresisStartHelp" />
+              </small>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="form-group">
+              <label class="form-label">
+                <Text id="dashboard.boxes.thermostat.hysteresisStopLabel" />
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                value={props.box.hysteresis_stop !== undefined ? props.box.hysteresis_stop : 0.5}
+                onInput={e => this.updateNumberField('hysteresis_stop', e)}
+                min="0"
+                max="5"
+                step="0.1"
+              />
+              <small class="form-text text-muted">
+                <Text id="dashboard.boxes.thermostat.hysteresisStopHelp" />
+              </small>
+            </div>
+          </div>
+        </div>
+
         <label class="form-label">
           <Text id="dashboard.boxes.thermostat.presetsLabel" />
         </label>
