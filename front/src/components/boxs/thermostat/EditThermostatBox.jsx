@@ -5,7 +5,8 @@ import Select from 'react-select';
 import { getDeviceFeatureName } from '../../../utils/device';
 import withIntlAsProp from '../../../utils/withIntlAsProp';
 import BaseEditBox from '../baseEditBox';
-import { DEVICE_FEATURE_CATEGORIES } from '../../../../../server/utils/constants';
+import { DEVICE_FEATURE_CATEGORIES, DEVICE_FEATURE_UNITS } from '../../../../../server/utils/constants';
+import { celsiusToFahrenheit, fahrenheitToCelsius } from '../../../../../server/utils/units';
 
 const THERMOSTAT_CATEGORIES = [
   DEVICE_FEATURE_CATEGORIES.THERMOSTAT,
@@ -74,8 +75,32 @@ class EditThermostatBoxComponent extends Component {
   };
 
   updateNumberField = (field, e) => {
-    const val = parseFloat(e.target.value);
+    let val = parseFloat(e.target.value);
+    // Convert temperature fields from user unit to Celsius for storage
+    const isTempField = field === 'temp_min' || field === 'temp_max' || field.startsWith('preset_') || field === 'hysteresis_start' || field === 'hysteresis_stop';
+    if (isTempField && !isNaN(val)) {
+      const userUnit = this.props.user && this.props.user.temperature_unit_preference;
+      if (userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
+        val = fahrenheitToCelsius(val);
+      }
+    }
     this.props.updateBoxConfig(this.props.x, this.props.y, { [field]: isNaN(val) ? undefined : val });
+  };
+
+  // Convert temperature from Celsius (stored) to user preference for display
+  toDisplayTemp = (tempCelsius) => {
+    if (tempCelsius === null || tempCelsius === undefined) return tempCelsius;
+    const userUnit = this.props.user && this.props.user.temperature_unit_preference;
+    if (userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
+      return Math.round(celsiusToFahrenheit(tempCelsius));
+    }
+    return tempCelsius;
+  };
+
+  // Get the temperature unit symbol
+  getTempUnit = () => {
+    const userUnit = this.props.user && this.props.user.temperature_unit_preference;
+    return userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT ? '°F' : '°C';
   };
 
   buildOptions = (devices, filterFn) => {
@@ -154,8 +179,23 @@ class EditThermostatBoxComponent extends Component {
       : '';
     const currentMode = props.box.default_mode || 'heating';
     const controlType = props.box.control_type || 'hysteresis';
-    const heatingPresets = [['frost', 7], ['away', 16], ['eco', 18], ['night', 17], ['comfort', 21]];
-    const coolingPresets = [['comfort', 21]];
+    const tempUnit = this.getTempUnit();
+
+    // Convert all temperature values for display
+    const displayTempMin = this.toDisplayTemp(props.box.temp_min !== undefined ? props.box.temp_min : 5);
+    const displayTempMax = this.toDisplayTemp(props.box.temp_max !== undefined ? props.box.temp_max : 35);
+    const displayHysteresisStart = this.toDisplayTemp(props.box.hysteresis_start !== undefined ? props.box.hysteresis_start : 0.5);
+    const displayHysteresisStop = this.toDisplayTemp(props.box.hysteresis_stop !== undefined ? props.box.hysteresis_stop : 0.5);
+    // Map preset keys to their display values
+    const presetDisplayValues = {
+      frost: this.toDisplayTemp(props.box.preset_frost !== undefined ? props.box.preset_frost : 7),
+      away: this.toDisplayTemp(props.box.preset_away !== undefined ? props.box.preset_away : 16),
+      comfort: this.toDisplayTemp(props.box.preset_comfort !== undefined ? props.box.preset_comfort : 21),
+      eco: this.toDisplayTemp(props.box.preset_eco !== undefined ? props.box.preset_eco : 18),
+      night: this.toDisplayTemp(props.box.preset_night !== undefined ? props.box.preset_night : 17)
+    };
+    const heatingPresets = ['frost', 'away', 'eco', 'night', 'comfort'];
+    const coolingPresets = ['comfort'];
     const activePresets = currentMode === 'cooling' ? coolingPresets : heatingPresets;
 
     return (
@@ -316,30 +356,26 @@ class EditThermostatBoxComponent extends Component {
 
             <div class="form-group">
               <label class="form-label">
-                <Text id="dashboard.boxes.thermostat.tempMinLabel" />
+                <Text id="dashboard.boxes.thermostat.tempMinLabel" /> ({tempUnit})
               </label>
               <input
                 type="number"
                 class="form-control"
-                value={props.box.temp_min !== undefined ? props.box.temp_min : 5}
+                value={displayTempMin}
                 onInput={e => this.updateNumberField('temp_min', e)}
-                min="-20"
-                max="40"
                 step="1"
               />
             </div>
 
             <div class="form-group">
               <label class="form-label">
-                <Text id="dashboard.boxes.thermostat.tempMaxLabel" />
+                <Text id="dashboard.boxes.thermostat.tempMaxLabel" /> ({tempUnit})
               </label>
               <input
                 type="number"
                 class="form-control"
-                value={props.box.temp_max !== undefined ? props.box.temp_max : 35}
+                value={displayTempMax}
                 onInput={e => this.updateNumberField('temp_max', e)}
-                min="-20"
-                max="40"
                 step="1"
               />
             </div>
@@ -348,15 +384,13 @@ class EditThermostatBoxComponent extends Component {
               <>
                 <div class="form-group">
                   <label class="form-label">
-                    <Text id="dashboard.boxes.thermostat.hysteresisStartLabel" />
+                    <Text id="dashboard.boxes.thermostat.hysteresisStartLabel" /> ({tempUnit})
                   </label>
                   <input
                     type="number"
                     class="form-control"
-                    value={props.box.hysteresis_start !== undefined ? props.box.hysteresis_start : 0.5}
+                    value={displayHysteresisStart}
                     onInput={e => this.updateNumberField('hysteresis_start', e)}
-                    min="0"
-                    max="5"
                     step="0.1"
                   />
                   <small class="form-text text-muted">
@@ -366,15 +400,13 @@ class EditThermostatBoxComponent extends Component {
 
                 <div class="form-group">
                   <label class="form-label">
-                    <Text id="dashboard.boxes.thermostat.hysteresisStopLabel" />
+                    <Text id="dashboard.boxes.thermostat.hysteresisStopLabel" /> ({tempUnit})
                   </label>
                   <input
                     type="number"
                     class="form-control"
-                    value={props.box.hysteresis_stop !== undefined ? props.box.hysteresis_stop : 0.5}
+                    value={displayHysteresisStop}
                     onInput={e => this.updateNumberField('hysteresis_stop', e)}
-                    min="0"
-                    max="5"
                     step="0.1"
                   />
                   <small class="form-text text-muted">
@@ -425,9 +457,9 @@ class EditThermostatBoxComponent extends Component {
             )}
 
             <label class="form-label">
-              <Text id="dashboard.boxes.thermostat.presetsLabel" />
+              <Text id="dashboard.boxes.thermostat.presetsLabel" /> ({tempUnit})
             </label>
-            {activePresets.map(([key, def]) => (
+            {activePresets.map((key) => (
               <div class="form-group" key={key}>
                 <label class="form-label">
                   <Text id={`dashboard.boxes.thermostat.preset.${key}`} />
@@ -435,11 +467,9 @@ class EditThermostatBoxComponent extends Component {
                 <input
                   type="number"
                   class="form-control"
-                  value={props.box[`preset_${key}`] !== undefined ? props.box[`preset_${key}`] : def}
+                  value={presetDisplayValues[key]}
                   onInput={e => this.updateNumberField(`preset_${key}`, e)}
-                  min="-20"
-                  max="40"
-                  step="0.5"
+                  step="1"
                 />
               </div>
             ))}
@@ -450,4 +480,4 @@ class EditThermostatBoxComponent extends Component {
   }
 }
 
-export default connect('httpClient', {})(withIntlAsProp(EditThermostatBoxComponent));
+export default connect('httpClient,user', {})(withIntlAsProp(EditThermostatBoxComponent));
