@@ -462,7 +462,7 @@
         "editNamePlaceholder": "e.g. Living Room Thermostat",
         "thermostatFeatureLabel": "Thermostat feature (setpoint)",
         "thermostatFeatureHelp": "Select the feature that controls the target temperature.",
-        "temperatureFeatureLabel": "Current temperature sensor (optional)",
+        "temperatureFeatureLabel": "Current temperature sensor",
         "temperatureFeatureHelp": "Select the sensor that measures the ambient temperature.",
         "humidityFeatureLabel": "Humidity sensor (optional)",
         "humidityFeatureHelp": "Select the sensor that measures the ambient humidity.",

@@ -166,12 +166,12 @@ class EditThermostatBoxComponent extends Component {
         <div class="form-group">
           <label class="form-label">
             <Text id="dashboard.boxes.thermostat.thermostatFeatureLabel" />
+            <span class="text-danger"> *</span>
           </label>
           <Select
             value={selectedThermostatOption}
             onChange={this.updateThermostatFeature}
             options={thermostatOptions}
-            isClearable
             className="react-select-container"
             classNamePrefix="react-select"
             placeholder={placeholder}
@@ -184,12 +184,12 @@ class EditThermostatBoxComponent extends Component {
         <div class="form-group">
           <label class="form-label">
             <Text id="dashboard.boxes.thermostat.temperatureFeatureLabel" />
+            <span class="text-danger"> *</span>
           </label>
           <Select
             value={selectedTemperatureOption}
             onChange={this.updateTemperatureFeature}
             options={temperatureOptions}
-            isClearable
             className="react-select-container"
             classNamePrefix="react-select"
             placeholder={placeholder}

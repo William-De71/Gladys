@@ -483,7 +483,7 @@
         "editNamePlaceholder": "Ex: Thermostat Salon",
         "thermostatFeatureLabel": "Fonctionnalité thermostat (consigne)",
         "thermostatFeatureHelp": "Sélectionnez la fonctionnalité qui contrôle la température cible.",
-        "temperatureFeatureLabel": "Capteur de température actuelle (optionnel)",
+        "temperatureFeatureLabel": "Capteur de température actuelle",
         "temperatureFeatureHelp": "Sélectionnez le capteur qui mesure la température ambiante.",
         "humidityFeatureLabel": "Capteur d'humidité (optionnel)",
         "humidityFeatureHelp": "Sélectionnez le capteur qui mesure l'humidité ambiante.",

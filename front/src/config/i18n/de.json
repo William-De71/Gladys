@@ -483,7 +483,7 @@
         "editNamePlaceholder": "z.B. Wohnzimmer Thermostat",
         "thermostatFeatureLabel": "Thermostat-Funktion (Sollwert)",
         "thermostatFeatureHelp": "Wähle die Funktion aus, die die Zieltemperatur steuert.",
-        "temperatureFeatureLabel": "Aktueller Temperatursensor (optional)",
+        "temperatureFeatureLabel": "Aktueller Temperatursensor",
         "temperatureFeatureHelp": "Wähle den Sensor aus, der die Umgebungstemperatur misst.",
         "humidityFeatureLabel": "Feuchtigkeitssensor (optional)",
         "humidityFeatureHelp": "Wähle den Sensor aus, der die Umgebungsfeuchtigkeit misst.",
