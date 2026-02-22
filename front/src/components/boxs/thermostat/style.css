@@ -3,6 +3,32 @@
   max-width: 220px;
 }
 
+.arcBtnGroup {
+  cursor: pointer;
+}
+
+.arcBtnGroup:hover .arcBtnCircle {
+  fill: #e9ecef;
+}
+
+.arcBtnGroup:active .arcBtnCircle {
+  fill: #dee2e6;
+}
+
+.arcBtnCircle {
+  fill: white;
+  stroke: #adb5bd;
+  stroke-width: 1.5;
+}
+
+.arcBtnText {
+  font-size: 18px;
+  fill: #495057;
+  font-weight: 400;
+  pointer-events: none;
+  user-select: none;
+}
+
 .gaugeSvg {
   width: 100%;
   height: auto;
@@ -29,12 +55,30 @@
   fill: #6c757d;
 }
 
+@keyframes flamePulse {
+  0%   { opacity: 1;   transform: scale(1); }
+  50%  { opacity: 0.7; transform: scale(1.25); }
+  100% { opacity: 1;   transform: scale(1); }
+}
+
+@keyframes frostSpin {
+  0%   { opacity: 1;   transform: rotate(0deg) scale(1); }
+  50%  { opacity: 0.6; transform: rotate(180deg) scale(1.15); }
+  100% { opacity: 1;   transform: rotate(360deg) scale(1); }
+}
+
 .activeIconHeating {
-  font-size: 18px;
+  font-size: 22px;
+  animation: flamePulse 1.4s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
 }
 
 .activeIconCooling {
-  font-size: 18px;
+  font-size: 22px;
+  animation: frostSpin 2s linear infinite;
+  transform-origin: center;
+  transform-box: fill-box;
 }
 
 .tempMain {
