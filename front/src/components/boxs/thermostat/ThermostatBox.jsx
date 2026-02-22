@@ -86,10 +86,11 @@ const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncre
         </text>
       )}
 
-      {/* Setpoint: integer + decimal superscript + unit, precisely positioned */}
-      <text x={intX} y={cy + 22} textAnchor="start" dominantBaseline="auto" class={style.tempMain}>{intPart}</text>
-      <text x={suffixX} y={cy + 4} textAnchor="start" dominantBaseline="auto" class={style.tempUnit}>°C</text>
-      <text x={suffixX} y={cy + 22} textAnchor="start" dominantBaseline="auto" class={style.tempDecimal}>,{decPart}</text>
+      {/* Setpoint: integer + decimal + unit split (° above dot, C above decimal) */}
+      <text x={intX} y={cy + 25} textAnchor="start" dominantBaseline="auto" class={style.tempMain}>{intPart}</text>
+      <text x={suffixX - 2} y={cy + 25} textAnchor="start" dominantBaseline="auto" class={style.tempDecimal}>.{decPart}</text>
+      <text x={suffixX - 3} y={cy + 4} textAnchor="start" dominantBaseline="auto" class={style.tempUnit}>°</text>
+      <text x={suffixX + 4} y={cy + 4} textAnchor="start" dominantBaseline="auto" class={style.tempUnit}>C</text>
 
       {/* Active icon: at bottom of gauge */}
       {isActive && mode === 'heating' && (
@@ -305,12 +306,12 @@ class ThermostatBox extends Component {
     e.preventDefault();
     const angle = this.getAngleFromPointer(e, this.svgRef);
     if (!this.isAngleInArc(angle)) return;
-    this.setState({ setpoint: this.angleToTemp(angle), isDragging: true });
+    this.setState({ setpoint: this.angleToTemp(angle), isDragging: true, isManualMode: true });
     this._onMove = ev => {
       ev.preventDefault();
       const a = this.getAngleFromPointer(ev, this.svgRef);
       if (this.isAngleInArc(a)) {
-        this.setState({ setpoint: this.angleToTemp(a) });
+        this.setState({ setpoint: this.angleToTemp(a), isManualMode: true });
       }
     };
     this._onUp = () => {
