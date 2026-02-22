@@ -47,7 +47,19 @@ class EditThermostatBoxComponent extends Component {
   };
 
   updateDefaultMode = mode => {
-    this.props.updateBoxConfig(this.props.x, this.props.y, { default_mode: mode });
+    const updates = { default_mode: mode };
+    if (mode === 'cooling') {
+      updates.control_type = 'hysteresis';
+    }
+    this.props.updateBoxConfig(this.props.x, this.props.y, updates);
+    if (mode === 'cooling') {
+      this.setState({
+        selectedControlType: { 
+          value: 'hysteresis', 
+          label: this.props.intl.dictionary.dashboard.boxes.thermostat.controlTypeHysteresis 
+        }
+      });
+    }
   };
 
   updateControlType = option => {
@@ -172,9 +184,16 @@ class EditThermostatBoxComponent extends Component {
             value={selectedThermostatOption}
             onChange={this.updateThermostatFeature}
             options={thermostatOptions}
+            placeholder={placeholder}
+            maxMenuHeight={220}
             className="react-select-container"
             classNamePrefix="react-select"
-            placeholder={placeholder}
+            styles={{
+              valueContainer: (provided) => ({ ...provided, paddingLeft: '8px' }),
+              input: (provided) => ({ ...provided, paddingLeft: '4px' }),
+              placeholder: (provided) => ({ ...provided, paddingLeft: '4px' }),
+              singleValue: (provided) => ({ ...provided, marginLeft: '0px', paddingLeft: '4px' })
+            }}
           />
           <small class="form-text text-muted">
             <Text id="dashboard.boxes.thermostat.thermostatFeatureHelp" />
@@ -190,9 +209,16 @@ class EditThermostatBoxComponent extends Component {
             value={selectedTemperatureOption}
             onChange={this.updateTemperatureFeature}
             options={temperatureOptions}
+            placeholder={placeholder}
+            maxMenuHeight={220}
             className="react-select-container"
             classNamePrefix="react-select"
-            placeholder={placeholder}
+            styles={{
+              valueContainer: (provided) => ({ ...provided, paddingLeft: '8px' }),
+              input: (provided) => ({ ...provided, paddingLeft: '4px' }),
+              placeholder: (provided) => ({ ...provided, paddingLeft: '4px' }),
+              singleValue: (provided) => ({ ...provided, marginLeft: '0px', paddingLeft: '4px' })
+            }}
           />
           <small class="form-text text-muted">
             <Text id="dashboard.boxes.thermostat.temperatureFeatureHelp" />
@@ -208,9 +234,16 @@ class EditThermostatBoxComponent extends Component {
             onChange={this.updateHumidityFeature}
             options={humidityOptions}
             isClearable
+            placeholder={placeholder}
+            maxMenuHeight={220}
             className="react-select-container"
             classNamePrefix="react-select"
-            placeholder={placeholder}
+            styles={{
+              valueContainer: (provided) => ({ ...provided, paddingLeft: '8px' }),
+              input: (provided) => ({ ...provided, paddingLeft: '4px' }),
+              placeholder: (provided) => ({ ...provided, paddingLeft: '4px' }),
+              singleValue: (provided) => ({ ...provided, marginLeft: '0px', paddingLeft: '4px' })
+            }}
           />
           <small class="form-text text-muted">
             <Text id="dashboard.boxes.thermostat.humidityFeatureHelp" />
@@ -242,8 +275,13 @@ class EditThermostatBoxComponent extends Component {
                   { value: 'heating', label: props.intl.dictionary.dashboard.boxes.thermostat.modeHeating },
                   { value: 'cooling', label: props.intl.dictionary.dashboard.boxes.thermostat.modeCooling }
                 ]}
+                maxMenuHeight={220}
                 className="react-select-container"
                 classNamePrefix="react-select"
+                styles={{
+                  valueContainer: (provided) => ({ ...provided, paddingLeft: '8px' }),
+                  singleValue: (provided) => ({ ...provided, marginLeft: '0px' })
+                }}
               />
             </div>
 
@@ -258,11 +296,21 @@ class EditThermostatBoxComponent extends Component {
                   { value: 'hysteresis', label: props.intl.dictionary.dashboard.boxes.thermostat.controlTypeHysteresis },
                   { value: 'tpi', label: props.intl.dictionary.dashboard.boxes.thermostat.controlTypeTPI }
                 ]}
+                isDisabled={currentMode === 'cooling'}
+                maxMenuHeight={220}
                 className="react-select-container"
                 classNamePrefix="react-select"
+                styles={{
+                  valueContainer: (provided) => ({ ...provided, paddingLeft: '8px' }),
+                  singleValue: (provided) => ({ ...provided, marginLeft: '0px' })
+                }}
               />
               <small class="form-text text-muted">
-                <Text id="dashboard.boxes.thermostat.controlTypeHelp" />
+                {currentMode === 'cooling' ? (
+                  <Text id="dashboard.boxes.thermostat.controlTypeLockedCooling" />
+                ) : (
+                  <Text id="dashboard.boxes.thermostat.controlTypeHelp" />
+                )}
               </small>
             </div>
 

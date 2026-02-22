@@ -147,12 +147,36 @@ class ThermostatBox extends Component {
     try {
       const savedPreset = localStorage.getItem(this.getStorageKey('preset'));
       if (savedPreset) this.setState({ activePreset: savedPreset });
+      const savedManualMode = localStorage.getItem(this.getStorageKey('manual_mode'));
+      if (savedManualMode === 'true') this.setState({ isManualMode: true });
     } catch (e) { /* ignore */ }
+  };
+
+  saveLastActivePreset = preset => {
+    try {
+      if (preset !== 'off') {
+        localStorage.setItem(this.getStorageKey('last_active_preset'), preset);
+      }
+    } catch (e) { /* ignore */ }
+  };
+
+  getLastActivePreset = () => {
+    try {
+      return localStorage.getItem(this.getStorageKey('last_active_preset')) || 'comfort';
+    } catch (e) {
+      return 'comfort';
+    }
   };
 
   savePreset = preset => {
     try {
       localStorage.setItem(this.getStorageKey('preset'), preset);
+    } catch (e) { /* ignore */ }
+  };
+
+  saveManualMode = isManual => {
+    try {
+      localStorage.setItem(this.getStorageKey('manual_mode'), isManual.toString());
     } catch (e) { /* ignore */ }
   };
 
@@ -306,12 +330,20 @@ class ThermostatBox extends Component {
     e.preventDefault();
     const angle = this.getAngleFromPointer(e, this.svgRef);
     if (!this.isAngleInArc(angle)) return;
-    this.setState({ setpoint: this.angleToTemp(angle), isDragging: true, isManualMode: true });
+    if (this.state.activePreset === 'off') {
+      const lastPreset = this.getLastActivePreset();
+      this.setState({ setpoint: this.angleToTemp(angle), isDragging: true, isManualMode: true, activePreset: lastPreset });
+      this.savePreset(lastPreset);
+    } else {
+      this.setState({ setpoint: this.angleToTemp(angle), isDragging: true, isManualMode: true });
+    }
+    this.saveManualMode(true);
     this._onMove = ev => {
       ev.preventDefault();
       const a = this.getAngleFromPointer(ev, this.svgRef);
       if (this.isAngleInArc(a)) {
         this.setState({ setpoint: this.angleToTemp(a), isManualMode: true });
+        this.saveManualMode(true);
       }
     };
     this._onUp = () => {
@@ -349,53 +381,58 @@ class ThermostatBox extends Component {
       else if (distToEnd < 30) angle = ARC_DEGREES;
       else return;
     }
-    const minTemp = this.getMinTemp();
-    const maxTemp = this.getMaxTemp();
-    const newSetpoint = minTemp + (angle / ARC_DEGREES) * (maxTemp - minTemp);
+    const newSetpoint = this.getMinTemp() + (angle / ARC_DEGREES) * (this.getMaxTemp() - this.getMinTemp());
     const rounded = Math.round(newSetpoint * 2) / 2;
-    this.setState({ setpoint: rounded, isManualMode: true });
+    this.setState({ setpoint: rounded });
   };
 
   increment = () => {
-    const maxTemp = this.getMaxTemp();
-    this.setState(prevState => {
-      const newSetpoint = Math.min(prevState.setpoint + 0.5, maxTemp);
-      this.sendSetpoint(newSetpoint);
-      return { setpoint: newSetpoint, isManualMode: true };
-    });
+    const newSetpoint = Math.min(this.getMaxTemp(), this.state.setpoint + 0.5);
+    if (this.state.activePreset === 'off') {
+      const lastPreset = this.getLastActivePreset();
+      this.setState({ setpoint: newSetpoint, isManualMode: true, activePreset: lastPreset });
+      this.savePreset(lastPreset);
+    } else {
+      this.setState({ setpoint: newSetpoint, isManualMode: true });
+    }
+    this.saveManualMode(true);
+    this.sendSetpoint(newSetpoint);
   };
 
   decrement = () => {
-    const minTemp = this.getMinTemp();
-    this.setState(prevState => {
-      const newSetpoint = Math.max(prevState.setpoint - 0.5, minTemp);
-      this.sendSetpoint(newSetpoint);
-      return { setpoint: newSetpoint, isManualMode: true };
-    });
+    const newSetpoint = Math.max(this.getMinTemp(), this.state.setpoint - 0.5);
+    if (this.state.activePreset === 'off') {
+      const lastPreset = this.getLastActivePreset();
+      this.setState({ setpoint: newSetpoint, isManualMode: true, activePreset: lastPreset });
+      this.savePreset(lastPreset);
+    } else {
+      this.setState({ setpoint: newSetpoint, isManualMode: true });
+    }
+    this.saveManualMode(true);
+    this.sendSetpoint(newSetpoint);
   };
 
   selectPreset = preset => {
-    const { box } = this.props;
-    const newSetpoint = preset.temp;
-    const mode = preset.key === 'off' ? 'off' : (box.default_mode || 'heating');
-    
-    this.setState({ 
-      setpoint: newSetpoint, 
-      activePreset: preset.key,
-      isManualMode: false
-    });
+    this.saveLastActivePreset(this.state.activePreset);
+    this.setState({ activePreset: preset.key, setpoint: preset.temp || this.state.setpoint, presetOpen: false, isManualMode: false });
     this.savePreset(preset.key);
-    
-    if (newSetpoint !== null) {
-      this.sendSetpoint(newSetpoint);
-    }
-    if (box.mode_feature) {
-      const modeValue = mode === 'heating' ? AC_MODE.HEATING : mode === 'cooling' ? AC_MODE.COOLING : AC_MODE.AUTO;
-      this.sendMode(modeValue);
+    this.saveManualMode(false);
+    if (preset.temp !== null) {
+      this.sendSetpoint(preset.temp);
     }
   };
 
-  render(props, { setpoint, currentTemp, humidity, activePreset, isManualMode, error, noConfig }) {
+  togglePreset = () => {
+    this.setState({ presetOpen: !this.state.presetOpen });
+  };
+
+  closePreset = e => {
+    if (this.presetRef && !this.presetRef.contains(e.target)) {
+      this.setState({ presetOpen: false });
+    }
+  };
+
+  render(props, { setpoint, currentTemp, humidity, activePreset, presetOpen, error, noConfig, isManualMode }) {
     const minTemp = this.getMinTemp();
     const maxTemp = this.getMaxTemp();
     const configMode = props.box.default_mode || 'heating';

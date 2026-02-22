@@ -490,6 +490,7 @@
         "defaultModeLabel": "Mode de fonctionnement",
         "controlTypeLabel": "Type de calcul",
         "controlTypeHelp": "Hystérésis: contrôle on/off avec seuils. TPI: contrôle proportionnel par modulation du temps de chauffe.",
+        "controlTypeLockedCooling": "En mode climatisation, seul le mode Hystérésis est disponible.",
         "controlTypeHysteresis": "Hystérésis",
         "controlTypeTPI": "TPI (Time Proportional Integral)",
         "hysteresisStartLabel": "Hystérésis démarrage (°C)",
