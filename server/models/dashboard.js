@@ -50,6 +50,7 @@ const boxesSchema = Joi.array().items(
       preset_comfort: Joi.number(),
       preset_eco: Joi.number(),
       preset_night: Joi.number(),
+      default_mode: Joi.string().valid('heating', 'cooling').allow(null),
     }),
   ),
 );
