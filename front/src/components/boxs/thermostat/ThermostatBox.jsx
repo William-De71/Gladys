@@ -1,7 +1,8 @@
 import { Component } from 'preact';
 import { connect } from 'unistore/preact';
 import { Text } from 'preact-i18n';
-import { WEBSOCKET_MESSAGE_TYPES, AC_MODE } from '../../../../../server/utils/constants';
+import { WEBSOCKET_MESSAGE_TYPES, AC_MODE, DEVICE_FEATURE_UNITS } from '../../../../../server/utils/constants';
+import { celsiusToFahrenheit, fahrenheitToCelsius } from '../../../../../server/utils/units';
 import withIntlAsProp from '../../../utils/withIntlAsProp';
 import style from './style.css';
 
@@ -26,7 +27,7 @@ function describeArc(cx, cy, r, startAngle, endAngle) {
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
 }
 
-const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncrement, onDecrement, minTemp, maxTemp, mode, isActive, isManualMode }) => {
+const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncrement, onDecrement, minTemp, maxTemp, mode, isActive, isManualMode, tempUnit }) => {
   const cx = 110;
   const cy = 110;
   const r = 88;
@@ -77,7 +78,7 @@ const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncre
       {/* Current temp + humidity: above setpoint */}
       {hasCurrentTemp && (
         <text x={cx} y={hasHumidity ? cy - 46 : cy - 38} textAnchor="middle" dominantBaseline="middle" class={style.currentTempText}>
-          {Number(currentTemp).toFixed(1)} °C
+          {Number(currentTemp).toFixed(1)} °{tempUnit || 'C'}
         </text>
       )}
       {hasHumidity && (
@@ -90,7 +91,7 @@ const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncre
       <text x={intX} y={cy + 25} textAnchor="start" dominantBaseline="auto" class={style.tempMain}>{intPart}</text>
       <text x={suffixX - 2} y={cy + 25} textAnchor="start" dominantBaseline="auto" class={style.tempDecimal}>.{decPart}</text>
       <text x={suffixX - 3} y={cy + 4} textAnchor="start" dominantBaseline="auto" class={style.tempUnit}>°</text>
-      <text x={suffixX + 4} y={cy + 4} textAnchor="start" dominantBaseline="auto" class={style.tempUnit}>C</text>
+      <text x={suffixX + 4} y={cy + 4} textAnchor="start" dominantBaseline="auto" class={style.tempUnit}>{tempUnit || 'C'}</text>
 
       {/* Active icon: at bottom of gauge */}
       {isActive && mode === 'heating' && (
@@ -142,6 +143,32 @@ class ThermostatBox extends Component {
   getMaxTemp = () => Number(this.props.box.temp_max) || DEFAULT_MAX;
 
   getStorageKey = suffix => `thermostat_${suffix}_${this.props.box.thermostat_feature || 'default'}`;
+
+  // Convert temperature from Celsius (stored) to user preference for display
+  toDisplayTemp = (tempCelsius) => {
+    if (tempCelsius === null || tempCelsius === undefined) return tempCelsius;
+    const userUnit = this.props.user && this.props.user.temperature_unit_preference;
+    if (userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
+      return celsiusToFahrenheit(tempCelsius);
+    }
+    return tempCelsius;
+  };
+
+  // Convert temperature from user preference to Celsius for storage/API
+  toStorageTemp = (tempDisplay) => {
+    if (tempDisplay === null || tempDisplay === undefined) return tempDisplay;
+    const userUnit = this.props.user && this.props.user.temperature_unit_preference;
+    if (userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
+      return fahrenheitToCelsius(tempDisplay);
+    }
+    return tempDisplay;
+  };
+
+  // Get the temperature unit symbol
+  getTempUnit = () => {
+    const userUnit = this.props.user && this.props.user.temperature_unit_preference;
+    return userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT ? 'F' : 'C';
+  };
 
   loadMode = () => {
     try {
@@ -387,7 +414,9 @@ class ThermostatBox extends Component {
   };
 
   increment = () => {
-    const newSetpoint = Math.min(this.getMaxTemp(), this.state.setpoint + 0.5);
+    // Always work in Celsius internally, 0.5°C step
+    const step = 0.5;
+    const newSetpoint = Math.min(this.getMaxTemp(), this.state.setpoint + step);
     if (this.state.activePreset === 'off') {
       const lastPreset = this.getLastActivePreset();
       this.setState({ setpoint: newSetpoint, isManualMode: true, activePreset: lastPreset });
@@ -400,7 +429,9 @@ class ThermostatBox extends Component {
   };
 
   decrement = () => {
-    const newSetpoint = Math.max(this.getMinTemp(), this.state.setpoint - 0.5);
+    // Always work in Celsius internally, 0.5°C step
+    const step = 0.5;
+    const newSetpoint = Math.max(this.getMinTemp(), this.state.setpoint - step);
     if (this.state.activePreset === 'off') {
       const lastPreset = this.getLastActivePreset();
       this.setState({ setpoint: newSetpoint, isManualMode: true, activePreset: lastPreset });
@@ -453,6 +484,13 @@ class ThermostatBox extends Component {
         : true;
     const showActive = isActive && !isStopped;
 
+    // Convert temperatures for display
+    const displaySetpoint = this.toDisplayTemp(setpoint);
+    const displayCurrentTemp = this.toDisplayTemp(currentTemp);
+    const displayMinTemp = this.toDisplayTemp(minTemp);
+    const displayMaxTemp = this.toDisplayTemp(maxTemp);
+    const tempUnit = this.getTempUnit();
+
     return (
       <div class="card">
         {props.box.name && (
@@ -481,17 +519,18 @@ class ThermostatBox extends Component {
               <div class="d-flex justify-content-center mb-3">
                 <div ref={el => (this.svgRef = el)} class={style.gaugeContainer}>
                   <CircularGauge
-                    setpoint={setpoint}
-                    currentTemp={currentTemp}
+                    setpoint={displaySetpoint}
+                    currentTemp={displayCurrentTemp}
                     humidity={humidity}
                     onPointerDown={this.onPointerDown}
                     onIncrement={this.increment}
                     onDecrement={this.decrement}
-                    minTemp={minTemp}
-                    maxTemp={maxTemp}
+                    minTemp={displayMinTemp}
+                    maxTemp={displayMaxTemp}
                     mode={mode}
                     isActive={showActive}
                     isManualMode={isManualMode}
+                    tempUnit={tempUnit}
                   />
                 </div>
               </div>
@@ -525,4 +564,4 @@ class ThermostatBox extends Component {
 
 }
 
-export default connect('httpClient,session', {})(withIntlAsProp(ThermostatBox));
+export default connect('httpClient,session,user', {})(withIntlAsProp(ThermostatBox));
