@@ -50,6 +50,12 @@ class EditThermostatBoxComponent extends Component {
     this.props.updateBoxConfig(this.props.x, this.props.y, { default_mode: mode });
   };
 
+  toggleAdvancedOptions = () => {
+    this.setState(prevState => ({
+      showAdvancedOptions: !prevState.showAdvancedOptions
+    }));
+  };
+
   updateNumberField = (field, e) => {
     const val = parseFloat(e.target.value);
     this.props.updateBoxConfig(this.props.x, this.props.y, { [field]: isNaN(val) ? undefined : val });
@@ -102,7 +108,8 @@ class EditThermostatBoxComponent extends Component {
         selectedThermostatOption,
         selectedTemperatureOption,
         selectedHumidityOption,
-        loading: false
+        loading: false,
+        showAdvancedOptions: false
       });
     } catch (e) {
       console.error(e);
@@ -116,7 +123,8 @@ class EditThermostatBoxComponent extends Component {
 
   render(props, {
     thermostatOptions, temperatureOptions, humidityOptions,
-    selectedThermostatOption, selectedTemperatureOption, selectedHumidityOption
+    selectedThermostatOption, selectedTemperatureOption, selectedHumidityOption,
+    showAdvancedOptions
   }) {
     const placeholder = props.intl && props.intl.dictionary
       ? props.intl.dictionary.dashboard.boxes.thermostat.selectPlaceholder
@@ -198,26 +206,35 @@ class EditThermostatBoxComponent extends Component {
         </div>
 
         <div class="form-group">
-          <label class="form-label">
-            <Text id="dashboard.boxes.thermostat.defaultModeLabel" />
-          </label>
-          <Select
-            value={currentMode === 'heating' 
-              ? { value: 'heating', label: props.intl.dictionary.dashboard.boxes.thermostat.modeHeating }
-              : { value: 'cooling', label: props.intl.dictionary.dashboard.boxes.thermostat.modeCooling }
-            }
-            onChange={opt => this.updateDefaultMode(opt.value)}
-            options={[
-              { value: 'heating', label: props.intl.dictionary.dashboard.boxes.thermostat.modeHeating },
-              { value: 'cooling', label: props.intl.dictionary.dashboard.boxes.thermostat.modeCooling }
-            ]}
-            className="react-select-container"
-            classNamePrefix="react-select"
-          />
+          <button onClick={this.toggleAdvancedOptions} class="btn btn-sm btn-outline-secondary w-100 mb-3">
+            <i class={`fa fa-${showAdvancedOptions ? 'chevron-up' : 'chevron-down'} mr-2`} />
+            <Text
+              id={`dashboard.boxes.chart.${showAdvancedOptions ? 'hideAdvancedOptions' : 'showAdvancedOptions'}`}
+            />
+          </button>
         </div>
 
-        <div class="row">
-          <div class="col-6">
+        {showAdvancedOptions && (
+          <div class="advanced-options">
+            <div class="form-group">
+              <label class="form-label">
+                <Text id="dashboard.boxes.thermostat.defaultModeLabel" />
+              </label>
+              <Select
+                value={currentMode === 'heating' 
+                  ? { value: 'heating', label: props.intl.dictionary.dashboard.boxes.thermostat.modeHeating }
+                  : { value: 'cooling', label: props.intl.dictionary.dashboard.boxes.thermostat.modeCooling }
+                }
+                onChange={opt => this.updateDefaultMode(opt.value)}
+                options={[
+                  { value: 'heating', label: props.intl.dictionary.dashboard.boxes.thermostat.modeHeating },
+                  { value: 'cooling', label: props.intl.dictionary.dashboard.boxes.thermostat.modeCooling }
+                ]}
+                className="react-select-container"
+                classNamePrefix="react-select"
+              />
+            </div>
+
             <div class="form-group">
               <label class="form-label">
                 <Text id="dashboard.boxes.thermostat.tempMinLabel" />
@@ -232,8 +249,7 @@ class EditThermostatBoxComponent extends Component {
                 step="1"
               />
             </div>
-          </div>
-          <div class="col-6">
+
             <div class="form-group">
               <label class="form-label">
                 <Text id="dashboard.boxes.thermostat.tempMaxLabel" />
@@ -248,11 +264,7 @@ class EditThermostatBoxComponent extends Component {
                 step="1"
               />
             </div>
-          </div>
-        </div>
 
-        <div class="row">
-          <div class="col-6">
             <div class="form-group">
               <label class="form-label">
                 <Text id="dashboard.boxes.thermostat.hysteresisStartLabel" />
@@ -270,8 +282,7 @@ class EditThermostatBoxComponent extends Component {
                 <Text id="dashboard.boxes.thermostat.hysteresisStartHelp" />
               </small>
             </div>
-          </div>
-          <div class="col-6">
+
             <div class="form-group">
               <label class="form-label">
                 <Text id="dashboard.boxes.thermostat.hysteresisStopLabel" />
@@ -289,16 +300,12 @@ class EditThermostatBoxComponent extends Component {
                 <Text id="dashboard.boxes.thermostat.hysteresisStopHelp" />
               </small>
             </div>
-          </div>
-        </div>
 
-        <label class="form-label">
-          <Text id="dashboard.boxes.thermostat.presetsLabel" />
-        </label>
-        <div class="row">
-          {activePresets.map(([key, def]) => (
-            <div class="col-6" key={key}>
-              <div class="form-group">
+            <label class="form-label">
+              <Text id="dashboard.boxes.thermostat.presetsLabel" />
+            </label>
+            {activePresets.map(([key, def]) => (
+              <div class="form-group" key={key}>
                 <label class="form-label">
                   <Text id={`dashboard.boxes.thermostat.preset.${key}`} />
                 </label>
@@ -312,9 +319,9 @@ class EditThermostatBoxComponent extends Component {
                   step="0.5"
                 />
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </BaseEditBox>
     );
   }
