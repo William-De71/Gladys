@@ -1,7 +1,7 @@
 import { Component } from 'preact';
 import { connect } from 'unistore/preact';
 import { Text } from 'preact-i18n';
-import { WEBSOCKET_MESSAGE_TYPES } from '../../../../../server/utils/constants';
+import { WEBSOCKET_MESSAGE_TYPES, AC_MODE } from '../../../../../server/utils/constants';
 import withIntlAsProp from '../../../utils/withIntlAsProp';
 import style from './style.css';
 
@@ -24,7 +24,7 @@ function describeArc(cx, cy, r, startAngle, endAngle) {
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
 }
 
-const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, minTemp, maxTemp, mode, isActive }) => {
+const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncrement, onDecrement, minTemp, maxTemp, mode, isActive }) => {
   const cx = 110;
   const cy = 110;
   const r = 88;
@@ -64,8 +64,8 @@ const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, minTemp
 
       {/* Setpoint: integer + decimal superscript + unit, precisely positioned */}
       <text x={intX} y={cy + 22} textAnchor="start" dominantBaseline="auto" class={style.tempMain}>{intPart}</text>
-      <text x={suffixX} y={cy + 4} textAnchor="start" dominantBaseline="auto" class={style.tempDecimal}>,{decPart}</text>
-      <text x={suffixX} y={cy + 22} textAnchor="start" dominantBaseline="auto" class={style.tempUnit}>°C</text>
+      <text x={suffixX} y={cy + 4} textAnchor="start" dominantBaseline="auto" class={style.tempUnit}>°C</text>
+      <text x={suffixX} y={cy + 22} textAnchor="start" dominantBaseline="auto" class={style.tempDecimal}>,{decPart}</text>
 
       {/* Active icon: at bottom of gauge */}
       {isActive && mode === 'heating' && (
@@ -73,6 +73,19 @@ const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, minTemp
       )}
       {isActive && mode === 'cooling' && (
         <text x={cx} y={cy + 54} textAnchor="middle" dominantBaseline="middle" class={style.activeIconCooling}>❄️</text>
+      )}
+
+      {onIncrement && (
+        <g onClick={onIncrement} onPointerDown={e => e.stopPropagation()} class={style.arcBtnGroup}>
+          <circle cx="180" cy="40" r="15" class={style.arcBtnCircle} />
+          <text x="180" y="40" textAnchor="middle" dominantBaseline="middle" class={style.arcBtnText}>+</text>
+        </g>
+      )}
+      {onDecrement && (
+        <g onClick={onDecrement} onPointerDown={e => e.stopPropagation()} class={style.arcBtnGroup}>
+          <circle cx="180" cy="180" r="15" class={style.arcBtnCircle} />
+          <text x="180" y="180" textAnchor="middle" dominantBaseline="middle" class={style.arcBtnText}>−</text>
+        </g>
       )}
     </svg>
   );
@@ -220,6 +233,17 @@ class ThermostatBox extends Component {
     }
   };
 
+  sendMode = async mode => {
+    const { box } = this.props;
+    if (!box.mode_feature) return;
+    const modeValue = mode === 'heating' ? AC_MODE.HEATING : mode === 'cooling' ? AC_MODE.COOLING : AC_MODE.AUTO;
+    try {
+      await this.props.httpClient.post(`/api/v1/device_feature/${box.mode_feature}/value`, { value: modeValue });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   angleToTemp = angleDeg => {
     const minTemp = this.getMinTemp();
     const maxTemp = this.getMaxTemp();
@@ -326,6 +350,8 @@ class ThermostatBox extends Component {
     this.setState(s => {
       const next = s.mode === 'heating' ? 'cooling' : 'heating';
       this.saveMode(next);
+      this.sendMode(next);
+      this.sendSetpoint(s.setpoint);
       return { mode: next };
     });
   };
@@ -341,9 +367,9 @@ class ThermostatBox extends Component {
         ? (currentTemp !== null && currentTemp !== undefined && currentTemp > setpoint)
         : false;
 
-    const modeBtnClass = mode === 'heating' ? 'btn-warning' : mode === 'cooling' ? 'btn-info' : 'btn-outline-warning';
-    const modeIcon = mode === 'cooling' ? 'fe-wind' : 'fe-thermometer';
-    const modeKey = mode === 'cooling' ? 'dashboard.boxes.thermostat.modeCooling' : 'dashboard.boxes.thermostat.modeHeating';
+    const modeBtnClass = mode === 'heating' ? 'btn-warning' : mode === 'cooling' ? 'btn-info' : 'btn-outline-secondary';
+    const modeIcon = mode === 'cooling' ? 'fe-wind' : mode === 'off' ? 'fe-power' : 'fe-thermometer';
+    const modeKey = mode === 'cooling' ? 'dashboard.boxes.thermostat.modeCooling' : mode === 'off' ? 'dashboard.boxes.thermostat.modeOff' : 'dashboard.boxes.thermostat.modeHeating';
 
     return (
       <div class="card">
@@ -370,28 +396,21 @@ class ThermostatBox extends Component {
           )}
           {!error && !noConfig && (
             <div>
-              <div class="d-flex justify-content-center">
+              <div class="d-flex justify-content-center mb-3">
                 <div ref={el => (this.svgRef = el)} class={style.gaugeContainer}>
                   <CircularGauge
                     setpoint={setpoint}
                     currentTemp={currentTemp}
                     humidity={humidity}
                     onPointerDown={this.onPointerDown}
+                    onIncrement={this.increment}
+                    onDecrement={this.decrement}
                     minTemp={minTemp}
                     maxTemp={maxTemp}
                     mode={mode}
                     isActive={isActive}
                   />
                 </div>
-              </div>
-
-              <div class="d-flex justify-content-center mb-3">
-                <button class="btn btn-outline-secondary btn-sm mr-3" onClick={this.decrement}>
-                  <i class="fe fe-minus" />
-                </button>
-                <button class="btn btn-outline-secondary btn-sm" onClick={this.increment}>
-                  <i class="fe fe-plus" />
-                </button>
               </div>
 
               <div class="row">

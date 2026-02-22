@@ -486,6 +486,7 @@
         "temperatureFeatureLabel": "Capteur de température actuelle (optionnel)",
         "temperatureFeatureHelp": "Sélectionnez le capteur qui mesure la température ambiante.",
         "humidityFeatureLabel": "Capteur d'humidité (optionnel)",
+        "humidityFeatureHelp": "Sélectionnez le capteur qui mesure l'humidité ambiante.",
         "tempMinLabel": "Température min",
         "tempMaxLabel": "Température max",
         "presetsLabel": "Températures des préréglages",

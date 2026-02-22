@@ -465,6 +465,7 @@
         "temperatureFeatureLabel": "Current temperature sensor (optional)",
         "temperatureFeatureHelp": "Select the sensor that measures the ambient temperature.",
         "humidityFeatureLabel": "Humidity sensor (optional)",
+        "humidityFeatureHelp": "Select the sensor that measures the ambient humidity.",
         "tempMinLabel": "Min temperature",
         "tempMaxLabel": "Max temperature",
         "presetsLabel": "Preset temperatures",
