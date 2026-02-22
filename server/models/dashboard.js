@@ -51,6 +51,8 @@ const boxesSchema = Joi.array().items(
       preset_eco: Joi.number(),
       preset_night: Joi.number(),
       default_mode: Joi.string().valid('heating', 'cooling').allow(null),
+      hysteresis_start: Joi.number().min(0).max(5),
+      hysteresis_stop: Joi.number().min(0).max(5),
     }),
   ),
 );

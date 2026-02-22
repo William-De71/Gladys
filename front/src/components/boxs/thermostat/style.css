@@ -159,3 +159,32 @@
 .presetItemActive .presetTemp {
   color: #467fcf;
 }
+
+.presetBtn_off { background: #6c757d; color: #fff; border-color: #6c757d; }
+.presetBtn_frost { background: #74c0fc; color: #fff; border-color: #74c0fc; }
+.presetBtn_away { background: #f59f00; color: #fff; border-color: #f59f00; }
+.presetBtn_eco { background: #2fb344; color: #fff; border-color: #2fb344; }
+.presetBtn_night { background: #7048e8; color: #fff; border-color: #7048e8; }
+.presetBtn_comfort_heating { background: #f97316; color: #fff; border-color: #f97316; }
+.presetBtn_comfort_cooling { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+.presetColor_off { color: #6c757d; }
+.presetColor_off i { color: #6c757d; }
+
+.presetColor_frost { color: #74c0fc; }
+.presetColor_frost i { color: #74c0fc; }
+
+.presetColor_away { color: #f59f00; }
+.presetColor_away i { color: #f59f00; }
+
+.presetColor_eco { color: #2fb344; }
+.presetColor_eco i { color: #2fb344; }
+
+.presetColor_night { color: #7048e8; }
+.presetColor_night i { color: #7048e8; }
+
+.presetColor_comfort_heating { color: #f97316; }
+.presetColor_comfort_heating i { color: #f97316; }
+
+.presetColor_comfort_cooling { color: #3b82f6; }
+.presetColor_comfort_cooling i { color: #3b82f6; }

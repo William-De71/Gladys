@@ -351,14 +351,24 @@ class ThermostatBox extends Component {
   render(props, { setpoint, currentTemp, humidity, presetOpen, activePreset, error, noConfig }) {
     const minTemp = this.getMinTemp();
     const maxTemp = this.getMaxTemp();
-    const mode = props.box.default_mode || 'heating';
+    const configMode = props.box.default_mode || 'heating';
+    const mode = activePreset === 'off' ? 'off' : configMode;
     const presets = this.getPresets();
     const activePresetData = presets.find(p => p.key === activePreset) || presets[0];
+    const hystStart = Number(props.box.hysteresis_start) || 0.5;
+    const hystStop = Number(props.box.hysteresis_stop) || 0.5;
+    const hasCurrent = currentTemp !== null && currentTemp !== undefined;
     const isActive = mode === 'heating'
-      ? (currentTemp !== null && currentTemp !== undefined && currentTemp < setpoint)
+      ? (hasCurrent && currentTemp < setpoint - hystStart)
       : mode === 'cooling'
-        ? (currentTemp !== null && currentTemp !== undefined && currentTemp > setpoint)
+        ? (hasCurrent && currentTemp > setpoint + hystStart)
         : false;
+    const isStopped = mode === 'heating'
+      ? (hasCurrent && currentTemp > setpoint + hystStop)
+      : mode === 'cooling'
+        ? (hasCurrent && currentTemp < setpoint - hystStop)
+        : true;
+    const showActive = isActive && !isStopped;
 
     return (
       <div class="card">
@@ -397,7 +407,7 @@ class ThermostatBox extends Component {
                     minTemp={minTemp}
                     maxTemp={maxTemp}
                     mode={mode}
-                    isActive={isActive}
+                    isActive={showActive}
                   />
                 </div>
               </div>
@@ -406,7 +416,7 @@ class ThermostatBox extends Component {
                 <div class="col-12">
                   <div class={style.presetWrapper} ref={el => (this.presetRef = el)}>
                     <button
-                      class={`btn btn-block ${activePreset !== 'off' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      class={`btn btn-block ${style[`presetBtn_${activePreset === 'comfort' ? `comfort_${configMode}` : activePreset}`] || 'btn-outline-secondary'}`}
                       onClick={this.togglePresetMenu}
                     >
                       <div class="pb-1">
@@ -420,7 +430,7 @@ class ThermostatBox extends Component {
                         {presets.map(preset => (
                           <button
                             key={preset.key}
-                            class={`${style.presetItem} ${activePreset === preset.key ? style.presetItemActive : ''}`}
+                            class={`${style.presetItem} ${style[`presetColor_${preset.key === 'comfort' ? `comfort_${configMode}` : preset.key}`] || ''} ${activePreset === preset.key ? style.presetItemActive : ''}`}
                             onClick={() => this.selectPreset(preset)}
                           >
                             <i class={`fe ${preset.icon} mr-2`} />
