@@ -201,24 +201,19 @@ class EditThermostatBoxComponent extends Component {
           <label class="form-label">
             <Text id="dashboard.boxes.thermostat.defaultModeLabel" />
           </label>
-          <div class="btn-group btn-group-toggle d-flex">
-            <button
-              type="button"
-              class={`btn btn-outline-warning flex-fill${currentMode === 'heating' ? ' active' : ''}`}
-              onClick={() => this.updateDefaultMode('heating')}
-            >
-              <i class="fe fe-thermometer mr-1" />
-              <Text id="dashboard.boxes.thermostat.modeHeating" />
-            </button>
-            <button
-              type="button"
-              class={`btn btn-outline-info flex-fill${currentMode === 'cooling' ? ' active' : ''}`}
-              onClick={() => this.updateDefaultMode('cooling')}
-            >
-              <i class="fe fe-wind mr-1" />
-              <Text id="dashboard.boxes.thermostat.modeCooling" />
-            </button>
-          </div>
+          <Select
+            value={currentMode === 'heating' 
+              ? { value: 'heating', label: props.intl.dictionary.dashboard.boxes.thermostat.modeHeating }
+              : { value: 'cooling', label: props.intl.dictionary.dashboard.boxes.thermostat.modeCooling }
+            }
+            onChange={opt => this.updateDefaultMode(opt.value)}
+            options={[
+              { value: 'heating', label: props.intl.dictionary.dashboard.boxes.thermostat.modeHeating },
+              { value: 'cooling', label: props.intl.dictionary.dashboard.boxes.thermostat.modeCooling }
+            ]}
+            className="react-select-container"
+            classNamePrefix="react-select"
+          />
         </div>
 
         <div class="row">
