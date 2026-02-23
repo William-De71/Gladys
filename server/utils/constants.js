@@ -1302,6 +1302,11 @@ const WEBSOCKET_MESSAGE_TYPES = {
     EXECUTING_ACTION: 'scene.executing-action',
     FINISHED_EXECUTING_ACTION: 'scene.finished-executing-action',
   },
+  THERMOSTAT: {
+    CONFIG_UPDATED: 'thermostat.config-updated',
+    PRESET_UPDATED: 'thermostat.preset-updated',
+    MANUAL_MODE_UPDATED: 'thermostat.manual-mode-updated',
+  },
   SYSTEM: {
     VACUUM_FINISHED: 'system.vacuum-finished',
     WATCHTOWER_LOG: 'system.watchtower-log',
