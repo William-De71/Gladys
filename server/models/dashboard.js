@@ -43,6 +43,7 @@ const boxesSchema = Joi.array().items(
       thermostat_feature: Joi.string().allow(null),
       temperature_feature: Joi.string().allow(null),
       humidity_feature: Joi.string().allow(null),
+      switch_feature: Joi.string().allow(null),
       temp_min: Joi.number(),
       temp_max: Joi.number(),
       preset_frost: Joi.number(),

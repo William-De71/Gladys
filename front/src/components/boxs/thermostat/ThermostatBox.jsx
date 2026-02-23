@@ -142,6 +142,7 @@ class ThermostatBox extends Component {
   presetRef = null;
   modeInitialized = false;
   savingPreset = false;
+  lastSwitchActive = null;
 
   getConfig = () => ({ ...this.props.box, ...(this.state.remoteConfig || {}) });
   getMinTemp = () => Number(this.getConfig().temp_min) || DEFAULT_MIN;
@@ -418,7 +419,7 @@ class ThermostatBox extends Component {
     this.props.session.dispatcher.removeListener('websocket.connected', this.handleWebsocketConnected);
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps, prevState) {
     const { box } = this.props;
     if (
       prevProps.box.thermostat_feature !== box.thermostat_feature ||
@@ -426,9 +427,23 @@ class ThermostatBox extends Component {
       prevProps.box.humidity_feature !== box.humidity_feature
     ) {
       this.getDeviceData();
-      // Reload mode when thermostat_feature changes
       if (prevProps.box.thermostat_feature !== box.thermostat_feature) {
         this.loadMode();
+      }
+    }
+    // Detect isActive changes and actuate the switch
+    const { setpoint, currentTemp, activePreset, remoteConfig } = this.state;
+    const relevantChanged =
+      prevState.setpoint !== setpoint ||
+      prevState.currentTemp !== currentTemp ||
+      prevState.activePreset !== activePreset ||
+      prevState.remoteConfig !== remoteConfig ||
+      prevProps.box !== box;
+    if (relevantChanged) {
+      const newActive = this.computeIsActive();
+      if (newActive !== this.lastSwitchActive) {
+        this.lastSwitchActive = newActive;
+        this.sendSwitch(newActive);
       }
     }
   }
@@ -441,6 +456,37 @@ class ThermostatBox extends Component {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  sendSwitch = async active => {
+    const cfg = this.getConfig();
+    if (!cfg.switch_feature) return;
+    try {
+      await this.props.httpClient.post(`/api/v1/device_feature/${cfg.switch_feature}/value`, { value: active ? 1 : 0 });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  computeIsActive = () => {
+    const { setpoint, currentTemp, activePreset, remoteConfig } = this.state;
+    const cfg = { ...this.props.box, ...(remoteConfig || {}) };
+    const configMode = cfg.default_mode || 'heating';
+    const mode = activePreset === 'off' ? 'off' : configMode;
+    const hystStart = Number(cfg.hysteresis_start) || 0.5;
+    const hystStop = Number(cfg.hysteresis_stop) || 0.5;
+    const hasCurrent = currentTemp !== null && currentTemp !== undefined;
+    const isActive = mode === 'heating'
+      ? (hasCurrent && currentTemp < setpoint - hystStart)
+      : mode === 'cooling'
+        ? (hasCurrent && currentTemp > setpoint + hystStart)
+        : false;
+    const isStopped = mode === 'heating'
+      ? (hasCurrent && currentTemp > setpoint + hystStop)
+      : mode === 'cooling'
+        ? (hasCurrent && currentTemp < setpoint - hystStop)
+        : true;
+    return isActive && !isStopped;
   };
 
   sendMode = async mode => {

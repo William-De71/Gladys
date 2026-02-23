@@ -487,6 +487,8 @@
         "temperatureFeatureHelp": "Sélectionnez le capteur qui mesure la température ambiante.",
         "humidityFeatureLabel": "Capteur d'humidité (optionnel)",
         "humidityFeatureHelp": "Sélectionnez le capteur qui mesure l'humidité ambiante.",
+        "switchFeatureLabel": "Commutateur on/off (optionnel)",
+        "switchFeatureHelp": "Sélectionnez le commutateur à actionner quand le chauffage ou la climatisation est actif.",
         "defaultModeLabel": "Mode de fonctionnement",
         "controlTypeLabel": "Type de calcul",
         "controlTypeHelp": "Hystérésis: contrôle on/off avec seuils. TPI: contrôle proportionnel par modulation du temps de chauffe.",

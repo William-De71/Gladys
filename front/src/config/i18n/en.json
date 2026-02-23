@@ -466,6 +466,8 @@
         "temperatureFeatureHelp": "Select the sensor that measures the ambient temperature.",
         "humidityFeatureLabel": "Humidity sensor (optional)",
         "humidityFeatureHelp": "Select the sensor that measures the ambient humidity.",
+        "switchFeatureLabel": "On/off switch (optional)",
+        "switchFeatureHelp": "Select the switch to actuate when heating or cooling is active.",
         "defaultModeLabel": "Operating mode",
         "controlTypeLabel": "Control type",
         "controlTypeHelp": "Hysteresis: on/off control with thresholds. TPI: proportional control by heating time modulation.",

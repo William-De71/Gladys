@@ -20,10 +20,11 @@ const TEMPERATURE_CATEGORIES = [
 ];
 
 const HUMIDITY_CATEGORIES = [DEVICE_FEATURE_CATEGORIES.HUMIDITY_SENSOR];
+const SWITCH_CATEGORIES = [DEVICE_FEATURE_CATEGORIES.SWITCH];
 
 class EditThermostatBoxComponent extends Component {
   CONFIG_FIELDS = [
-    'temperature_feature', 'humidity_feature', 'default_mode', 'control_type',
+    'temperature_feature', 'humidity_feature', 'switch_feature', 'default_mode', 'control_type',
     'temp_min', 'temp_max', 'hysteresis_start', 'hysteresis_stop',
     'tpi_cycle_time', 'tpi_proportional_band',
     'preset_frost', 'preset_away', 'preset_comfort', 'preset_eco', 'preset_night'
@@ -76,14 +77,18 @@ class EditThermostatBoxComponent extends Component {
           this.CONFIG_FIELDS.forEach(f => {
             if (remoteConfig[f] !== undefined) localConfig[f] = remoteConfig[f];
           });
-          // Find matching select options for temperature and humidity
+          // Find matching select options for temperature, humidity and switch
           let selectedTemperatureOption = null;
           let selectedHumidityOption = null;
+          let selectedSwitchOption = null;
           this.state.temperatureOptions.forEach(group => group.options.forEach(opt => {
             if (opt.value === remoteConfig.temperature_feature) selectedTemperatureOption = opt;
           }));
           this.state.humidityOptions.forEach(group => group.options.forEach(opt => {
             if (opt.value === remoteConfig.humidity_feature) selectedHumidityOption = opt;
+          }));
+          (this.state.switchOptions || []).forEach(group => group.options.forEach(opt => {
+            if (opt.value === remoteConfig.switch_feature) selectedSwitchOption = opt;
           }));
           const controlType = remoteConfig.control_type || 'hysteresis';
           const selectedControlType = controlType === 'tpi'
@@ -91,7 +96,7 @@ class EditThermostatBoxComponent extends Component {
             : { value: 'hysteresis', label: this.props.intl.dictionary.dashboard.boxes.thermostat.controlTypeHysteresis };
           // Sync box config with remote values
           this.props.updateBoxConfig(this.props.x, this.props.y, { thermostat_feature: feature, ...remoteConfig });
-          this.setState({ localConfig, selectedTemperatureOption, selectedHumidityOption, selectedControlType });
+          this.setState({ localConfig, selectedTemperatureOption, selectedHumidityOption, selectedSwitchOption, selectedControlType });
         }
       }
     } catch (e) {
@@ -110,6 +115,13 @@ class EditThermostatBoxComponent extends Component {
     const updates = { humidity_feature: option ? option.value : null };
     this.props.updateBoxConfig(this.props.x, this.props.y, updates);
     this.setState({ selectedHumidityOption: option });
+    await this.saveToGladys(this.props.box.thermostat_feature, updates);
+  };
+
+  updateSwitchFeature = async option => {
+    const updates = { switch_feature: option ? option.value : null };
+    this.props.updateBoxConfig(this.props.x, this.props.y, updates);
+    this.setState({ selectedSwitchOption: option });
     await this.saveToGladys(this.props.box.thermostat_feature, updates);
   };
 
@@ -224,9 +236,11 @@ class EditThermostatBoxComponent extends Component {
       const thermostatOptions = this.buildOptions(devices, f => THERMOSTAT_CATEGORIES.includes(f.category));
       const temperatureOptions = this.buildOptions(devices, f => TEMPERATURE_CATEGORIES.includes(f.category));
       const humidityOptions = this.buildOptions(devices, f => HUMIDITY_CATEGORIES.includes(f.category));
+      const switchOptions = this.buildOptions(devices, f => SWITCH_CATEGORIES.includes(f.category));
       let selectedThermostatOption = null;
       let selectedTemperatureOption = null;
       let selectedHumidityOption = null;
+      let selectedSwitchOption = null;
 
       thermostatOptions.forEach(group => group.options.forEach(opt => {
         if (opt.value === effectiveBox.thermostat_feature) selectedThermostatOption = opt;
@@ -236,6 +250,9 @@ class EditThermostatBoxComponent extends Component {
       }));
       humidityOptions.forEach(group => group.options.forEach(opt => {
         if (opt.value === effectiveBox.humidity_feature) selectedHumidityOption = opt;
+      }));
+      switchOptions.forEach(group => group.options.forEach(opt => {
+        if (opt.value === effectiveBox.switch_feature) selectedSwitchOption = opt;
       }));
       const controlType = effectiveBox.control_type || 'hysteresis';
       const selectedControlType = controlType === 'tpi'
@@ -255,9 +272,11 @@ class EditThermostatBoxComponent extends Component {
         thermostatOptions,
         temperatureOptions,
         humidityOptions,
+        switchOptions,
         selectedThermostatOption,
         selectedTemperatureOption,
         selectedHumidityOption,
+        selectedSwitchOption,
         selectedControlType,
         localConfig,
         loading: false,
@@ -274,8 +293,8 @@ class EditThermostatBoxComponent extends Component {
   }
 
   render(props, {
-    thermostatOptions, temperatureOptions, humidityOptions,
-    selectedThermostatOption, selectedTemperatureOption, selectedHumidityOption,
+    thermostatOptions, temperatureOptions, humidityOptions, switchOptions,
+    selectedThermostatOption, selectedTemperatureOption, selectedHumidityOption, selectedSwitchOption,
     selectedControlType, showAdvancedOptions
   }) {
     const placeholder = props.intl && props.intl.dictionary
@@ -391,6 +410,31 @@ class EditThermostatBoxComponent extends Component {
           />
           <small class="form-text text-muted">
             <Text id="dashboard.boxes.thermostat.humidityFeatureHelp" />
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <Text id="dashboard.boxes.thermostat.switchFeatureLabel" />
+          </label>
+          <Select
+            value={selectedSwitchOption}
+            onChange={this.updateSwitchFeature}
+            options={switchOptions}
+            isClearable
+            placeholder={placeholder}
+            maxMenuHeight={220}
+            className="react-select-container"
+            classNamePrefix="react-select"
+            styles={{
+              valueContainer: (provided) => ({ ...provided, paddingLeft: '8px' }),
+              input: (provided) => ({ ...provided, paddingLeft: '4px' }),
+              placeholder: (provided) => ({ ...provided, paddingLeft: '4px' }),
+              singleValue: (provided) => ({ ...provided, marginLeft: '0px', paddingLeft: '4px' })
+            }}
+          />
+          <small class="form-text text-muted">
+            <Text id="dashboard.boxes.thermostat.switchFeatureHelp" />
           </small>
         </div>
 
