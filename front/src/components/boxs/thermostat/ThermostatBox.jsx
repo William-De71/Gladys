@@ -132,15 +132,20 @@ class ThermostatBox extends Component {
     humidity: null,
     presetOpen: false,
     activePreset: 'comfort',
+    isManualMode: false,
     error: false,
-    noConfig: false
+    noConfig: false,
+    remoteConfig: null
   };
 
   svgRef = null;
   presetRef = null;
+  modeInitialized = false;
+  savingPreset = false;
 
-  getMinTemp = () => Number(this.props.box.temp_min) || DEFAULT_MIN;
-  getMaxTemp = () => Number(this.props.box.temp_max) || DEFAULT_MAX;
+  getConfig = () => ({ ...this.props.box, ...(this.state.remoteConfig || {}) });
+  getMinTemp = () => Number(this.getConfig().temp_min) || DEFAULT_MIN;
+  getMaxTemp = () => Number(this.getConfig().temp_max) || DEFAULT_MAX;
 
   getStorageKey = suffix => `thermostat_${suffix}_${this.props.box.thermostat_feature || 'default'}`;
 
@@ -170,13 +175,57 @@ class ThermostatBox extends Component {
     return userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT ? 'F' : 'C';
   };
 
-  loadMode = () => {
+  loadConfig = async () => {
+    const { box } = this.props;
+    if (!box.thermostat_feature) return null;
+    const key = box.thermostat_feature.toUpperCase().replace(/-/g, '_');
     try {
-      const savedPreset = localStorage.getItem(this.getStorageKey('preset'));
-      if (savedPreset) this.setState({ activePreset: savedPreset });
-      const savedManualMode = localStorage.getItem(this.getStorageKey('manual_mode'));
-      if (savedManualMode === 'true') this.setState({ isManualMode: true });
-    } catch (e) { /* ignore */ }
+      const response = await this.props.httpClient.get(`/api/v1/variable/THERMOSTAT_CONFIG_${key}`);
+      if (response && response.value) {
+        const config = JSON.parse(response.value);
+        await new Promise(resolve => this.setState({ remoteConfig: config }, resolve));
+        return config;
+      }
+    } catch (e) {
+      // Ignore - no remote config yet
+    }
+    return null;
+  };
+
+  loadMode = async () => {
+    const { box } = this.props;
+    if (!box.thermostat_feature) return;
+    // Don't read while a save is in progress
+    if (this.savingPreset) return;
+    
+    try {
+      const response = await this.props.httpClient.get(`/api/v1/variable/THERMOSTAT_${box.thermostat_feature.toUpperCase().replace(/-/g, '_')}_PRESET`);
+      if (response && response.value) {
+        if (response.value !== this.state.activePreset) {
+          this.setState({ activePreset: response.value });
+        }
+        this.modeInitialized = true;
+      } else if (!this.modeInitialized) {
+        this.modeInitialized = true;
+        await this.savePreset(this.state.activePreset);
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+    
+    try {
+      const response = await this.props.httpClient.get(`/api/v1/variable/THERMOSTAT_${box.thermostat_feature.toUpperCase().replace(/-/g, '_')}_MANUAL_MODE`);
+      if (response && response.value !== null && response.value !== undefined) {
+        const isManual = response.value === 'true';
+        if (isManual !== this.state.isManualMode) {
+          this.setState({ isManualMode: isManual });
+        }
+      } else if (!this.modeInitialized) {
+        await this.saveManualMode(this.state.isManualMode);
+      }
+    } catch (e) {
+      // Ignore errors
+    }
   };
 
   saveLastActivePreset = preset => {
@@ -195,58 +244,86 @@ class ThermostatBox extends Component {
     }
   };
 
-  savePreset = preset => {
+  savePreset = async preset => {
+    const { box } = this.props;
+    if (!box.thermostat_feature) return;
+    
+    this.savingPreset = true;
     try {
-      localStorage.setItem(this.getStorageKey('preset'), preset);
-    } catch (e) { /* ignore */ }
+      await this.props.httpClient.post(`/api/v1/variable/THERMOSTAT_${box.thermostat_feature.toUpperCase().replace(/-/g, '_')}_PRESET`, {
+        value: preset
+      });
+    } catch (e) {
+      console.error('Failed to save preset:', e);
+    } finally {
+      this.savingPreset = false;
+    }
   };
 
-  saveManualMode = isManual => {
+  saveManualMode = async isManual => {
+    const { box } = this.props;
+    if (!box.thermostat_feature) return;
+    
     try {
-      localStorage.setItem(this.getStorageKey('manual_mode'), isManual.toString());
-    } catch (e) { /* ignore */ }
+      // Save to Gladys variables keyed by thermostat_feature
+      await this.props.httpClient.post(`/api/v1/variable/THERMOSTAT_${box.thermostat_feature.toUpperCase().replace(/-/g, '_')}_MANUAL_MODE`, {
+        value: isManual.toString()
+      });
+    } catch (e) {
+      console.error('Failed to save manual mode:', e);
+    }
   };
 
   getPresets = () => {
-    const { box } = this.props;
-    const mode = box.default_mode || 'heating';
+    const cfg = this.getConfig();
+    const mode = cfg.default_mode || 'heating';
     const keys = mode === 'cooling' ? COOLING_PRESETS : HEATING_PRESETS;
     const comfortIcon = mode === 'cooling' ? 'fe-cloud-snow' : 'fe-thermometer';
     const allPresets = {
       off: { key: 'off', icon: PRESET_ICONS.off, temp: null },
-      frost: { key: 'frost', icon: PRESET_ICONS.frost, temp: Number(box.preset_frost) || DEFAULT_PRESET_TEMPS.frost },
-      away: { key: 'away', icon: PRESET_ICONS.away, temp: Number(box.preset_away) || DEFAULT_PRESET_TEMPS.away },
-      comfort: { key: 'comfort', icon: comfortIcon, temp: Number(box.preset_comfort) || DEFAULT_PRESET_TEMPS.comfort },
-      eco: { key: 'eco', icon: PRESET_ICONS.eco, temp: Number(box.preset_eco) || DEFAULT_PRESET_TEMPS.eco },
-      night: { key: 'night', icon: PRESET_ICONS.night, temp: Number(box.preset_night) || DEFAULT_PRESET_TEMPS.night }
+      frost: { key: 'frost', icon: PRESET_ICONS.frost, temp: Number(cfg.preset_frost) || DEFAULT_PRESET_TEMPS.frost },
+      away: { key: 'away', icon: PRESET_ICONS.away, temp: Number(cfg.preset_away) || DEFAULT_PRESET_TEMPS.away },
+      comfort: { key: 'comfort', icon: comfortIcon, temp: Number(cfg.preset_comfort) || DEFAULT_PRESET_TEMPS.comfort },
+      eco: { key: 'eco', icon: PRESET_ICONS.eco, temp: Number(cfg.preset_eco) || DEFAULT_PRESET_TEMPS.eco },
+      night: { key: 'night', icon: PRESET_ICONS.night, temp: Number(cfg.preset_night) || DEFAULT_PRESET_TEMPS.night }
     };
     return keys.map(k => allPresets[k]);
   };
 
   getDeviceData = async () => {
     const { box } = this.props;
-    if (!box.thermostat_feature && !box.temperature_feature) {
+    const remote = this.state.remoteConfig || {};
+    const thermostatFeature = box.thermostat_feature;
+    // remoteConfig takes strict priority: if key exists in remote (even null), use it
+    const temperatureFeature = 'temperature_feature' in remote ? remote.temperature_feature : box.temperature_feature;
+    const humidityFeature = 'humidity_feature' in remote ? remote.humidity_feature : box.humidity_feature;
+    if (!thermostatFeature && !temperatureFeature) {
       this.setState({ noConfig: true });
       return;
     }
-    this.setState({ noConfig: false, error: false });
+    // Reset features that have been removed
+    const stateUpdate = { noConfig: false, error: false };
+    if (!temperatureFeature) stateUpdate.currentTemp = null;
+    if (!humidityFeature) stateUpdate.humidity = null;
+    this.setState(stateUpdate);
+    const selectors = [thermostatFeature, temperatureFeature, humidityFeature]
+      .filter(Boolean)
+      .join(',');
+    if (!selectors) return;
     try {
-      const selectors = [box.thermostat_feature, box.temperature_feature, box.humidity_feature]
-        .filter(Boolean)
-        .join(',');
       const devices = await this.props.httpClient.get('/api/v1/device', {
         device_feature_selectors: selectors
       });
       if (devices && devices.length) {
         devices.forEach(device => {
           device.features.forEach(feat => {
-            if (feat.selector === box.thermostat_feature && feat.last_value !== null && feat.last_value !== undefined) {
+            if (feat.selector === thermostatFeature && feat.last_value !== null && feat.last_value !== undefined) {
               this.setState({ setpoint: feat.last_value });
             }
-            if (feat.selector === box.temperature_feature && feat.last_value !== null && feat.last_value !== undefined) {
+            if (temperatureFeature && feat.selector === temperatureFeature && feat.last_value !== null && feat.last_value !== undefined) {
               this.setState({ currentTemp: feat.last_value });
             }
-            if (feat.selector === box.humidity_feature && feat.last_value !== null && feat.last_value !== undefined) {
+            if (humidityFeature && feat.selector === humidityFeature && feat.last_value !== null && feat.last_value !== undefined) {
               this.setState({ humidity: feat.last_value });
             }
           });
@@ -260,13 +337,17 @@ class ThermostatBox extends Component {
 
   handleWebsocketMessage = payload => {
     const { box } = this.props;
-    if (box.thermostat_feature && payload.device_feature_selector === box.thermostat_feature) {
+    const remote = this.state.remoteConfig || {};
+    const thermostatFeature = box.thermostat_feature;
+    const temperatureFeature = 'temperature_feature' in remote ? remote.temperature_feature : box.temperature_feature;
+    const humidityFeature = 'humidity_feature' in remote ? remote.humidity_feature : box.humidity_feature;
+    if (thermostatFeature && payload.device_feature_selector === thermostatFeature) {
       this.setState({ setpoint: payload.last_value });
     }
-    if (box.temperature_feature && payload.device_feature_selector === box.temperature_feature) {
+    if (temperatureFeature && payload.device_feature_selector === temperatureFeature) {
       this.setState({ currentTemp: payload.last_value });
     }
-    if (box.humidity_feature && payload.device_feature_selector === box.humidity_feature) {
+    if (humidityFeature && payload.device_feature_selector === humidityFeature) {
       this.setState({ humidity: payload.last_value });
     }
   };
@@ -280,15 +361,60 @@ class ThermostatBox extends Component {
     }
   };
 
+  getFeatureVarKey = () => {
+    const { box } = this.props;
+    if (!box.thermostat_feature) return null;
+    return box.thermostat_feature.toUpperCase().replace(/-/g, '_');
+  };
+
+  handleThermostatConfigUpdated = payload => {
+    const key = this.getFeatureVarKey();
+    if (!key || payload.key !== `THERMOSTAT_CONFIG_${key}`) return;
+    try {
+      const config = JSON.parse(payload.value);
+      this.setState({ remoteConfig: config }, () => this.getDeviceData());
+    } catch (e) {
+      // Ignore parse errors
+    }
+  };
+
+  handleThermostatPresetUpdated = payload => {
+    const key = this.getFeatureVarKey();
+    if (!key || payload.key !== `THERMOSTAT_${key}_PRESET`) return;
+    if (payload.value && payload.value !== this.state.activePreset && !this.savingPreset) {
+      this.setState({ activePreset: payload.value });
+    }
+  };
+
+  handleThermostatManualModeUpdated = payload => {
+    const key = this.getFeatureVarKey();
+    if (!key || payload.key !== `THERMOSTAT_${key}_MANUAL_MODE`) return;
+    const isManual = payload.value === 'true';
+    if (isManual !== this.state.isManualMode && !this.savingPreset) {
+      this.setState({ isManualMode: isManual });
+    }
+  };
+
+  initData = async () => {
+    await this.loadConfig();
+    await this.getDeviceData();
+  };
+
   componentDidMount() {
+    this.initData();
     this.loadMode();
-    this.getDeviceData();
     this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.DEVICE.NEW_STATE, this.handleWebsocketMessage);
+    this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.CONFIG_UPDATED, this.handleThermostatConfigUpdated);
+    this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.PRESET_UPDATED, this.handleThermostatPresetUpdated);
+    this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.MANUAL_MODE_UPDATED, this.handleThermostatManualModeUpdated);
     this.props.session.dispatcher.addListener('websocket.connected', this.handleWebsocketConnected);
   }
 
   componentWillUnmount() {
     this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.DEVICE.NEW_STATE, this.handleWebsocketMessage);
+    this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.CONFIG_UPDATED, this.handleThermostatConfigUpdated);
+    this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.PRESET_UPDATED, this.handleThermostatPresetUpdated);
+    this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.MANUAL_MODE_UPDATED, this.handleThermostatManualModeUpdated);
     this.props.session.dispatcher.removeListener('websocket.connected', this.handleWebsocketConnected);
   }
 
@@ -300,6 +426,10 @@ class ThermostatBox extends Component {
       prevProps.box.humidity_feature !== box.humidity_feature
     ) {
       this.getDeviceData();
+      // Reload mode when thermostat_feature changes
+      if (prevProps.box.thermostat_feature !== box.thermostat_feature) {
+        this.loadMode();
+      }
     }
   }
 
@@ -443,11 +573,11 @@ class ThermostatBox extends Component {
     this.sendSetpoint(newSetpoint);
   };
 
-  selectPreset = preset => {
+  selectPreset = async preset => {
     this.saveLastActivePreset(this.state.activePreset);
     this.setState({ activePreset: preset.key, setpoint: preset.temp || this.state.setpoint, presetOpen: false, isManualMode: false });
-    this.savePreset(preset.key);
-    this.saveManualMode(false);
+    await this.savePreset(preset.key);
+    await this.saveManualMode(false);
     if (preset.temp !== null) {
       this.sendSetpoint(preset.temp);
     }
@@ -463,14 +593,15 @@ class ThermostatBox extends Component {
     }
   };
 
-  render(props, { setpoint, currentTemp, humidity, activePreset, presetOpen, error, noConfig, isManualMode }) {
+  render(props, { setpoint, currentTemp, humidity, activePreset, error, noConfig, isManualMode }) {
+    const cfg = this.getConfig();
     const minTemp = this.getMinTemp();
     const maxTemp = this.getMaxTemp();
-    const configMode = props.box.default_mode || 'heating';
+    const configMode = cfg.default_mode || 'heating';
     const mode = activePreset === 'off' ? 'off' : configMode;
     const presets = this.getPresets();
-    const hystStart = Number(props.box.hysteresis_start) || 0.5;
-    const hystStop = Number(props.box.hysteresis_stop) || 0.5;
+    const hystStart = Number(cfg.hysteresis_start) || 0.5;
+    const hystStop = Number(cfg.hysteresis_stop) || 0.5;
     const hasCurrent = currentTemp !== null && currentTemp !== undefined;
     const isActive = mode === 'heating'
       ? (hasCurrent && currentTemp < setpoint - hystStart)
