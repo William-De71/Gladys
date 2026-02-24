@@ -7,6 +7,7 @@ import withIntlAsProp from '../../../utils/withIntlAsProp';
 import BaseEditBox from '../baseEditBox';
 import { DEVICE_FEATURE_CATEGORIES, DEVICE_FEATURE_UNITS } from '../../../../../server/utils/constants';
 import { celsiusToFahrenheit, fahrenheitToCelsius } from '../../../../../server/utils/units';
+import style from './style.css';
 
 const THERMOSTAT_CATEGORIES = [
   DEVICE_FEATURE_CATEGORIES.THERMOSTAT,
@@ -59,6 +60,21 @@ class EditThermostatBoxComponent extends Component {
     this.props.updateBoxConfig(this.props.x, this.props.y, { thermostat_feature: feature });
     this.setState({ selectedThermostatOption: option });
     if (!feature) return;
+    // Fetch the feature object to get its native min/max/unit
+    try {
+      const featDevices = await this.props.httpClient.get('/api/v1/device', { device_feature_selectors: feature });
+      let featObj = null;
+      if (featDevices && featDevices.length) {
+        featDevices.forEach(d => d.features.forEach(f => { if (f.selector === feature) featObj = f; }));
+      }
+      this.setState({
+        featureMin: featObj ? featObj.min : null,
+        featureMax: featObj ? featObj.max : null,
+        featureUnit: featObj ? featObj.unit : null
+      });
+    } catch (e) {
+      // ignore
+    }
     // Load remote config for the newly selected thermostat
     try {
       const response = await this.props.httpClient.get(
@@ -159,13 +175,18 @@ class EditThermostatBoxComponent extends Component {
     }));
   };
 
+  // Effective temperature unit: device feature unit takes priority over user preference
+  getEffectiveUnit = () => {
+    if (this.state.featureUnit) return this.state.featureUnit;
+    return (this.props.user && this.props.user.temperature_unit_preference) || DEVICE_FEATURE_UNITS.CELSIUS;
+  };
+
   updateNumberField = async (field, e) => {
     let val = parseFloat(e.target.value);
-    // Convert temperature fields from user unit to Celsius for storage
+    // Convert temperature fields from display unit to Celsius for storage
     const isTempField = field === 'temp_min' || field === 'temp_max' || field.startsWith('preset_') || field === 'hysteresis_start' || field === 'hysteresis_stop';
     if (isTempField && !isNaN(val)) {
-      const userUnit = this.props.user && this.props.user.temperature_unit_preference;
-      if (userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
+      if (this.getEffectiveUnit() === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
         val = fahrenheitToCelsius(val);
       }
     }
@@ -176,11 +197,10 @@ class EditThermostatBoxComponent extends Component {
     }
   };
 
-  // Convert temperature from Celsius (stored) to user preference for display
+  // Convert temperature from Celsius (stored) to display unit
   toDisplayTemp = (tempCelsius) => {
     if (tempCelsius === null || tempCelsius === undefined) return tempCelsius;
-    const userUnit = this.props.user && this.props.user.temperature_unit_preference;
-    if (userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
+    if (this.getEffectiveUnit() === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
       return Math.round(celsiusToFahrenheit(tempCelsius));
     }
     return tempCelsius;
@@ -188,8 +208,7 @@ class EditThermostatBoxComponent extends Component {
 
   // Get the temperature unit symbol
   getTempUnit = () => {
-    const userUnit = this.props.user && this.props.user.temperature_unit_preference;
-    return userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT ? '°F' : '°C';
+    return this.getEffectiveUnit() === DEVICE_FEATURE_UNITS.FAHRENHEIT ? '°F' : '°C';
   };
 
   buildOptions = (devices, filterFn) => {
@@ -233,6 +252,23 @@ class EditThermostatBoxComponent extends Component {
       }
       const effectiveBox = { ...box, ...(remoteConfig || {}) };
 
+      // Find thermostat feature object to read its native min/max
+      let thermostatFeatureObj = null;
+      devices.forEach(device => {
+        device.features.forEach(feat => {
+          if (feat.selector === effectiveBox.thermostat_feature) thermostatFeatureObj = feat;
+        });
+      });
+      // Use device feature min/max as defaults when not overridden in config
+      if (thermostatFeatureObj) {
+        if (effectiveBox.temp_min === undefined && thermostatFeatureObj.min !== undefined) {
+          effectiveBox.temp_min = thermostatFeatureObj.min;
+        }
+        if (effectiveBox.temp_max === undefined && thermostatFeatureObj.max !== undefined) {
+          effectiveBox.temp_max = thermostatFeatureObj.max;
+        }
+      }
+
       const thermostatOptions = this.buildOptions(devices, f => THERMOSTAT_CATEGORIES.includes(f.category));
       const temperatureOptions = this.buildOptions(devices, f => TEMPERATURE_CATEGORIES.includes(f.category));
       const humidityOptions = this.buildOptions(devices, f => HUMIDITY_CATEGORIES.includes(f.category));
@@ -264,9 +300,12 @@ class EditThermostatBoxComponent extends Component {
       this.CONFIG_FIELDS.forEach(f => {
         if (effectiveBox[f] !== undefined) localConfig[f] = effectiveBox[f];
       });
-      // If no remote config yet, push current config to Gladys
+      // If no remote config yet, push current config to Gladys (exclude temp_min/temp_max so device native values remain the source of truth)
       if (!remoteConfig && box.thermostat_feature) {
-        this.saveToGladys(box.thermostat_feature, localConfig, localConfig);
+        const initConfig = { ...localConfig };
+        delete initConfig.temp_min;
+        delete initConfig.temp_max;
+        this.saveToGladys(box.thermostat_feature, initConfig, initConfig);
       }
       this.setState({
         thermostatOptions,
@@ -279,6 +318,9 @@ class EditThermostatBoxComponent extends Component {
         selectedSwitchOption,
         selectedControlType,
         localConfig,
+        featureMin: thermostatFeatureObj ? thermostatFeatureObj.min : null,
+        featureMax: thermostatFeatureObj ? thermostatFeatureObj.max : null,
+        featureUnit: thermostatFeatureObj ? thermostatFeatureObj.unit : null,
         loading: false,
         showAdvancedOptions: false
       });
@@ -295,7 +337,7 @@ class EditThermostatBoxComponent extends Component {
   render(props, {
     thermostatOptions, temperatureOptions, humidityOptions, switchOptions,
     selectedThermostatOption, selectedTemperatureOption, selectedHumidityOption, selectedSwitchOption,
-    selectedControlType, showAdvancedOptions
+    selectedControlType, showAdvancedOptions, localConfig, featureMin, featureMax
   }) {
     const placeholder = props.intl && props.intl.dictionary
       ? props.intl.dictionary.dashboard.boxes.thermostat.selectPlaceholder
@@ -304,18 +346,27 @@ class EditThermostatBoxComponent extends Component {
     const controlType = props.box.control_type || 'hysteresis';
     const tempUnit = this.getTempUnit();
 
-    // Convert all temperature values for display
-    const displayTempMin = this.toDisplayTemp(props.box.temp_min !== undefined ? props.box.temp_min : 5);
-    const displayTempMax = this.toDisplayTemp(props.box.temp_max !== undefined ? props.box.temp_max : 35);
-    const displayHysteresisStart = this.toDisplayTemp(props.box.hysteresis_start !== undefined ? props.box.hysteresis_start : 0.5);
-    const displayHysteresisStop = this.toDisplayTemp(props.box.hysteresis_stop !== undefined ? props.box.hysteresis_stop : 0.5);
+    const cfg = localConfig || {};
+    // Device feature native min/max have top priority, then localConfig, then props.box, then hardcoded
+    const displayTempMin = this.toDisplayTemp(
+      featureMin !== null && featureMin !== undefined ? featureMin
+        : cfg.temp_min !== undefined ? cfg.temp_min
+          : props.box.temp_min !== undefined ? props.box.temp_min : 5
+    );
+    const displayTempMax = this.toDisplayTemp(
+      featureMax !== null && featureMax !== undefined ? featureMax
+        : cfg.temp_max !== undefined ? cfg.temp_max
+          : props.box.temp_max !== undefined ? props.box.temp_max : 35
+    );
+    const displayHysteresisStart = this.toDisplayTemp(cfg.hysteresis_start !== undefined ? cfg.hysteresis_start : (props.box.hysteresis_start !== undefined ? props.box.hysteresis_start : 0.5));
+    const displayHysteresisStop = this.toDisplayTemp(cfg.hysteresis_stop !== undefined ? cfg.hysteresis_stop : (props.box.hysteresis_stop !== undefined ? props.box.hysteresis_stop : 0.5));
     // Map preset keys to their display values
     const presetDisplayValues = {
-      frost: this.toDisplayTemp(props.box.preset_frost !== undefined ? props.box.preset_frost : 7),
-      away: this.toDisplayTemp(props.box.preset_away !== undefined ? props.box.preset_away : 16),
-      comfort: this.toDisplayTemp(props.box.preset_comfort !== undefined ? props.box.preset_comfort : 21),
-      eco: this.toDisplayTemp(props.box.preset_eco !== undefined ? props.box.preset_eco : 18),
-      night: this.toDisplayTemp(props.box.preset_night !== undefined ? props.box.preset_night : 17)
+      frost: this.toDisplayTemp(cfg.preset_frost !== undefined ? cfg.preset_frost : (props.box.preset_frost !== undefined ? props.box.preset_frost : 7)),
+      away: this.toDisplayTemp(cfg.preset_away !== undefined ? cfg.preset_away : (props.box.preset_away !== undefined ? props.box.preset_away : 16)),
+      comfort: this.toDisplayTemp(cfg.preset_comfort !== undefined ? cfg.preset_comfort : (props.box.preset_comfort !== undefined ? props.box.preset_comfort : 21)),
+      eco: this.toDisplayTemp(cfg.preset_eco !== undefined ? cfg.preset_eco : (props.box.preset_eco !== undefined ? props.box.preset_eco : 18)),
+      night: this.toDisplayTemp(cfg.preset_night !== undefined ? cfg.preset_night : (props.box.preset_night !== undefined ? props.box.preset_night : 17))
     };
     const heatingPresets = ['frost', 'away', 'eco', 'night', 'comfort'];
     const coolingPresets = ['comfort'];
@@ -508,7 +559,7 @@ class EditThermostatBoxComponent extends Component {
               </label>
               <input
                 type="number"
-                class="form-control"
+                class={`form-control ${style.noSpinner}`}
                 value={displayTempMin}
                 onInput={e => this.updateNumberField('temp_min', e)}
                 step="1"
@@ -521,7 +572,7 @@ class EditThermostatBoxComponent extends Component {
               </label>
               <input
                 type="number"
-                class="form-control"
+                class={`form-control ${style.noSpinner}`}
                 value={displayTempMax}
                 onInput={e => this.updateNumberField('temp_max', e)}
                 step="1"

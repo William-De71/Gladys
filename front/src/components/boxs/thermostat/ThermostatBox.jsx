@@ -135,7 +135,10 @@ class ThermostatBox extends Component {
     isManualMode: false,
     error: false,
     noConfig: false,
-    remoteConfig: null
+    remoteConfig: null,
+    featureMin: null,
+    featureMax: null,
+    featureUnit: null
   };
 
   svgRef = null;
@@ -145,26 +148,42 @@ class ThermostatBox extends Component {
   lastSwitchActive = null;
 
   getConfig = () => ({ ...this.props.box, ...(this.state.remoteConfig || {}) });
-  getMinTemp = () => Number(this.getConfig().temp_min) || DEFAULT_MIN;
-  getMaxTemp = () => Number(this.getConfig().temp_max) || DEFAULT_MAX;
+  getMinTemp = () => {
+    // Device feature native min has top priority
+    if (this.state.featureMin !== null) return this.state.featureMin;
+    const cfg = this.getConfig();
+    if (cfg.temp_min !== undefined && cfg.temp_min !== null) return Number(cfg.temp_min);
+    return DEFAULT_MIN;
+  };
+  getMaxTemp = () => {
+    // Device feature native max has top priority
+    if (this.state.featureMax !== null) return this.state.featureMax;
+    const cfg = this.getConfig();
+    if (cfg.temp_max !== undefined && cfg.temp_max !== null) return Number(cfg.temp_max);
+    return DEFAULT_MAX;
+  };
 
   getStorageKey = suffix => `thermostat_${suffix}_${this.props.box.thermostat_feature || 'default'}`;
 
-  // Convert temperature from Celsius (stored) to user preference for display
+  // Effective temperature unit: device feature unit takes priority over user preference
+  getEffectiveUnit = () => {
+    if (this.state.featureUnit) return this.state.featureUnit;
+    return (this.props.user && this.props.user.temperature_unit_preference) || DEVICE_FEATURE_UNITS.CELSIUS;
+  };
+
+  // Convert temperature from Celsius (stored) to display unit
   toDisplayTemp = (tempCelsius) => {
     if (tempCelsius === null || tempCelsius === undefined) return tempCelsius;
-    const userUnit = this.props.user && this.props.user.temperature_unit_preference;
-    if (userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
+    if (this.getEffectiveUnit() === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
       return celsiusToFahrenheit(tempCelsius);
     }
     return tempCelsius;
   };
 
-  // Convert temperature from user preference to Celsius for storage/API
+  // Convert temperature from display unit to Celsius for storage/API
   toStorageTemp = (tempDisplay) => {
     if (tempDisplay === null || tempDisplay === undefined) return tempDisplay;
-    const userUnit = this.props.user && this.props.user.temperature_unit_preference;
-    if (userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
+    if (this.getEffectiveUnit() === DEVICE_FEATURE_UNITS.FAHRENHEIT) {
       return fahrenheitToCelsius(tempDisplay);
     }
     return tempDisplay;
@@ -172,8 +191,7 @@ class ThermostatBox extends Component {
 
   // Get the temperature unit symbol
   getTempUnit = () => {
-    const userUnit = this.props.user && this.props.user.temperature_unit_preference;
-    return userUnit === DEVICE_FEATURE_UNITS.FAHRENHEIT ? 'F' : 'C';
+    return this.getEffectiveUnit() === DEVICE_FEATURE_UNITS.FAHRENHEIT ? 'F' : 'C';
   };
 
   loadConfig = async () => {
@@ -279,7 +297,8 @@ class ThermostatBox extends Component {
     const cfg = this.getConfig();
     const mode = cfg.default_mode || 'heating';
     const keys = mode === 'cooling' ? COOLING_PRESETS : HEATING_PRESETS;
-    const comfortIcon = mode === 'cooling' ? 'fe-cloud-snow' : 'fe-thermometer';
+    //const comfortIcon = mode === 'cooling' ? 'fe-cloud-snow' : 'fe-thermometer';
+    const comfortIcon = 'fe-thermometer';
     const allPresets = {
       off: { key: 'off', icon: PRESET_ICONS.off, temp: null },
       frost: { key: 'frost', icon: PRESET_ICONS.frost, temp: Number(cfg.preset_frost) || DEFAULT_PRESET_TEMPS.frost },
@@ -318,8 +337,14 @@ class ThermostatBox extends Component {
       if (devices && devices.length) {
         devices.forEach(device => {
           device.features.forEach(feat => {
-            if (feat.selector === thermostatFeature && feat.last_value !== null && feat.last_value !== undefined) {
-              this.setState({ setpoint: feat.last_value });
+            if (feat.selector === thermostatFeature) {
+              if (feat.last_value !== null && feat.last_value !== undefined) {
+                this.setState({ setpoint: feat.last_value });
+              }
+              // Store native feature min/max/unit
+              if (feat.min !== undefined && feat.min !== null) this.setState({ featureMin: feat.min });
+              if (feat.max !== undefined && feat.max !== null) this.setState({ featureMax: feat.max });
+              if (feat.unit) this.setState({ featureUnit: feat.unit });
             }
             if (temperatureFeature && feat.selector === temperatureFeature && feat.last_value !== null && feat.last_value !== undefined) {
               this.setState({ currentTemp: feat.last_value });
