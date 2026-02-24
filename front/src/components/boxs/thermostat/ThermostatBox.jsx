@@ -21,22 +21,23 @@ function polarToCartesian(cx, cy, r, angleDeg) {
 }
 
 function describeArc(cx, cy, r, startAngle, endAngle) {
-  const start = polarToCartesian(cx, cy, r, endAngle);
-  const end = polarToCartesian(cx, cy, r, startAngle);
-  const largeArc = endAngle - startAngle <= 180 ? '0' : '1';
-  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
+  const start = polarToCartesian(cx, cy, r, startAngle);
+  const end = polarToCartesian(cx, cy, r, endAngle);
+  const largeArc = endAngle - startAngle > 180 ? '1' : '0';
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`;
 }
 
 const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncrement, onDecrement, minTemp, maxTemp, mode, isActive, isManualMode, tempUnit }) => {
-  const cx = 110;
+    const cx = 110;
   const cy = 110;
   const r = 88;
   const sw = 11;
-  const pct = Math.min(1, Math.max(0, (setpoint - minTemp) / (maxTemp - minTemp)));
-  const arcEnd = ARC_START_ANGLE + pct * ARC_DEGREES;
+  const range = maxTemp - minTemp;
+  const pct = range === 0 ? 0.5 : Math.min(1, Math.max(0, (setpoint - minTemp) / range));
+  const arcEnd = ARC_START_ANGLE + Math.max(pct, 0.001) * ARC_DEGREES;
   const bgPath = describeArc(cx, cy, r, ARC_START_ANGLE, ARC_START_ANGLE + ARC_DEGREES);
-  const fgPath = pct > 0 ? describeArc(cx, cy, r, ARC_START_ANGLE, arcEnd) : null;
-  const knob = polarToCartesian(cx, cy, r, arcEnd);
+  const fgPath = describeArc(cx, cy, r, ARC_START_ANGLE, arcEnd);
+    const knob = polarToCartesian(cx, cy, r, arcEnd);
   const arcColor = mode === 'cooling' ? '#3b82f6' : mode === 'off' ? '#adb5bd' : '#f97316';
   const intPart = Math.floor(setpoint);
   const decPart = Math.round((setpoint - intPart) * 10);
@@ -63,14 +64,26 @@ const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncre
         </filter>
       </defs>
       <path d={bgPath} fill="none" stroke="#e9ecef" strokeWidth={sw} strokeLinecap="round" />
-      {fgPath && (
+      {mode === 'cooling' ? (
+        <g>
+          <path 
+            d={fgPath} 
+            fill="none" 
+            stroke={arcColor} 
+            strokeWidth={sw} 
+            strokeLinecap="round"
+            filter="none"
+          />
+        </g>
+      ) : (
         <path 
+          key={`${mode}-${arcColor}`}
           d={fgPath} 
           fill="none" 
           stroke={arcColor} 
           strokeWidth={sw} 
           strokeLinecap="round"
-          filter={isActive ? 'url(#arcGlow)' : 'none'}
+          filter={isActive && pct >= 0.2 ? 'url(#arcGlow)' : 'none'}
         />
       )}
       <circle cx={knob.x} cy={knob.y} r="9" fill="white" stroke={arcColor} strokeWidth="2.5" />
@@ -721,6 +734,7 @@ class ThermostatBox extends Component {
               <div class="d-flex justify-content-center mb-3">
                 <div ref={el => (this.svgRef = el)} class={style.gaugeContainer}>
                   <CircularGauge
+                    key={`gauge-${mode}`}
                     setpoint={displaySetpoint}
                     currentTemp={displayCurrentTemp}
                     humidity={humidity}
