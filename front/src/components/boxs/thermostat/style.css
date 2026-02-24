@@ -1,3 +1,12 @@
+.noSpinner::-webkit-outer-spin-button,
+.noSpinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.noSpinner {
+  -moz-appearance: textfield;
+}
+
 .gaugeContainer {
   width: 100%;
   max-width: 220px;
