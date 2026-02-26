@@ -2557,6 +2557,67 @@
       "generateButton": "Generate",
       "keyNameLabel": "Key:",
       "registeredLabel": "Registered on:"
+    },
+    "thermostat": {
+      "title": "Thermostat",
+      "description": "Create and manage your virtual thermostats",
+      "deviceTab": "My Thermostats",
+      "documentationTab": "Documentation",
+      "device": {
+        "title": "My Thermostats",
+        "newButton": "New",
+        "noNameLabel": "No name",
+        "noDevices": "No thermostat created yet. Click \"New\" to get started.",
+        "nameLabel": "Name",
+        "roomLabel": "Room",
+        "saveButton": "Save",
+        "editButton": "Edit",
+        "deleteButton": "Delete",
+        "saveError": "Error while saving.",
+        "deleteError": "Error while deleting."
+      },
+      "edit": {
+        "titleNew": "New Thermostat",
+        "titleEdit": "Edit Thermostat",
+        "nameLabel": "Name",
+        "namePlaceholder": "e.g. Living Room Thermostat",
+        "roomLabel": "Room",
+        "modeLabel": "Mode",
+        "mode": {
+          "heating": "Heating",
+          "cooling": "Cooling"
+        },
+        "controlTypeLabel": "Control type",
+        "controlTypeHelp": "Hysteresis: simple on/off. TPI: proportional control (heating only).",
+        "controlType": {
+          "hysteresis": "Hysteresis",
+          "tpi": "TPI (Time Proportional Integral)"
+        },
+        "tempUnitLabel": "Unit",
+        "celsius": "Celsius (°C)",
+        "fahrenheit": "Fahrenheit (°F)",
+        "minTempLabel": "Min temp",
+        "minTempPlaceholder": "e.g. 5",
+        "maxTempLabel": "Max temp",
+        "maxTempPlaceholder": "e.g. 35",
+        "temperatureFeatureLabel": "Temperature sensor",
+        "temperatureFeatureHelp": "Select the sensor that measures the ambient temperature.",
+        "humidityFeatureLabel": "Humidity sensor",
+        "humidityFeatureHelp": "Optional. Displayed in the thermostat widget.",
+        "switchFeatureLabel": "Switch (actuator)",
+        "switchFeatureHelp": "The switch that will be turned on/off to heat or cool.",
+        "presetsLabel": "Temperature presets",
+        "preset": {
+          "frost": "Frost protection",
+          "away": "Away",
+          "eco": "Eco",
+          "night": "Night",
+          "comfort": "Comfort"
+        },
+        "saveButton": "Save",
+        "cancelButton": "Cancel",
+        "saveError": "Error while saving."
+      }
     }
   },
   "editScene": {

@@ -2557,6 +2557,67 @@
       "generateButton": "Générer",
       "keyNameLabel": "Clé :",
       "registeredLabel": "Enregistré le :"
+    },
+    "thermostat": {
+      "title": "Thermostat",
+      "description": "Créez et gérez vos thermostats virtuels",
+      "deviceTab": "Mes thermostats",
+      "documentationTab": "Documentation",
+      "device": {
+        "title": "Mes thermostats",
+        "newButton": "Nouveau",
+        "noNameLabel": "Sans nom",
+        "noDevices": "Aucun thermostat créé. Cliquez sur \"Nouveau\" pour commencer.",
+        "nameLabel": "Nom",
+        "roomLabel": "Pièce",
+        "saveButton": "Sauvegarder",
+        "editButton": "Éditer",
+        "deleteButton": "Supprimer",
+        "saveError": "Erreur lors de la sauvegarde.",
+        "deleteError": "Erreur lors de la suppression."
+      },
+      "edit": {
+        "titleNew": "Nouveau thermostat",
+        "titleEdit": "Modifier le thermostat",
+        "nameLabel": "Nom",
+        "namePlaceholder": "Ex: Thermostat Salon",
+        "roomLabel": "Pièce",
+        "modeLabel": "Mode",
+        "mode": {
+          "heating": "Chauffage",
+          "cooling": "Climatisation"
+        },
+        "controlTypeLabel": "Type de calcul",
+        "controlTypeHelp": "Hysteresis : simple on/off. TPI : calcul proportionnel (chauffage uniquement).",
+        "controlType": {
+          "hysteresis": "Hysteresis",
+          "tpi": "TPI (Time Proportional Integral)"
+        },
+        "tempUnitLabel": "Unité",
+        "celsius": "Celsius (°C)",
+        "fahrenheit": "Fahrenheit (°F)",
+        "minTempLabel": "Temp. min",
+        "minTempPlaceholder": "Ex: 5",
+        "maxTempLabel": "Temp. max",
+        "maxTempPlaceholder": "Ex: 35",
+        "temperatureFeatureLabel": "Capteur de température",
+        "temperatureFeatureHelp": "Sélectionnez le capteur qui mesure la température ambiante.",
+        "humidityFeatureLabel": "Capteur d'humidité",
+        "humidityFeatureHelp": "Optionnel. Affiché dans le widget thermostat.",
+        "switchFeatureLabel": "Commutateur (actionneur)",
+        "switchFeatureHelp": "Le switch qui sera activé/désactivé pour chauffer ou refroidir.",
+        "presetsLabel": "Presets de température",
+        "preset": {
+          "frost": "Hors-gel",
+          "away": "Absence",
+          "eco": "Éco",
+          "night": "Nuit",
+          "comfort": "Confort"
+        },
+        "saveButton": "Enregistrer",
+        "cancelButton": "Annuler",
+        "saveError": "Erreur lors de la sauvegarde."
+      }
     }
   },
   "editScene": {

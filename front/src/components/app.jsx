@@ -192,6 +192,10 @@ import CallMeBotPage from '../routes/integration/all/callmebot/setup-page';
 // Energy Monitoring integration
 import EnergyMonitoringIntegration from '../routes/integration/all/energy-monitoring/index';
 
+// Thermostat integration
+import ThermostatDevicePage from '../routes/integration/all/thermostat/device-page';
+import ThermostatEditPage from '../routes/integration/all/thermostat/edit-page';
+
 const defaultState = getDefaultState();
 const store = createStore(defaultState);
 
@@ -351,6 +355,10 @@ const AppRouter = connect(
         <MELCloudEditPage path="/dashboard/integration/device/melcloud/edit/:deviceSelector" />
         <MELCloudDiscoverPage path="/dashboard/integration/device/melcloud/discover" />
         <MELCloudSetupPage path="/dashboard/integration/device/melcloud/setup" />
+
+        <ThermostatDevicePage path="/dashboard/integration/device/thermostat" />
+        <ThermostatEditPage path="/dashboard/integration/device/thermostat/new" />
+        <ThermostatEditPage path="/dashboard/integration/device/thermostat/edit/:deviceSelector" />
 
         <NukiPage path="/dashboard/integration/device/nuki" />
         <NukiSetupPage path="/dashboard/integration/device/nuki/setup" />
