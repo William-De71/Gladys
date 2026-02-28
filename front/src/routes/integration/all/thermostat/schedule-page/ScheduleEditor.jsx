@@ -5,7 +5,8 @@ import style from './style.css';
 
 const DAYS = [0, 1, 2, 3, 4, 5, 6];
 const PRESETS = ['off', 'frost', 'away', 'eco', 'night', 'comfort'];
-const TOTAL_MINUTES = 24 * 60;
+const DAY_MINUTES = 24 * 60; // 1440
+const FIXED_MARKERS = [6 * 60, 12 * 60, 18 * 60];
 
 const PRESET_COLORS = {
   off: '#adb5bd',
@@ -22,17 +23,121 @@ function timeToMinutes(time) {
   return h * 60 + (m || 0);
 }
 
-function minutesToTime(minutes) {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+// mins can exceed DAY_MINUTES (for overflow detection); wraps for display
+function minutesToTime(mins) {
+  const m = ((mins % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 }
 
-function formatLabel(time) {
-  const mins = timeToMinutes(time);
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
+function formatLabel(minutes) {
+  const h = Math.floor(minutes / 60) % 24;
+  const m = minutes % 60;
   return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
+}
+
+function ensureKeys(slots) {
+  return slots.map((s, i) => s._key ? s : { ...s, _key: Date.now() + i + Math.random() });
+}
+
+// Apply a slot (new or edited) into a day's slot list.
+// newStart/newEnd are in raw minutes [0..DAY_MINUTES+].
+// newEnd can exceed DAY_MINUTES to indicate midnight overflow.
+// excludeKey: _key of the slot being replaced (for edit mode), or null for insert.
+// Adjusts overlapping slots AND the immediately adjacent slot before the new range
+// (extends its end to fill any gap created by pushing the new start forward).
+// Returns { fixedSlots, overflowSlot }.
+function applySlotToDay(existingDaySlots, newStart, newEnd, newPreset, newKey, excludeKey) {
+  const clampedEnd = Math.min(newEnd, DAY_MINUTES);
+  const overflowMins = newEnd > DAY_MINUTES ? newEnd - DAY_MINUTES : 0;
+
+  const slots = excludeKey
+    ? existingDaySlots.filter(s => s._key !== excludeKey)
+    : existingDaySlots;
+
+  // Find the slot that ends exactly at (or just before) newStart — it may need its end extended
+  // if the new slot's start moved forward, creating a gap.
+  const sortedByEnd = slots.slice().sort((a, b) => {
+    const aEnd = timeToMinutes(a.end_time) || DAY_MINUTES;
+    const bEnd = timeToMinutes(b.end_time) || DAY_MINUTES;
+    return aEnd - bEnd;
+  });
+  // The slot whose end is closest to (and <= newStart) is the predecessor
+  let predecessorKey = null;
+  let predecessorEnd = -1;
+  sortedByEnd.forEach(s => {
+    const sEnd = timeToMinutes(s.end_time) || DAY_MINUTES;
+    if (sEnd <= newStart && sEnd > predecessorEnd) {
+      predecessorEnd = sEnd;
+      predecessorKey = s._key;
+    }
+  });
+
+  const adjusted = [];
+  slots.forEach(s => {
+    const sStart = timeToMinutes(s.start_time);
+    // sEnd: 00:00 means midnight = DAY_MINUTES in context of overlap detection
+    const sEndRaw = timeToMinutes(s.end_time);
+    const sEnd = sEndRaw === 0 ? DAY_MINUTES : sEndRaw;
+
+    if (sEnd <= newStart || sStart >= clampedEnd) {
+      // No overlap — but extend predecessor end to newStart to close any gap
+      if (s._key === predecessorKey && sEnd < newStart) {
+        adjusted.push({ ...s, end_time: minutesToTime(newStart) });
+      } else {
+        adjusted.push(s);
+      }
+    } else if (sStart < newStart && sEnd > clampedEnd) {
+      // New range is inside this slot — split it
+      adjusted.push({ ...s, end_time: minutesToTime(newStart) });
+      adjusted.push({ ...s, start_time: minutesToTime(clampedEnd), _key: Date.now() + Math.random() });
+    } else if (sStart < newStart) {
+      adjusted.push({ ...s, end_time: minutesToTime(newStart) });
+    } else if (sEnd > clampedEnd) {
+      adjusted.push({ ...s, start_time: minutesToTime(clampedEnd) });
+    }
+    // else: fully inside new range — drop it
+  });
+
+  adjusted.push({
+    day_of_week: existingDaySlots.length > 0 ? existingDaySlots[0].day_of_week : 0,
+    start_time: minutesToTime(newStart),
+    end_time: minutesToTime(clampedEnd),
+    preset: newPreset,
+    _key: newKey
+  });
+
+  const overflowSlot = overflowMins > 0 ? {
+    start_time: '00:00',
+    end_time: minutesToTime(overflowMins),
+    preset: newPreset,
+    _key: Date.now() + Math.random()
+  } : null;
+
+  return { fixedSlots: adjusted, overflowSlot };
+}
+
+// Merge fixed day slots + optional overflow into global slots array
+function mergeIntoSlots(allSlots, dayOfWeek, taggedFixed, overflowSlot) {
+  if (!overflowSlot) {
+    return [
+      ...allSlots.filter(s => s.day_of_week !== dayOfWeek),
+      ...taggedFixed
+    ];
+  }
+  const nextDay = (dayOfWeek + 1) % 7;
+  // Keep next day slots that don't start at 00:00 (overflow replaces them)
+  const nextDayKept = allSlots.filter(
+    s => s.day_of_week === nextDay && timeToMinutes(s.start_time) > 0
+  );
+  const otherDays = allSlots.filter(
+    s => s.day_of_week !== dayOfWeek && s.day_of_week !== nextDay
+  );
+  return [
+    ...otherDays,
+    ...taggedFixed,
+    ...nextDayKept,
+    { ...overflowSlot, day_of_week: nextDay }
+  ];
 }
 
 class ScheduleEditor extends Component {
@@ -40,11 +145,15 @@ class ScheduleEditor extends Component {
     super(props);
     this.state = {
       name: props.schedule ? props.schedule.name : '',
-      slots: props.schedule ? props.schedule.slots.slice() : [],
+      slots: ensureKeys(props.schedule ? props.schedule.slots : []),
       saving: false,
       error: null,
       selectedDay: null,
-      lastScheduleSelector: props.schedule ? props.schedule.selector : null
+      lastScheduleSelector: props.schedule ? props.schedule.selector : null,
+      copySourceDay: null,
+      copyTargetDays: [],
+      newSlotForms: {},  // { [day]: { start_time, end_time, preset } }
+      editForms: {}      // { [_key]: { start_time, end_time, preset, day_of_week } }
     };
   }
 
@@ -53,69 +162,177 @@ class ScheduleEditor extends Component {
     if (incomingSelector !== state.lastScheduleSelector) {
       return {
         name: props.schedule ? props.schedule.name : '',
-        slots: props.schedule ? props.schedule.slots.slice() : [],
+        slots: ensureKeys(props.schedule ? props.schedule.slots : []),
         error: null,
         selectedDay: null,
-        lastScheduleSelector: incomingSelector
+        lastScheduleSelector: incomingSelector,
+        newSlotForms: {},
+        editForms: {}
       };
     }
     return null;
   }
 
-  updateName = e => {
-    this.setState({ name: e.target.value });
-  };
+  updateName = e => this.setState({ name: e.target.value });
 
   selectDay = day => {
     this.setState(prev => ({ selectedDay: prev.selectedDay === day ? null : day }));
   };
 
-  addSlot = dayOfWeek => {
+  // ── New slot ──────────────────────────────────────────────────────────────
+
+  openNewSlotForm = dayOfWeek => {
     const daySlots = this.state.slots
       .filter(s => s.day_of_week === dayOfWeek)
       .sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time));
-    let startMinutes = 8 * 60;
+
+    // Default: fill the first uncovered gap, or full day if no slots
+    let startMins = 0;
+    let endMins = 0; // 00:00 = full day (midnight)
     if (daySlots.length > 0) {
-      startMinutes = timeToMinutes(daySlots[daySlots.length - 1].end_time);
+      startMins = timeToMinutes(daySlots[daySlots.length - 1].end_time) || DAY_MINUTES;
+      startMins = Math.min(startMins, DAY_MINUTES - 60);
+      endMins = Math.min(startMins + 120, DAY_MINUTES) % DAY_MINUTES;
     }
-    const endMinutes = Math.min(startMinutes + 120, TOTAL_MINUTES);
-    if (startMinutes >= TOTAL_MINUTES) return;
 
-    const newSlot = {
-      day_of_week: dayOfWeek,
-      start_time: minutesToTime(startMinutes),
-      end_time: minutesToTime(endMinutes),
-      preset: 'comfort',
-      _key: Date.now()
-    };
-    this.setState(prevState => ({ slots: [...prevState.slots, newSlot] }));
-  };
-
-  removeSlot = (dayOfWeek, slotRef) => {
-    this.setState(prevState => ({
-      slots: prevState.slots.filter(s => s !== slotRef)
+    this.setState(prev => ({
+      newSlotForms: {
+        ...prev.newSlotForms,
+        [dayOfWeek]: {
+          start_time: minutesToTime(startMins),
+          end_time: minutesToTime(endMins),
+          preset: 'comfort'
+        }
+      }
     }));
   };
 
-  updateSlot = (slotRef, field, value) => {
-    this.setState(prevState => ({
-      slots: prevState.slots.map(s => (s === slotRef ? { ...s, [field]: value } : s))
+  closeNewSlotForm = dayOfWeek => {
+    this.setState(prev => {
+      const forms = { ...prev.newSlotForms };
+      delete forms[dayOfWeek];
+      return { newSlotForms: forms };
+    });
+  };
+
+  updateNewSlotForm = (dayOfWeek, field, value) => {
+    this.setState(prev => ({
+      newSlotForms: {
+        ...prev.newSlotForms,
+        [dayOfWeek]: { ...prev.newSlotForms[dayOfWeek], [field]: value }
+      }
     }));
   };
 
-  openCopyPicker = dayOfWeek => {
-    this.setState({ copySourceDay: dayOfWeek, copyTargetDays: [] });
+  confirmNewSlot = dayOfWeek => {
+    const form = this.state.newSlotForms[dayOfWeek];
+    if (!form) return;
+
+    const newStart = timeToMinutes(form.start_time);
+    let newEnd = timeToMinutes(form.end_time);
+    // If end <= start, the user wants overflow past midnight (e.g. 18h→06h)
+    if (newEnd <= newStart) newEnd = newEnd + DAY_MINUTES;
+
+    const newKey = Date.now() + Math.random();
+    const existingDaySlots = this.state.slots.filter(s => s.day_of_week === dayOfWeek);
+
+    const { fixedSlots, overflowSlot } = applySlotToDay(
+      existingDaySlots, newStart, newEnd, form.preset, newKey, null
+    );
+    const taggedFixed = fixedSlots.map(s => ({ ...s, day_of_week: dayOfWeek }));
+    const finalSlots = mergeIntoSlots(this.state.slots, dayOfWeek, taggedFixed, overflowSlot);
+
+    this.setState(prev => {
+      const forms = { ...prev.newSlotForms };
+      delete forms[dayOfWeek];
+      return { slots: finalSlots, newSlotForms: forms };
+    });
   };
 
-  closeCopyPicker = () => {
-    this.setState({ copySourceDay: null, copyTargetDays: [] });
+  // ── Edit existing slot ────────────────────────────────────────────────────
+
+  openEditForm = slot => {
+    this.setState(prev => ({
+      editForms: {
+        ...prev.editForms,
+        [slot._key]: {
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+          preset: slot.preset,
+          day_of_week: slot.day_of_week
+        }
+      }
+    }));
   };
+
+  closeEditForm = slotKey => {
+    this.setState(prev => {
+      const forms = { ...prev.editForms };
+      delete forms[slotKey];
+      return { editForms: forms };
+    });
+  };
+
+  updateEditForm = (slotKey, field, value) => {
+    this.setState(prev => ({
+      editForms: {
+        ...prev.editForms,
+        [slotKey]: { ...prev.editForms[slotKey], [field]: value }
+      }
+    }));
+  };
+
+  confirmEdit = slotKey => {
+    const form = this.state.editForms[slotKey];
+    if (!form) return;
+
+    const { day_of_week: dayOfWeek } = form;
+    const newStart = timeToMinutes(form.start_time);
+    let newEnd = timeToMinutes(form.end_time);
+    // If end <= start, the user wants overflow past midnight (e.g. 18h→06h)
+    if (newEnd <= newStart) newEnd = newEnd + DAY_MINUTES;
+
+    const existingDaySlots = this.state.slots.filter(s => s.day_of_week === dayOfWeek);
+
+    const { fixedSlots, overflowSlot } = applySlotToDay(
+      existingDaySlots, newStart, newEnd, form.preset, slotKey, slotKey
+    );
+    const taggedFixed = fixedSlots.map(s => ({ ...s, day_of_week: dayOfWeek }));
+    const finalSlots = mergeIntoSlots(this.state.slots, dayOfWeek, taggedFixed, overflowSlot);
+
+    this.setState(prev => {
+      const forms = { ...prev.editForms };
+      delete forms[slotKey];
+      return { slots: finalSlots, editForms: forms };
+    });
+  };
+
+  // ── Remove ────────────────────────────────────────────────────────────────
+
+  removeSlot = slotKey => {
+    this.setState(prev => ({
+      slots: prev.slots.filter(s => s._key !== slotKey),
+      editForms: (() => {
+        const forms = { ...prev.editForms };
+        delete forms[slotKey];
+        return forms;
+      })()
+    }));
+  };
+
+  // ── Copy ──────────────────────────────────────────────────────────────────
+
+  openCopyPicker = dayOfWeek => this.setState({ copySourceDay: dayOfWeek, copyTargetDays: [] });
+  closeCopyPicker = () => this.setState({ copySourceDay: null, copyTargetDays: [] });
 
   toggleCopyTarget = day => {
     this.setState(prev => {
       const set = new Set(prev.copyTargetDays || []);
-      if (set.has(day)) set.delete(day);
-      else set.add(day);
+      if (set.has(day)) {
+        set.delete(day);
+      } else {
+        set.add(day);
+      }
       return { copyTargetDays: Array.from(set) };
     });
   };
@@ -130,21 +347,18 @@ class ScheduleEditor extends Component {
     const otherSlots = slots.filter(s => !copyTargetDays.includes(s.day_of_week));
     const copies = [];
     copyTargetDays.forEach(d => {
-      daySlots.forEach(s => {
-        copies.push({ ...s, day_of_week: d, _key: Date.now() + d * 100 + Math.random() });
-      });
+      daySlots.forEach(s => copies.push({ ...s, day_of_week: d, _key: Date.now() + d * 100 + Math.random() }));
     });
     this.setState({ slots: [...otherSlots, ...copies], copySourceDay: null, copyTargetDays: [] });
   };
+
+  // ── Save ──────────────────────────────────────────────────────────────────
 
   save = async () => {
     const { name, slots } = this.state;
     if (!name.trim()) return;
     this.setState({ saving: true, error: null });
-    const scheduleData = {
-      name: name.trim(),
-      slots: slots.map(({ _key, ...rest }) => rest)
-    };
+    const scheduleData = { name: name.trim(), slots: slots.map(({ _key, ...rest }) => rest) };
     try {
       const { schedule, httpClient, onSaved } = this.props;
       if (schedule) {
@@ -159,56 +373,51 @@ class ScheduleEditor extends Component {
     }
   };
 
+  // ── Render helpers ────────────────────────────────────────────────────────
+
   renderTimeBar(daySlots) {
     const sorted = daySlots.slice().sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time));
-
     const segments = [];
-    const markers = new Set();
-    markers.add(0);
-
     sorted.forEach(slot => {
       const start = timeToMinutes(slot.start_time);
-      const end = Math.min(timeToMinutes(slot.end_time), TOTAL_MINUTES);
+      const end = Math.min(timeToMinutes(slot.end_time) || DAY_MINUTES, DAY_MINUTES);
       if (end <= start) return;
       segments.push({ start, end, preset: slot.preset });
-      markers.add(start);
-      markers.add(end);
     });
 
-    markers.add(TOTAL_MINUTES);
-    const markerList = Array.from(markers).sort((a, b) => a - b);
+    const allPoints = Array.from(
+      new Set([0, ...segments.flatMap(s => [s.start, s.end]), DAY_MINUTES])
+    ).sort((a, b) => a - b);
+
+    const barParts = [];
+    for (let i = 0; i < allPoints.length - 1; i++) {
+      const from = allPoints[i];
+      const to = allPoints[i + 1];
+      const widthPct = ((to - from) / DAY_MINUTES) * 100;
+      const seg = segments.find(s => s.start <= from && s.end >= to);
+      const color = seg ? (PRESET_COLORS[seg.preset] || '#ddd') : '#e9ecef';
+      barParts.push({ from, to, widthPct, color });
+    }
 
     return (
       <div class={style.timeBarWrapper}>
         <div class={style.timeBar}>
-          {(() => {
-            const parts = [];
-            const allPoints = Array.from(new Set([0, ...segments.flatMap(s => [s.start, s.end]), TOTAL_MINUTES])).sort((a, b) => a - b);
-            for (let i = 0; i < allPoints.length - 1; i++) {
-              const from = allPoints[i];
-              const to = allPoints[i + 1];
-              const widthPct = ((to - from) / TOTAL_MINUTES) * 100;
-              const seg = segments.find(s => s.start <= from && s.end >= to);
-              const color = seg ? (PRESET_COLORS[seg.preset] || '#ddd') : '#e9ecef';
-              parts.push(
-                <div
-                  key={`${from}-${to}`}
-                  class={style.timeBarSegment}
-                  style={`--seg-width:${widthPct}%;--seg-color:${color}`}
-                />
-              );
-            }
-            return parts;
-          })()}
+          {barParts.map(({ from, to, widthPct, color }) => (
+            <div
+              key={`${from}-${to}`}
+              class={style.timeBarSegment}
+              style={`--seg-width:${widthPct}%;--seg-color:${color}`}
+            />
+          ))}
         </div>
         <div class={style.timeBarMarkers}>
-          {markerList.filter(m => m < TOTAL_MINUTES || m === 0).map(m => (
+          {FIXED_MARKERS.map(m => (
             <div
               key={m}
               class={style.timeMarker}
-              style={`--marker-left:${(m / TOTAL_MINUTES) * 100}%`}
+              style={`--marker-left:${(m / DAY_MINUTES) * 100}%`}
             >
-              {minutesToTime(m) !== '00:00' || m === 0 ? formatLabel(minutesToTime(m)) : ''}
+              {formatLabel(m)}
             </div>
           ))}
         </div>
@@ -216,7 +425,52 @@ class ScheduleEditor extends Component {
     );
   }
 
-  render({ onCancel, intl }, { name, slots, saving, error, selectedDay, copySourceDay, copyTargetDays }) {
+  renderSlotForm(formData, onFieldChange, onConfirm, onCancel, onRemove, dictionary, isEdit) {
+    return (
+      <div class={isEdit ? style.editSlotForm : style.newSlotForm}>
+        <div class={`${style.slotColorDot} ${style[`dotPreset_${formData.preset}`] || ''}`} />
+        <input
+          type="time"
+          class={cx('form-control', 'form-control-sm', style.slotTimeInput)}
+          value={formData.start_time}
+          onInput={e => onFieldChange('start_time', e.target.value)}
+          onChange={e => onFieldChange('start_time', e.target.value)}
+        />
+        <span class={style.slotArrow}>→</span>
+        <input
+          type="time"
+          class={cx('form-control', 'form-control-sm', style.slotTimeInput)}
+          value={formData.end_time}
+          onInput={e => onFieldChange('end_time', e.target.value)}
+          onChange={e => onFieldChange('end_time', e.target.value)}
+        />
+        <select
+          class={cx('form-control', 'form-control-sm', style.slotPresetSelect)}
+          value={formData.preset}
+          onChange={e => onFieldChange('preset', e.target.value)}
+        >
+          {PRESETS.map(p => (
+            <option key={p} value={p}>
+              {(dictionary.presets && dictionary.presets[p]) || p}
+            </option>
+          ))}
+        </select>
+        <button type="button" class="btn btn-sm btn-success" onClick={onConfirm}>
+          <i class="fe fe-check" />
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onClick={onCancel}>
+          <i class="fe fe-x" />
+        </button>
+        {onRemove && (
+          <button type="button" class="btn btn-sm btn-outline-danger" onClick={onRemove}>
+            <i class="fe fe-trash-2" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  render({ onCancel, intl }, { name, slots, saving, error, selectedDay, copySourceDay, copyTargetDays, newSlotForms, editForms }) {
     const dictionary = intl && intl.dictionary && intl.dictionary.integration && intl.dictionary.integration.thermostat
       ? intl.dictionary.integration.thermostat.schedule
       : {};
@@ -233,9 +487,7 @@ class ScheduleEditor extends Component {
         <div class="card-body">
           {error && (
             <div class="alert alert-danger">
-              {typeof error === 'string'
-                ? error
-                : <Text id="integration.thermostat.schedule.saveError" />}
+              {typeof error === 'string' ? error : <Text id="integration.thermostat.schedule.saveError" />}
             </div>
           )}
 
@@ -258,74 +510,86 @@ class ScheduleEditor extends Component {
                 .filter(s => s.day_of_week === day)
                 .sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time));
               const isOpen = selectedDay === day;
+              const newForm = newSlotForms[day];
 
               return (
                 <div key={day} class={cx(style.dayRow, { [style.dayRowOpen]: isOpen })}>
-                  <div class={style.dayRowHeader} onClick={() => this.selectDay(day)}>
-                    <span class={style.dayLabel}>
-                      <Text id={`integration.thermostat.schedule.days.${day}`} />
-                    </span>
-                    <i class={`fe fe-chevron-${isOpen ? 'up' : 'down'} ${style.dayChevron}`} />
+                  <div class={style.dayClickZone} onClick={() => this.selectDay(day)}>
+                    <div class={style.dayRowHeader}>
+                      <span class={style.dayLabel}>
+                        <Text id={`integration.thermostat.schedule.days.${day}`} />
+                      </span>
+                      <i class={`fe fe-chevron-${isOpen ? 'up' : 'down'} ${style.dayChevron}`} />
+                    </div>
+                    {this.renderTimeBar(daySlots)}
                   </div>
-
-                  {this.renderTimeBar(daySlots)}
 
                   {isOpen && (
                     <div class={style.dayPanel}>
-                      {daySlots.length === 0 && (
+                      {daySlots.length === 0 && !newForm && (
                         <p class={`text-muted mb-2 ${style.noSlotsText}`}>
                           <Text id="integration.thermostat.schedule.noSlots" />
                         </p>
                       )}
 
-                      {daySlots.map((slot, idx) => (
-                        <div key={slot._key || `${day}-${idx}`} class={style.slotEditorRow}>
+                      {daySlots.map((slot, idx) => {
+                        const editForm = editForms[slot._key];
+                        if (editForm) {
+                          return (
+                            <div key={slot._key || `${day}-${idx}`}>
+                              {this.renderSlotForm(
+                                editForm,
+                                (field, value) => this.updateEditForm(slot._key, field, value),
+                                () => this.confirmEdit(slot._key),
+                                () => this.closeEditForm(slot._key),
+                                () => this.removeSlot(slot._key),
+                                dictionary,
+                                true
+                              )}
+                            </div>
+                          );
+                        }
+                        return (
                           <div
-                            class={`${style.slotColorDot} ${style[`dotPreset_${slot.preset}`] || ''}`}
-                          />
-                          <input
-                            type="time"
-                            class={cx('form-control', 'form-control-sm', style.slotTimeInput)}
-                            value={slot.start_time}
-                            onChange={e => this.updateSlot(slot, 'start_time', e.target.value)}
-                          />
-                          <span class={style.slotArrow}>→</span>
-                          <input
-                            type="time"
-                            class={cx('form-control', 'form-control-sm', style.slotTimeInput)}
-                            value={slot.end_time}
-                            onChange={e => this.updateSlot(slot, 'end_time', e.target.value)}
-                          />
-                          <select
-                            class={cx('form-control', 'form-control-sm', style.slotPresetSelect)}
-                            value={slot.preset}
-                            onChange={e => this.updateSlot(slot, 'preset', e.target.value)}
+                            key={slot._key || `${day}-${idx}`}
+                            class={style.slotEditorRow}
+                            onClick={() => this.openEditForm(slot)}
+                            role="button"
+                            tabIndex={0}
                           >
-                            {PRESETS.map(p => (
-                              <option key={p} value={p}>
-                                {(dictionary.presets && dictionary.presets[p]) || p}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            class="btn btn-sm btn-outline-danger"
-                            onClick={() => this.removeSlot(day, slot)}
-                          >
-                            <i class="fe fe-trash-2" />
-                          </button>
-                        </div>
-                      ))}
+                            <div class={`${style.slotColorDot} ${style[`dotPreset_${slot.preset}`] || ''}`} />
+                            <span class={style.slotTimeDisplay}>{slot.start_time}</span>
+                            <span class={style.slotArrow}>→</span>
+                            <span class={style.slotTimeDisplay}>{slot.end_time}</span>
+                            <span class={style.slotPresetLabel}>
+                              {(dictionary.presets && dictionary.presets[slot.preset]) || slot.preset}
+                            </span>
+                            <i class={`fe fe-edit-2 ${style.slotEditIcon}`} />
+                          </div>
+                        );
+                      })}
+
+                      {newForm && this.renderSlotForm(
+                        newForm,
+                        (field, value) => this.updateNewSlotForm(day, field, value),
+                        () => this.confirmNewSlot(day),
+                        () => this.closeNewSlotForm(day),
+                        null,
+                        dictionary,
+                        false
+                      )}
 
                       <div class={style.dayPanelActions}>
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-outline-primary"
-                          onClick={() => this.addSlot(day)}
-                        >
-                          <i class="fe fe-plus mr-1" />
-                          <Text id="integration.thermostat.schedule.addSlot" />
-                        </button>
+                        {!newForm && (
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary"
+                            onClick={() => this.openNewSlotForm(day)}
+                          >
+                            <i class="fe fe-plus mr-1" />
+                            <Text id="integration.thermostat.schedule.addSlot" />
+                          </button>
+                        )}
                         {copySourceDay !== day && (
                           <button
                             type="button"
