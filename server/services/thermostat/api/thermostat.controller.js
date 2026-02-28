@@ -7,7 +7,10 @@ module.exports = function ThermostatController(thermostatHandler) {
    * @apiGroup Thermostat
    */
   async function getDevices(req, res) {
-    const devices = await thermostatHandler.getDevices();
+    const devices = await thermostatHandler.getDevices({
+      search: req.query.search,
+      order_dir: req.query.order_dir,
+    });
     res.json(devices);
   }
 
@@ -21,6 +24,46 @@ module.exports = function ThermostatController(thermostatHandler) {
     res.json(device);
   }
 
+  /**
+   * @api {get} /api/v1/service/thermostat/schedule Get all schedules
+   * @apiName getSchedules
+   * @apiGroup Thermostat
+   */
+  async function getSchedules(req, res) {
+    const schedules = await thermostatHandler.getSchedules();
+    res.json(schedules);
+  }
+
+  /**
+   * @api {post} /api/v1/service/thermostat/schedule Create a schedule
+   * @apiName createSchedule
+   * @apiGroup Thermostat
+   */
+  async function createSchedule(req, res) {
+    const schedule = await thermostatHandler.createSchedule(req.body);
+    res.json(schedule);
+  }
+
+  /**
+   * @api {put} /api/v1/service/thermostat/schedule/:selector Update a schedule
+   * @apiName updateSchedule
+   * @apiGroup Thermostat
+   */
+  async function updateSchedule(req, res) {
+    const schedule = await thermostatHandler.updateSchedule(req.params.selector, req.body);
+    res.json(schedule);
+  }
+
+  /**
+   * @api {delete} /api/v1/service/thermostat/schedule/:selector Delete a schedule
+   * @apiName deleteSchedule
+   * @apiGroup Thermostat
+   */
+  async function deleteSchedule(req, res) {
+    await thermostatHandler.deleteSchedule(req.params.selector);
+    res.json({ success: true });
+  }
+
   return {
     'get /api/v1/service/thermostat/device': {
       authenticated: true,
@@ -29,6 +72,22 @@ module.exports = function ThermostatController(thermostatHandler) {
     'post /api/v1/service/thermostat/device': {
       authenticated: true,
       controller: asyncMiddleware(createDevice),
+    },
+    'get /api/v1/service/thermostat/schedule': {
+      authenticated: true,
+      controller: asyncMiddleware(getSchedules),
+    },
+    'post /api/v1/service/thermostat/schedule': {
+      authenticated: true,
+      controller: asyncMiddleware(createSchedule),
+    },
+    'put /api/v1/service/thermostat/schedule/:selector': {
+      authenticated: true,
+      controller: asyncMiddleware(updateSchedule),
+    },
+    'delete /api/v1/service/thermostat/schedule/:selector': {
+      authenticated: true,
+      controller: asyncMiddleware(deleteSchedule),
     },
   };
 };

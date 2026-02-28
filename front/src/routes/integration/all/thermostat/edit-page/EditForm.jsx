@@ -273,6 +273,57 @@ const EditForm = ({ ...props }) => {
               </div>
             </div>
 
+            {/* Durée mode manuel */}
+            <div class="form-group">
+              <label class="form-label">
+                <Text id="integration.thermostat.edit.manualDurationLabel" />
+              </label>
+              <div class="input-group">
+                <input
+                  type="number"
+                  class="form-control"
+                  min="1"
+                  max="480"
+                  value={props.thermostatEditManualDuration || '30'}
+                  onInput={e => props.updateThermostatField('thermostatEditManualDuration', e.target.value)}
+                  step="1"
+                />
+                <div class="input-group-append">
+                  <span class="input-group-text">
+                    <Text id="integration.thermostat.edit.manualDurationUnit" />
+                  </span>
+                </div>
+              </div>
+              <small class="form-text text-muted">
+                <Text id="integration.thermostat.edit.manualDurationHelp" />
+              </small>
+            </div>
+
+            {/* Planning actif */}
+            <div class="form-group">
+              <label class="form-label">
+                <Text id="integration.thermostat.edit.activeScheduleLabel" />
+              </label>
+              <select
+                class="form-control"
+                value={props.thermostatEditActiveSchedule || ''}
+                onChange={e => props.updateThermostatField('thermostatEditActiveSchedule', e.target.value)}
+              >
+                <option value="">
+                  <Text id="integration.thermostat.edit.noActiveSchedule" />
+                </option>
+                {props.thermostatSchedules &&
+                  props.thermostatSchedules.map(s => (
+                    <option key={s.selector} value={s.selector} selected={s.selector === props.thermostatEditActiveSchedule}>
+                      {s.name}
+                    </option>
+                  ))}
+              </select>
+              <small class="form-text text-muted">
+                <Text id="integration.thermostat.edit.activeScheduleHelp" />
+              </small>
+            </div>
+
             <div class="row mt-2">
               <div class="col">
                 <button

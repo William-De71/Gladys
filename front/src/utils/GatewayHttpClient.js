@@ -98,6 +98,10 @@ export class GatewayHttpClient {
     return this.callApiWhenReady('sendRequestPost', url, gatewayBody);
   }
 
+  async put(url, body) {
+    return this.callApiWhenReady('sendRequestPut', url, body);
+  }
+
   async patch(url, body) {
     return this.callApiWhenReady('sendRequestPatch', url, body);
   }

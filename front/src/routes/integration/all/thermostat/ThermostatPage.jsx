@@ -23,6 +23,16 @@ const ThermostatPage = ({ children }) => (
                     </span>
                     <Text id="integration.thermostat.deviceTab" />
                   </Link>
+                  <Link
+                    href="/dashboard/integration/device/thermostat/schedule"
+                    activeClassName="active"
+                    class="list-group-item list-group-item-action d-flex align-items-center"
+                  >
+                    <span class="icon mr-3">
+                      <i class="fe fe-calendar" />
+                    </span>
+                    <Text id="integration.thermostat.scheduleTab" />
+                  </Link>
                   <a
                     href="https://gladysassistant.com/docs/integrations/thermostat"
                     target="_blank"

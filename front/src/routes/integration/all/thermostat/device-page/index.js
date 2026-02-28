@@ -8,6 +8,7 @@ class ThermostatDevicePage extends Component {
   componentWillMount() {
     this.props.getThermostatDevices();
     this.props.getHouses();
+    this.props.getSchedules();
   }
 
   render(props) {
@@ -20,6 +21,6 @@ class ThermostatDevicePage extends Component {
 }
 
 export default connect(
-  'user,houses,thermostatDevices,getThermostatDevicesStatus,thermostatDeviceSearch,getThermostatDeviceOrderDir',
+  'user,houses,thermostatDevices,getThermostatDevicesStatus,thermostatDeviceSearch,getThermostatDeviceOrderDir,thermostatSchedules',
   actions
 )(ThermostatDevicePage);

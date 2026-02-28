@@ -17,8 +17,20 @@ function createActions(store) {
         }
         const allDevices = await state.httpClient.get('/api/v1/service/thermostat/device', options);
         const filtered = Array.isArray(allDevices) ? allDevices : [];
+        const enriched = await Promise.all(filtered.map(async device => {
+          if (device.features && device.features[0]) {
+            const featureKey = device.features[0].selector.toUpperCase().replace(/-/g, '_');
+            try {
+              const varResp = await state.httpClient.get(`/api/v1/variable/THERMOSTAT_ACTIVE_SCHEDULE_${featureKey}`);
+              return { ...device, active_schedule: (varResp && varResp.value) || '' };
+            } catch (e) {
+              return { ...device, active_schedule: '' };
+            }
+          }
+          return { ...device, active_schedule: '' };
+        }));
         store.setState({
-          thermostatDevices: filtered,
+          thermostatDevices: enriched,
           getThermostatDevicesStatus: RequestStatus.Success
         });
       } catch (e) {
@@ -29,10 +41,17 @@ function createActions(store) {
       }
     },
     async saveDevice(state, device, index) {
-      const savedDevice = await state.httpClient.post('/api/v1/device', device);
+      const { active_schedule, ...deviceToSave } = device;
+      const savedDevice = await state.httpClient.post('/api/v1/device', deviceToSave);
+      if (savedDevice && savedDevice.features && savedDevice.features[0]) {
+        const featureKey = savedDevice.features[0].selector.toUpperCase().replace(/-/g, '_');
+        await state.httpClient.post(`/api/v1/variable/THERMOSTAT_ACTIVE_SCHEDULE_${featureKey}`, {
+          value: active_schedule || ''
+        });
+      }
       const newState = update(state, {
         thermostatDevices: {
-          $splice: [[index, 1, savedDevice]]
+          $splice: [[index, 1, { ...savedDevice, active_schedule: active_schedule || '' }]]
         }
       });
       store.setState(newState);
@@ -46,6 +65,14 @@ function createActions(store) {
         }
       });
       store.setState(newState);
+    },
+    async getSchedules(state) {
+      try {
+        const schedules = await state.httpClient.get('/api/v1/service/thermostat/schedule');
+        store.setState({ thermostatSchedules: Array.isArray(schedules) ? schedules : [] });
+      } catch (e) {
+        store.setState({ thermostatSchedules: [] });
+      }
     },
     async deleteDevice(state, device, index) {
       await state.httpClient.delete(`/api/v1/device/${device.selector}`);

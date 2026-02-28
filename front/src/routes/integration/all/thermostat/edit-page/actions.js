@@ -10,6 +10,15 @@ const SWITCH_CATEGORIES = [DEVICE_FEATURE_CATEGORIES.SWITCH];
 function createActions(store) {
   const houseActions = createActionsHouse(store);
   const actions = {
+    async getSchedules(state) {
+      try {
+        const schedules = await state.httpClient.get('/api/v1/service/thermostat/schedule');
+        store.setState({ thermostatSchedules: schedules });
+      } catch (e) {
+        store.setState({ thermostatSchedules: [] });
+      }
+    },
+
     async getDevicesForThermostatEdit(state) {
       try {
         const devices = await state.httpClient.get('/api/v1/device');
@@ -61,6 +70,8 @@ function createActions(store) {
           thermostatEditPresetNight: getParam('THERMOSTAT_PRESET_NIGHT') || '17',
           thermostatEditPresetComfort: getParam('THERMOSTAT_PRESET_COMFORT') || '21',
           thermostatEditRoomId: device.room_id || '',
+          thermostatEditActiveSchedule: getParam('THERMOSTAT_ACTIVE_SCHEDULE') || '',
+          thermostatEditManualDuration: getParam('THERMOSTAT_MANUAL_DURATION') || '30',
           getThermostatDeviceStatus: RequestStatus.Success
         });
       } catch (e) {
@@ -89,6 +100,7 @@ function createActions(store) {
         const presetEco = state.thermostatEditPresetEco || '18';
         const presetNight = state.thermostatEditPresetNight || '17';
         const presetComfort = state.thermostatEditPresetComfort || '21';
+        const manualDuration = parseInt(state.thermostatEditManualDuration, 10) || 30;
 
         const isEdit = !!(state.thermostatEditDevice && state.thermostatEditDevice.selector);
         const timestamp = Date.now();
@@ -117,6 +129,7 @@ function createActions(store) {
             }
           ],
           room_id: state.thermostatEditRoomId || undefined,
+          activeSchedule: state.thermostatEditActiveSchedule || '',
           params: [
             { name: 'THERMOSTAT_MODE', value: mode },
             { name: 'THERMOSTAT_MIN_TEMP', value: String(minTemp) },
@@ -130,7 +143,9 @@ function createActions(store) {
             { name: 'THERMOSTAT_PRESET_AWAY', value: presetAway },
             { name: 'THERMOSTAT_PRESET_ECO', value: presetEco },
             { name: 'THERMOSTAT_PRESET_NIGHT', value: presetNight },
-            { name: 'THERMOSTAT_PRESET_COMFORT', value: presetComfort }
+            { name: 'THERMOSTAT_PRESET_COMFORT', value: presetComfort },
+            { name: 'THERMOSTAT_ACTIVE_SCHEDULE', value: state.thermostatEditActiveSchedule || '' },
+            { name: 'THERMOSTAT_MANUAL_DURATION', value: String(manualDuration) }
           ]
         };
 
@@ -153,10 +168,14 @@ function createActions(store) {
             preset_away: parseFloat(presetAway),
             preset_eco: parseFloat(presetEco),
             preset_night: parseFloat(presetNight),
-            preset_comfort: parseFloat(presetComfort)
+            preset_comfort: parseFloat(presetComfort),
+            manual_duration: manualDuration
           };
           await state.httpClient.post(`/api/v1/variable/THERMOSTAT_CONFIG_${varKey}`, {
             value: JSON.stringify(thermostatConfig)
+          });
+          await state.httpClient.post(`/api/v1/variable/THERMOSTAT_ACTIVE_SCHEDULE_${varKey}`, {
+            value: state.thermostatEditActiveSchedule || ''
           });
         }
 
@@ -177,7 +196,9 @@ function createActions(store) {
           thermostatEditPresetEco: '18',
           thermostatEditPresetNight: '17',
           thermostatEditPresetComfort: '21',
-          thermostatEditRoomId: ''
+          thermostatEditRoomId: '',
+          thermostatEditActiveSchedule: '',
+          thermostatEditManualDuration: '30'
         });
         route('/dashboard/integration/device/thermostat');
       } catch (e) {

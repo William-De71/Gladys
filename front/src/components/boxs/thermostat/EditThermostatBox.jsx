@@ -41,6 +41,12 @@ class EditThermostatBoxComponent extends Component {
     return options;
   };
 
+  updateSchedule = option => {
+    const selector = option ? option.value : null;
+    this.props.updateBoxConfig(this.props.x, this.props.y, { schedule_selector: selector || '' });
+    this.setState({ selectedScheduleOption: option || null });
+  };
+
   getDevices = async () => {
     try {
       const devices = await this.props.httpClient.get('/api/v1/device');
@@ -57,11 +63,30 @@ class EditThermostatBoxComponent extends Component {
     }
   };
 
+  getSchedules = async () => {
+    try {
+      const schedules = await this.props.httpClient.get('/api/v1/service/thermostat/schedule');
+      const manualLabel = this.props.intl && this.props.intl.dictionary
+        ? this.props.intl.dictionary.dashboard.boxes.thermostat.scheduleManual || 'Manuel'
+        : 'Manuel';
+      const scheduleOptions = [
+        { value: '', label: manualLabel },
+        ...(Array.isArray(schedules) ? schedules.map(s => ({ value: s.selector, label: s.name })) : [])
+      ];
+      const currentSelector = this.props.box.schedule_selector || '';
+      const selectedScheduleOption = scheduleOptions.find(o => o.value === currentSelector) || scheduleOptions[0];
+      this.setState({ scheduleOptions, selectedScheduleOption });
+    } catch (e) {
+      this.setState({ scheduleOptions: [] });
+    }
+  };
+
   componentDidMount() {
     this.getDevices();
+    this.getSchedules();
   }
 
-  render(props, { thermostatOptions, selectedThermostatOption }) {
+  render(props, { thermostatOptions, selectedThermostatOption, scheduleOptions, selectedScheduleOption }) {
     const placeholder = props.intl && props.intl.dictionary
       ? props.intl.dictionary.dashboard.boxes.thermostat.selectPlaceholder
       : '';
@@ -81,6 +106,29 @@ class EditThermostatBoxComponent extends Component {
             value={props.box.name || ''}
             onInput={this.updateName}
           />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <Text id="dashboard.boxes.thermostat.scheduleSelectorLabel" />
+          </label>
+          <Select
+            value={selectedScheduleOption}
+            onChange={this.updateSchedule}
+            options={scheduleOptions || []}
+            maxMenuHeight={220}
+            className="react-select-container"
+            classNamePrefix="react-select"
+            styles={{
+              valueContainer: provided => ({ ...provided, paddingLeft: '8px' }),
+              input: provided => ({ ...provided, paddingLeft: '4px' }),
+              placeholder: provided => ({ ...provided, paddingLeft: '4px' }),
+              singleValue: provided => ({ ...provided, marginLeft: '0px', paddingLeft: '4px' })
+            }}
+          />
+          <small class="form-text text-muted">
+            <Text id="dashboard.boxes.thermostat.scheduleSelectorHelp" />
+          </small>
         </div>
 
         <div class="form-group">

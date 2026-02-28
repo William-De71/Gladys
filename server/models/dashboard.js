@@ -59,6 +59,7 @@ const boxesSchema = Joi.array().items(
       preset_comfort: Joi.number(),
       preset_eco: Joi.number(),
       preset_night: Joi.number(),
+      schedule_selector: Joi.string().allow(null, ''),
       default_mode: Joi.string().valid('heating', 'cooling').allow(null),
       control_type: Joi.string().valid('hysteresis', 'tpi').allow(null),
       hysteresis_start: Joi.number().min(0).max(5),

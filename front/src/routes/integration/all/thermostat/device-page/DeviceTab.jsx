@@ -40,6 +40,7 @@ const DeviceTab = ({ ...props }) => (
                   device={device}
                   deviceIndex={index}
                   houses={props.houses}
+                  thermostatSchedules={props.thermostatSchedules}
                   saveDevice={props.saveDevice}
                   deleteDevice={props.deleteDevice}
                   updateDeviceProperty={props.updateDeviceProperty}

@@ -8,6 +8,7 @@ class ThermostatEditPage extends Component {
   componentWillMount() {
     this.props.getDevicesForThermostatEdit();
     this.props.getHouses();
+    this.props.getSchedules();
     if (this.props.deviceSelector) {
       this.props.getThermostatDevice(this.props.deviceSelector);
     } else {
@@ -27,6 +28,8 @@ class ThermostatEditPage extends Component {
       this.props.updateThermostatField('thermostatEditPresetNight', '17');
       this.props.updateThermostatField('thermostatEditPresetComfort', '21');
       this.props.updateThermostatField('thermostatEditRoomId', '');
+      this.props.updateThermostatField('thermostatEditActiveSchedule', '');
+      this.props.updateThermostatField('thermostatEditManualDuration', '30');
       this.props.updateThermostatField('thermostatCreateStatus', null);
     }
   }
@@ -41,6 +44,6 @@ class ThermostatEditPage extends Component {
 }
 
 export default connect(
-  'user,houses,thermostatEditDevice,thermostatEditName,thermostatEditMode,thermostatEditMinTemp,thermostatEditMaxTemp,thermostatEditTempUnit,thermostatEditControlType,thermostatEditTemperatureFeature,thermostatEditHumidityFeature,thermostatEditSwitchFeature,thermostatEditPresetFrost,thermostatEditPresetAway,thermostatEditPresetEco,thermostatEditPresetNight,thermostatEditPresetComfort,thermostatEditRoomId,thermostatCreateStatus,temperatureFeatures,humidityFeatures,switchFeatures',
+  'user,houses,thermostatSchedules,thermostatEditDevice,thermostatEditName,thermostatEditMode,thermostatEditMinTemp,thermostatEditMaxTemp,thermostatEditTempUnit,thermostatEditControlType,thermostatEditTemperatureFeature,thermostatEditHumidityFeature,thermostatEditSwitchFeature,thermostatEditPresetFrost,thermostatEditPresetAway,thermostatEditPresetEco,thermostatEditPresetNight,thermostatEditPresetComfort,thermostatEditRoomId,thermostatEditActiveSchedule,thermostatEditManualDuration,thermostatCreateStatus,temperatureFeatures,humidityFeatures,switchFeatures',
   actions
 )(ThermostatEditPage);

@@ -195,6 +195,7 @@ import EnergyMonitoringIntegration from '../routes/integration/all/energy-monito
 // Thermostat integration
 import ThermostatDevicePage from '../routes/integration/all/thermostat/device-page';
 import ThermostatEditPage from '../routes/integration/all/thermostat/edit-page';
+import ThermostatSchedulePage from '../routes/integration/all/thermostat/schedule-page';
 
 const defaultState = getDefaultState();
 const store = createStore(defaultState);
@@ -357,6 +358,7 @@ const AppRouter = connect(
         <MELCloudSetupPage path="/dashboard/integration/device/melcloud/setup" />
 
         <ThermostatDevicePage path="/dashboard/integration/device/thermostat" />
+        <ThermostatSchedulePage path="/dashboard/integration/device/thermostat/schedule" />
         <ThermostatEditPage path="/dashboard/integration/device/thermostat/new" />
         <ThermostatEditPage path="/dashboard/integration/device/thermostat/edit/:deviceSelector" />
 

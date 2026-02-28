@@ -4,6 +4,7 @@ const ThermostatController = require('./api/thermostat.controller');
 
 module.exports = function ThermostatService(gladys, serviceId) {
   const thermostatHandler = new ThermostatHandler(gladys, serviceId);
+  let scheduleInterval = null;
 
   /**
    * @public
@@ -13,6 +14,12 @@ module.exports = function ThermostatService(gladys, serviceId) {
    */
   async function start() {
     logger.info('Starting thermostat service');
+    // Apply schedules every minute
+    scheduleInterval = setInterval(async () => {
+      await thermostatHandler.applySchedules();
+    }, 60 * 1000);
+    // Run once immediately on start
+    await thermostatHandler.applySchedules();
   }
 
   /**
@@ -23,6 +30,10 @@ module.exports = function ThermostatService(gladys, serviceId) {
    */
   async function stop() {
     logger.info('Stopping thermostat service');
+    if (scheduleInterval) {
+      clearInterval(scheduleInterval);
+      scheduleInterval = null;
+    }
   }
 
   return Object.freeze({

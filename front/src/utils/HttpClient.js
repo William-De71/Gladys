@@ -137,6 +137,10 @@ export class HttpClient {
     }
   }
 
+  async put(url, body) {
+    return this.executeQuery('put', url, {}, body);
+  }
+
   async patch(url, body) {
     return this.executeQuery('patch', url, {}, body);
   }

@@ -544,6 +544,9 @@
         "modeOff": "Aus-Modus",
         "noConfig": "Bitte konfiguriere das Widget über die Bearbeitungsschaltfläche.",
         "manualMode": "Manueller Modus",
+        "scheduleUntil": "bis",
+        "manualUntil": "bis",
+        "cancelManual": "Manuellen Modus abbrechen",
         "error": "Fehler beim Laden der Thermostatdaten.",
         "preset": {
           "off": "Aus",
