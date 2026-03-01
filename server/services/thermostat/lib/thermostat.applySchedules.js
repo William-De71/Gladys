@@ -12,21 +12,41 @@ const DEFAULT_PRESET_TEMPS = {
 
 /**
  * @description Find the matching preset for the current time in a list of slots.
- * @param {Array} slots - Slots for the current day.
+ * Handles overnight slots (end_time < start_time, e.g. 22:00 → 07:00).
+ * @param {Array} todaySlots - Slots for the current day.
+ * @param {Array} yesterdaySlots - Slots for the previous day (for overnight detection).
  * @param {number} currentMinutes - Current time in minutes since midnight.
  * @returns {string|null} Matched preset or null.
  * @example
- * findMatchingPreset(slots, 480);
+ * findMatchingPreset(todaySlots, yesterdaySlots, 480);
  */
-function findMatchingPreset(slots, currentMinutes) {
-  const matched = slots.find((slot) => {
+function findMatchingPreset(todaySlots, yesterdaySlots, currentMinutes) {
+  // Check today's normal slots (start < end)
+  const matchedToday = todaySlots.find((slot) => {
     const [startH, startM] = slot.start_time.split(':').map(Number);
     const [endH, endM] = slot.end_time.split(':').map(Number);
     const slotStart = startH * 60 + startM;
     const slotEnd = endH * 60 + endM;
-    return currentMinutes >= slotStart && currentMinutes < slotEnd;
+    return slotEnd > slotStart && currentMinutes >= slotStart && currentMinutes < slotEnd;
   });
-  return matched ? matched.preset : null;
+  if (matchedToday) {
+    return matchedToday.preset;
+  }
+
+  // Check yesterday's overnight slots (end < start, crosses midnight)
+  // e.g. slot 22:00 → 07:00 on day N covers 00:00 → 07:00 on day N+1
+  const matchedOvernight = yesterdaySlots.find((slot) => {
+    const [startH, startM] = slot.start_time.split(':').map(Number);
+    const [endH, endM] = slot.end_time.split(':').map(Number);
+    const slotStart = startH * 60 + startM;
+    const slotEnd = endH * 60 + endM;
+    return slotEnd < slotStart && currentMinutes < slotEnd;
+  });
+  if (matchedOvernight) {
+    return matchedOvernight.preset;
+  }
+
+  return null;
 }
 
 /**
@@ -74,10 +94,35 @@ function computeSwitchActive(currentTemp, setpoint, mode, config) {
 }
 
 /**
+ * @description Find all thermostat box configs from all dashboards.
+ * Returns a map: thermostat_feature_selector -> box config object.
+ * @returns {Promise<object>} Map of feature selector to box config.
+ * @example
+ * const map = await getThermostatBoxConfigs();
+ */
+async function getThermostatBoxConfigs() {
+  const dashboards = await db.Dashboard.findAll({ attributes: ['boxes'], raw: true });
+  const configMap = {};
+  dashboards.forEach((dashboard) => {
+    const boxes = Array.isArray(dashboard.boxes) ? dashboard.boxes : [];
+    boxes.forEach((row) => {
+      if (!Array.isArray(row)) {
+        return;
+      }
+      row.forEach((box) => {
+        if (box && box.type === 'thermostat' && box.thermostat_feature) {
+          configMap[box.thermostat_feature] = box;
+        }
+      });
+    });
+  });
+  return configMap;
+}
+
+/**
  * @description Apply active schedules to all thermostats. Called every minute by cron.
- * Reads THERMOSTAT_ACTIVE_SCHEDULE_<FEATURE_KEY> variable for each thermostat device,
- * finds the matching slot for current day/time, updates the preset variable,
- * and directly actuates the switch device.
+ * Reads schedule config from dashboards, finds the matching slot for current day/time,
+ * updates the preset variable, and directly actuates the switch device.
  * @returns {Promise<void>}
  * @example
  * await thermostatHandler.applySchedules();
@@ -86,8 +131,13 @@ async function applySchedules() {
   try {
     const thermostatDevices = await this.gladys.device.get({ service: 'thermostat' });
     if (!thermostatDevices || thermostatDevices.length === 0) {
+      logger.debug('Thermostat schedule: no thermostat devices found');
       return;
     }
+    logger.debug(`Thermostat schedule: found ${thermostatDevices.length} thermostat device(s)`);
+
+    // Load all thermostat box configs from dashboards (source of truth for config)
+    const boxConfigMap = await getThermostatBoxConfigs();
 
     const now = new Date();
     const dayOfWeek = (now.getDay() + 6) % 7; // Monday=0 ... Sunday=6
@@ -102,18 +152,59 @@ async function applySchedules() {
 
         const featureKey = thermostatFeature.selector.toUpperCase().replace(/-/g, '_');
 
-        let scheduleSelector = null;
-        try {
-          scheduleSelector = await this.gladys.variable.getValue(
-            `THERMOSTAT_ACTIVE_SCHEDULE_${featureKey}`,
-          );
-        } catch (e) {
-          return;
+        // Primary config source: device params (always present since device creation)
+        let boxConfig = null;
+        if (device.params && device.params.length > 0) {
+          const getParam = (name) => {
+            const p = device.params.find((x) => x.name === name);
+            return p ? p.value : null;
+          };
+          boxConfig = {
+            temperature_feature: getParam('THERMOSTAT_TEMPERATURE_FEATURE') || null,
+            humidity_feature: getParam('THERMOSTAT_HUMIDITY_FEATURE') || null,
+            switch_feature: getParam('THERMOSTAT_SWITCH_FEATURE') || null,
+            default_mode: getParam('THERMOSTAT_MODE') || 'heating',
+            control_type: getParam('THERMOSTAT_CONTROL_TYPE') || 'hysteresis',
+            preset_frost: parseFloat(getParam('THERMOSTAT_PRESET_FROST')) || 7,
+            preset_away: parseFloat(getParam('THERMOSTAT_PRESET_AWAY')) || 16,
+            preset_eco: parseFloat(getParam('THERMOSTAT_PRESET_ECO')) || 18,
+            preset_night: parseFloat(getParam('THERMOSTAT_PRESET_NIGHT')) || 17,
+            preset_comfort: parseFloat(getParam('THERMOSTAT_PRESET_COMFORT')) || 21,
+            hysteresis_start: parseFloat(getParam('THERMOSTAT_HYSTERESIS_START')) || 0.5,
+            hysteresis_stop: parseFloat(getParam('THERMOSTAT_HYSTERESIS_STOP')) || 0.5,
+          };
+        }
+        // Fallback: THERMOSTAT_CONFIG variable (written on save from integration page)
+        if (!boxConfig || !boxConfig.temperature_feature) {
+          try {
+            const configRaw = await this.gladys.variable.getValue(`THERMOSTAT_CONFIG_${featureKey}`);
+            if (configRaw) {
+              const parsed = JSON.parse(configRaw);
+              if (!boxConfig) {
+                boxConfig = parsed;
+              } else {
+                Object.keys(parsed).forEach((k) => {
+                  if (boxConfig[k] === null || boxConfig[k] === undefined) {
+                    boxConfig[k] = parsed[k];
+                  }
+                });
+              }
+            }
+          } catch (e) {
+            // ignore
+          }
         }
 
+        // schedule_selector: from dashboard box (set in EditThermostatBox) or ACTIVE_SCHEDULE variable
+        const dashboardBox = boxConfigMap[thermostatFeature.selector] || null;
+        const scheduleSelector = (dashboardBox && dashboardBox.schedule_selector)
+          || await this.gladys.variable.getValue(`THERMOSTAT_ACTIVE_SCHEDULE_${featureKey}`).catch(() => null);
+
         if (!scheduleSelector) {
+          logger.debug(`Thermostat schedule: no active schedule for ${thermostatFeature.selector}`);
           return;
         }
+        logger.info(`Thermostat schedule: applying schedule "${scheduleSelector}" for ${thermostatFeature.selector}`);
 
         const schedule = await db.ThermostatSchedule.findOne({
           where: { selector: scheduleSelector },
@@ -125,78 +216,82 @@ async function applySchedules() {
         }
 
         const slotsForToday = schedule.slots.filter((s) => s.day_of_week === dayOfWeek);
-        const matchedPreset = findMatchingPreset(slotsForToday, currentMinutes);
+        const yesterdayOfWeek = (dayOfWeek + 6) % 7;
+        const slotsForYesterday = schedule.slots.filter((s) => s.day_of_week === yesterdayOfWeek);
+        const matchedPreset = findMatchingPreset(slotsForToday, slotsForYesterday, currentMinutes);
 
         if (!matchedPreset) {
+          logger.debug(`Thermostat schedule: no matching slot at ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')} for ${thermostatFeature.selector}`);
           return;
         }
+        logger.info(`Thermostat schedule: matched preset "${matchedPreset}" at ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')} for ${thermostatFeature.selector}`);
 
         const presetVarKey = `THERMOSTAT_${featureKey}_PRESET`;
         const manualVarKey = `THERMOSTAT_${featureKey}_MANUAL_MODE`;
-        const configVarKey = `THERMOSTAT_CONFIG_${featureKey}`;
 
         try {
-          const [currentPreset, manualVal, configRaw] = await Promise.all([
+          const [currentPreset, manualVal] = await Promise.all([
             this.gladys.variable.getValue(presetVarKey).catch(() => null),
             this.gladys.variable.getValue(manualVarKey).catch(() => null),
-            this.gladys.variable.getValue(configVarKey).catch(() => null),
           ]);
 
           if (manualVal === 'true') {
+            logger.debug(`Thermostat schedule: manual mode active for ${thermostatFeature.selector}, skipping`);
             return;
           }
 
-          // Parse config once
-          let config = null;
-          try {
-            config = configRaw ? JSON.parse(configRaw) : null;
-          } catch (e) {
-            logger.warn(`Thermostat schedule: Failed to parse config for ${thermostatFeature.selector}`);
+          // Use boxConfig read from dashboard (already loaded above)
+          const config = boxConfig || null;
+          if (!config) {
+            logger.warn(`Thermostat schedule: no config found for ${thermostatFeature.selector} — check dashboard box configuration`);
+          } else {
+            logger.debug(`Thermostat schedule: config loaded for ${thermostatFeature.selector}: switch=${config.switch_feature}, temp=${config.temperature_feature}`);
           }
 
-          // Apply preset variable if changed
+          // Always enforce the scheduled setpoint (handles manual overrides being reverted)
+          const newSetpoint = getSetpointForPreset(matchedPreset, config);
+          if (newSetpoint !== null && newSetpoint !== undefined) {
+            try {
+              await this.gladys.device.saveState(thermostatFeature, newSetpoint);
+            } catch (e) {
+              logger.warn(`Thermostat schedule: Failed to update setpoint: ${e.message}`);
+            }
+          }
+
+          // Apply preset variable if changed and notify widget
           if (currentPreset !== matchedPreset) {
             await this.gladys.variable.setValue(presetVarKey, matchedPreset);
             logger.info(
               `Thermostat schedule: preset "${matchedPreset}" applied to ${thermostatFeature.selector}`,
             );
-
-            // Update the thermostat feature setpoint so the widget reflects the new temperature
-            const newSetpoint = getSetpointForPreset(matchedPreset, config);
-            if (newSetpoint !== null && newSetpoint !== undefined) {
-              try {
-                await this.gladys.device.saveState(thermostatFeature, newSetpoint);
-                logger.info(
-                  `Thermostat schedule: setpoint ${newSetpoint} applied to ${thermostatFeature.selector}`,
-                );
-              } catch (e) {
-                logger.warn(`Thermostat schedule: Failed to update setpoint: ${e.message}`);
-              }
-            }
-
-            this.gladys.event.emit(EVENTS.WEBSOCKET.SEND_ALL, {
-              type: WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.PRESET_UPDATED,
-              payload: { key: presetVarKey, value: matchedPreset },
-            });
           }
 
+          // Always emit PRESET_UPDATED so the widget refreshes its state
+          this.gladys.event.emit(EVENTS.WEBSOCKET.SEND_ALL, {
+            type: WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.PRESET_UPDATED,
+            payload: { key: presetVarKey, value: matchedPreset },
+          });
+
           if (!config || !config.switch_feature) {
+            logger.warn(`Thermostat schedule: no switch_feature configured for ${thermostatFeature.selector}, cannot actuate switch`);
             return;
           }
 
           if (matchedPreset === 'off') {
             // Preset off = switch off
             try {
-              const allDevices = await this.gladys.device.get({ service: 'thermostat' });
-              const switchDevice = allDevices && allDevices.find(
-                (d) => d.features && d.features.some((f) => f.selector === config.switch_feature),
-              );
+              const switchDevices = await this.gladys.device.get({
+                device_feature_selectors: config.switch_feature,
+              });
+              const switchDevice = switchDevices && switchDevices[0];
               const switchFeature = switchDevice && switchDevice.features.find(
                 (f) => f.selector === config.switch_feature,
               );
               if (switchDevice && switchFeature) {
                 await this.gladys.device.setValue(switchDevice, switchFeature, 0);
                 logger.info(`Thermostat schedule: switch OFF (preset=off) for ${thermostatFeature.selector}`);
+              } else {
+                logger.warn(`Thermostat schedule: switch device not found for selector="${config.switch_feature}"`);
               }
             } catch (e) {
               logger.warn(`Thermostat schedule: Failed to turn off switch: ${e.message}`);
@@ -207,6 +302,7 @@ async function applySchedules() {
           // Get current temperature from sensor
           const temperatureFeatureSelector = config.temperature_feature;
           if (!temperatureFeatureSelector) {
+            logger.warn(`Thermostat schedule: no temperature_feature configured for ${thermostatFeature.selector}, cannot compute switch state`);
             return;
           }
 
@@ -229,12 +325,14 @@ async function applySchedules() {
           }
 
           if (currentTemp === null || currentTemp === undefined) {
+            logger.warn(`Thermostat schedule: no temperature reading for ${temperatureFeatureSelector}, cannot compute switch state`);
             return;
           }
 
           const setpoint = getSetpointForPreset(matchedPreset, config);
           const mode = config.default_mode || 'heating';
           const shouldBeActive = computeSwitchActive(currentTemp, setpoint, mode, config);
+          logger.debug(`Thermostat schedule: temp=${currentTemp}, setpoint=${setpoint}, mode=${mode}, shouldBeActive=${shouldBeActive}`);
 
           // Find switch device and actuate
           try {
@@ -253,7 +351,11 @@ async function applySchedules() {
                 logger.info(
                   `Thermostat schedule: switch ${shouldBeActive ? 'ON' : 'OFF'} (preset="${matchedPreset}", temp=${currentTemp}, setpoint=${setpoint}) for ${thermostatFeature.selector}`,
                 );
+              } else {
+                logger.debug(`Thermostat schedule: switch already at desired value ${desiredValue} for ${thermostatFeature.selector}`);
               }
+            } else {
+              logger.warn(`Thermostat schedule: switch device/feature not found for selector="${config.switch_feature}"`);
             }
           } catch (e) {
             logger.warn(`Thermostat schedule: Failed to actuate switch: ${e.message}`);

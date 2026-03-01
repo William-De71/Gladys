@@ -2617,7 +2617,11 @@
         "switchFeatureLabel": "Commutateur (actionneur)",
         "switchFeatureHelp": "Le switch qui sera activé/désactivé pour chauffer ou refroidir.",
         "presetsLabel": "Presets de température",
+        "presetColNameLabel": "Preset",
+        "presetColColorLabel": "Couleur",
+        "presetColTempLabel": "Consigne",
         "preset": {
+          "off": "Arrêt",
           "frost": "Hors-gel",
           "away": "Absence",
           "eco": "Éco",
@@ -2648,6 +2652,8 @@
         "confirmYes": "Oui",
         "confirmNo": "Non",
         "saveError": "Erreur lors de la sauvegarde.",
+        "gapError": "Certains jours n'ont pas de couverture complète (plages manquantes) :",
+        "duplicateButton": "Dupliquer",
         "deleteError": "Erreur lors de la suppression.",
         "days": {
           "0": "Lundi",

@@ -25,6 +25,16 @@ class SchedulePageComponent extends Component {
     this.setState({ showEditor: true, editingSchedule: schedule });
   };
 
+  startDuplicate = schedule => {
+    const duplicate = {
+      ...schedule,
+      selector: null,
+      name: `${schedule.name} (copie)`,
+      slots: schedule.slots ? schedule.slots.map(s => ({ ...s })) : []
+    };
+    this.setState({ showEditor: true, editingSchedule: duplicate });
+  };
+
   cancelEditor = () => {
     this.setState({ showEditor: false, editingSchedule: null });
   };
@@ -98,6 +108,14 @@ class SchedulePageComponent extends Component {
                   <div class="card-header">
                     <h4 class="card-title">{schedule.name}</h4>
                     <div class="card-options">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary mr-2"
+                        onClick={() => this.startDuplicate(schedule)}
+                      >
+                        <i class="fe fe-copy mr-1" />
+                        <Text id="integration.thermostat.schedule.duplicateButton" />
+                      </button>
                       <button
                         type="button"
                         class="btn btn-sm btn-outline-primary mr-2"

@@ -1,4 +1,4 @@
-import { Text, MarkupText, Localizer } from 'preact-i18n';
+import { Text, MarkupText } from 'preact-i18n';
 import { Component } from 'preact';
 import { Link } from 'preact-router/match';
 import cx from 'classnames';
@@ -106,28 +106,6 @@ class ThermostatDeviceBox extends Component {
                         </optgroup>
                       ))}
                   </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">
-                    <Text id="integration.thermostat.device.activeScheduleLabel" />
-                  </label>
-                  <Localizer>
-                    <select onChange={this.updateActiveSchedule} class="form-control">
-                      <option value="">
-                        <Text id="integration.thermostat.edit.noActiveSchedule" />
-                      </option>
-                      {props.thermostatSchedules && props.thermostatSchedules.map(schedule => (
-                        <option
-                          key={schedule.selector}
-                          value={schedule.selector}
-                          selected={device.active_schedule === schedule.selector}
-                        >
-                          {schedule.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Localizer>
                 </div>
 
                 <div class={style.buttonGroup}>

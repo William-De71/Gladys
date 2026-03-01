@@ -1,6 +1,7 @@
 import { Text, Localizer } from 'preact-i18n';
 import cx from 'classnames';
 import { RequestStatus } from '../../../../../utils/consts';
+import style from './style.css';
 
 const FeatureSelect = ({ value, features, onChange, emptyLabel }) => (
   <select class="form-control" value={value} onChange={onChange}>
@@ -30,6 +31,26 @@ const EditForm = ({ ...props }) => {
     night: 'thermostatEditPresetNight',
     comfort: 'thermostatEditPresetComfort'
   };
+
+  const presetColorFields = {
+    off: 'thermostatEditColorOff',
+    frost: 'thermostatEditColorFrost',
+    away: 'thermostatEditColorAway',
+    eco: 'thermostatEditColorEco',
+    night: 'thermostatEditColorNight',
+    comfort: 'thermostatEditColorComfort'
+  };
+
+  const presetColorDefaults = {
+    off: '#4a4a4a',
+    frost: '#74c0fc',
+    away: '#e03131',
+    eco: '#74b816',
+    night: '#1971c2',
+    comfort: '#f59f00'
+  };
+
+  const controlType = props.thermostatEditControlType || 'hysteresis';
 
   return (
     <div class="card">
@@ -116,7 +137,7 @@ const EditForm = ({ ...props }) => {
               </select>
             </div>
 
-            {/* Type de calcul */}
+            {/* Type de calcul + paramètres associés */}
             <div class="form-group">
               <label class="form-label">
                 <Text id="integration.thermostat.edit.controlTypeLabel" />
@@ -138,6 +159,114 @@ const EditForm = ({ ...props }) => {
                 <Text id="integration.thermostat.edit.controlTypeHelp" />
               </small>
             </div>
+
+            {/* Paramètres hystérésis */}
+            {controlType === 'hysteresis' && (
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label class="form-label">
+                      <Text id="integration.thermostat.edit.hysteresisStartLabel" />
+                    </label>
+                    <div class="input-group">
+                      <input
+                        type="number"
+                        class="form-control"
+                        step="0.1"
+                        min="0"
+                        max="5"
+                        value={props.thermostatEditHysteresisStart || '0.5'}
+                        onInput={e => props.updateThermostatField('thermostatEditHysteresisStart', e.target.value)}
+                      />
+                      <div class="input-group-append">
+                        <span class="input-group-text">°C</span>
+                      </div>
+                    </div>
+                    <small class="form-text text-muted">
+                      <Text id="integration.thermostat.edit.hysteresisStartHelp" />
+                    </small>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label class="form-label">
+                      <Text id="integration.thermostat.edit.hysteresisStopLabel" />
+                    </label>
+                    <div class="input-group">
+                      <input
+                        type="number"
+                        class="form-control"
+                        step="0.1"
+                        min="0"
+                        max="5"
+                        value={props.thermostatEditHysteresisStop || '0.5'}
+                        onInput={e => props.updateThermostatField('thermostatEditHysteresisStop', e.target.value)}
+                      />
+                      <div class="input-group-append">
+                        <span class="input-group-text">°C</span>
+                      </div>
+                    </div>
+                    <small class="form-text text-muted">
+                      <Text id="integration.thermostat.edit.hysteresisStopHelp" />
+                    </small>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Paramètres TPI */}
+            {controlType === 'tpi' && (
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label class="form-label">
+                      <Text id="integration.thermostat.edit.tpiCycleTimeLabel" />
+                    </label>
+                    <div class="input-group">
+                      <input
+                        type="number"
+                        class="form-control"
+                        step="1"
+                        min="5"
+                        max="120"
+                        value={props.thermostatEditTpiCycleTime || '30'}
+                        onInput={e => props.updateThermostatField('thermostatEditTpiCycleTime', e.target.value)}
+                      />
+                      <div class="input-group-append">
+                        <span class="input-group-text">min</span>
+                      </div>
+                    </div>
+                    <small class="form-text text-muted">
+                      <Text id="integration.thermostat.edit.tpiCycleTimeHelp" />
+                    </small>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label class="form-label">
+                      <Text id="integration.thermostat.edit.tpiProportionalBandLabel" />
+                    </label>
+                    <div class="input-group">
+                      <input
+                        type="number"
+                        class="form-control"
+                        step="0.5"
+                        min="0.5"
+                        max="10"
+                        value={props.thermostatEditTpiProportionalBand || '2'}
+                        onInput={e => props.updateThermostatField('thermostatEditTpiProportionalBand', e.target.value)}
+                      />
+                      <div class="input-group-append">
+                        <span class="input-group-text">°C</span>
+                      </div>
+                    </div>
+                    <small class="form-text text-muted">
+                      <Text id="integration.thermostat.edit.tpiProportionalBandHelp" />
+                    </small>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Unité + Plage de température */}
             <div class="row">
@@ -248,29 +377,57 @@ const EditForm = ({ ...props }) => {
               </small>
             </div>
 
-            {/* Presets */}
+            {/* Presets : couleur + température alignées par préréglage */}
             <div class="form-group">
               <label class="form-label">
                 <Text id="integration.thermostat.edit.presetsLabel" />
               </label>
-              <div class="row">
-                {activePresets.map(key => (
-                  <div class="col-md-4" key={key}>
-                    <div class="form-group">
-                      <label class="form-label">
+              <table class="table table-sm table-borderless mb-0">
+                <thead>
+                  <tr>
+                    <th class={style.presetColName}><Text id="integration.thermostat.edit.presetColNameLabel" /></th>
+                    <th class={style.presetColColor}><Text id="integration.thermostat.edit.presetColColorLabel" /></th>
+                    <th><Text id="integration.thermostat.edit.presetColTempLabel" /></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {['off', ...activePresets].map(key => (
+                    <tr key={key}>
+                      <td class="align-middle">
                         <Text id={`integration.thermostat.edit.preset.${key}`} />
-                      </label>
-                      <input
-                        type="number"
-                        class="form-control"
-                        value={props[presetFields[key]]}
-                        onInput={e => props.updateThermostatField(presetFields[key], e.target.value)}
-                        step="1"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      </td>
+                      <td class="align-middle">
+                        <input
+                          type="color"
+                          class={`form-control p-1 ${style.presetColorInput}`}
+                          value={props[presetColorFields[key]] || presetColorDefaults[key]}
+                          onInput={e => props.updateThermostatField(presetColorFields[key], e.target.value)}
+                        />
+                      </td>
+                      <td class="align-middle">
+                        {presetFields[key] ? (
+                          <div class="input-group input-group-sm">
+                            <input
+                              type="number"
+                              class={`form-control ${style.presetTempInput}`}
+                              value={props[presetFields[key]]}
+                              onInput={e => props.updateThermostatField(presetFields[key], e.target.value)}
+                              step="0.5"
+                            />
+                            <div class="input-group-append">
+                              <span class="input-group-text">
+                                {(props.thermostatEditTempUnit || 'C') === 'F' ? '°F' : '°C'}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <span class="text-muted">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {/* Durée mode manuel */}
@@ -299,30 +456,6 @@ const EditForm = ({ ...props }) => {
               </small>
             </div>
 
-            {/* Planning actif */}
-            <div class="form-group">
-              <label class="form-label">
-                <Text id="integration.thermostat.edit.activeScheduleLabel" />
-              </label>
-              <select
-                class="form-control"
-                value={props.thermostatEditActiveSchedule || ''}
-                onChange={e => props.updateThermostatField('thermostatEditActiveSchedule', e.target.value)}
-              >
-                <option value="">
-                  <Text id="integration.thermostat.edit.noActiveSchedule" />
-                </option>
-                {props.thermostatSchedules &&
-                  props.thermostatSchedules.map(s => (
-                    <option key={s.selector} value={s.selector} selected={s.selector === props.thermostatEditActiveSchedule}>
-                      {s.name}
-                    </option>
-                  ))}
-              </select>
-              <small class="form-text text-muted">
-                <Text id="integration.thermostat.edit.activeScheduleHelp" />
-              </small>
-            </div>
 
             <div class="row mt-2">
               <div class="col">

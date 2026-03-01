@@ -2617,7 +2617,11 @@
         "switchFeatureLabel": "Switch (actuator)",
         "switchFeatureHelp": "The switch that will be turned on/off to heat or cool.",
         "presetsLabel": "Temperature presets",
+        "presetColNameLabel": "Preset",
+        "presetColColorLabel": "Color",
+        "presetColTempLabel": "Setpoint",
         "preset": {
+          "off": "Off",
           "frost": "Frost protection",
           "away": "Away",
           "eco": "Eco",
@@ -2648,6 +2652,8 @@
         "confirmYes": "Yes",
         "confirmNo": "No",
         "saveError": "Error while saving.",
+        "gapError": "Some days have uncovered time slots (gaps):",
+        "duplicateButton": "Duplicate",
         "deleteError": "Error while deleting.",
         "days": {
           "0": "Monday",

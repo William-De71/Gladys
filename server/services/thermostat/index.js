@@ -18,8 +18,14 @@ module.exports = function ThermostatService(gladys, serviceId) {
     scheduleInterval = setInterval(async () => {
       await thermostatHandler.applySchedules();
     }, 60 * 1000);
-    // Run once immediately on start
-    await thermostatHandler.applySchedules();
+    // Run once immediately on start (non-blocking — errors must not prevent Gladys startup)
+    (async () => {
+      try {
+        await thermostatHandler.applySchedules();
+      } catch (e) {
+        logger.warn(`Thermostat applySchedules startup error: ${e.message}`);
+      }
+    })();
   }
 
   /**

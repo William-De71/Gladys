@@ -27,8 +27,17 @@ class ThermostatEditPage extends Component {
       this.props.updateThermostatField('thermostatEditPresetEco', '18');
       this.props.updateThermostatField('thermostatEditPresetNight', '17');
       this.props.updateThermostatField('thermostatEditPresetComfort', '21');
+      this.props.updateThermostatField('thermostatEditHysteresisStart', '0.5');
+      this.props.updateThermostatField('thermostatEditHysteresisStop', '0.5');
+      this.props.updateThermostatField('thermostatEditTpiCycleTime', '30');
+      this.props.updateThermostatField('thermostatEditTpiProportionalBand', '2');
+      this.props.updateThermostatField('thermostatEditColorOff', '');
+      this.props.updateThermostatField('thermostatEditColorFrost', '');
+      this.props.updateThermostatField('thermostatEditColorAway', '');
+      this.props.updateThermostatField('thermostatEditColorEco', '');
+      this.props.updateThermostatField('thermostatEditColorNight', '');
+      this.props.updateThermostatField('thermostatEditColorComfort', '');
       this.props.updateThermostatField('thermostatEditRoomId', '');
-      this.props.updateThermostatField('thermostatEditActiveSchedule', '');
       this.props.updateThermostatField('thermostatEditManualDuration', '30');
       this.props.updateThermostatField('thermostatCreateStatus', null);
     }
@@ -44,6 +53,6 @@ class ThermostatEditPage extends Component {
 }
 
 export default connect(
-  'user,houses,thermostatSchedules,thermostatEditDevice,thermostatEditName,thermostatEditMode,thermostatEditMinTemp,thermostatEditMaxTemp,thermostatEditTempUnit,thermostatEditControlType,thermostatEditTemperatureFeature,thermostatEditHumidityFeature,thermostatEditSwitchFeature,thermostatEditPresetFrost,thermostatEditPresetAway,thermostatEditPresetEco,thermostatEditPresetNight,thermostatEditPresetComfort,thermostatEditRoomId,thermostatEditActiveSchedule,thermostatEditManualDuration,thermostatCreateStatus,temperatureFeatures,humidityFeatures,switchFeatures',
+  'user,houses,thermostatEditDevice,thermostatEditName,thermostatEditMode,thermostatEditMinTemp,thermostatEditMaxTemp,thermostatEditTempUnit,thermostatEditControlType,thermostatEditTemperatureFeature,thermostatEditHumidityFeature,thermostatEditSwitchFeature,thermostatEditPresetFrost,thermostatEditPresetAway,thermostatEditPresetEco,thermostatEditPresetNight,thermostatEditPresetComfort,thermostatEditPresetComfortPlus,thermostatEditHysteresisStart,thermostatEditHysteresisStop,thermostatEditTpiCycleTime,thermostatEditTpiProportionalBand,thermostatEditColorOff,thermostatEditColorFrost,thermostatEditColorAway,thermostatEditColorEco,thermostatEditColorNight,thermostatEditColorComfort,thermostatEditColorComfortPlus,thermostatEditRoomId,thermostatEditManualDuration,thermostatCreateStatus,temperatureFeatures,humidityFeatures,switchFeatures',
   actions
 )(ThermostatEditPage);

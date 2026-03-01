@@ -69,8 +69,17 @@ function createActions(store) {
           thermostatEditPresetEco: getParam('THERMOSTAT_PRESET_ECO') || '18',
           thermostatEditPresetNight: getParam('THERMOSTAT_PRESET_NIGHT') || '17',
           thermostatEditPresetComfort: getParam('THERMOSTAT_PRESET_COMFORT') || '21',
+          thermostatEditHysteresisStart: getParam('THERMOSTAT_HYSTERESIS_START') || '0.5',
+          thermostatEditHysteresisStop: getParam('THERMOSTAT_HYSTERESIS_STOP') || '0.5',
+          thermostatEditTpiCycleTime: getParam('THERMOSTAT_TPI_CYCLE_TIME') || '30',
+          thermostatEditTpiProportionalBand: getParam('THERMOSTAT_TPI_PROPORTIONAL_BAND') || '2',
+          thermostatEditColorOff: getParam('THERMOSTAT_COLOR_OFF') || '',
+          thermostatEditColorFrost: getParam('THERMOSTAT_COLOR_FROST') || '',
+          thermostatEditColorAway: getParam('THERMOSTAT_COLOR_AWAY') || '',
+          thermostatEditColorEco: getParam('THERMOSTAT_COLOR_ECO') || '',
+          thermostatEditColorNight: getParam('THERMOSTAT_COLOR_NIGHT') || '',
+          thermostatEditColorComfort: getParam('THERMOSTAT_COLOR_COMFORT') || '',
           thermostatEditRoomId: device.room_id || '',
-          thermostatEditActiveSchedule: getParam('THERMOSTAT_ACTIVE_SCHEDULE') || '',
           thermostatEditManualDuration: getParam('THERMOSTAT_MANUAL_DURATION') || '30',
           getThermostatDeviceStatus: RequestStatus.Success
         });
@@ -100,6 +109,16 @@ function createActions(store) {
         const presetEco = state.thermostatEditPresetEco || '18';
         const presetNight = state.thermostatEditPresetNight || '17';
         const presetComfort = state.thermostatEditPresetComfort || '21';
+        const hysteresisStart = parseFloat(state.thermostatEditHysteresisStart) || 0.5;
+        const hysteresisStop = parseFloat(state.thermostatEditHysteresisStop) || 0.5;
+        const tpiCycleTime = parseInt(state.thermostatEditTpiCycleTime, 10) || 30;
+        const tpiProportionalBand = parseFloat(state.thermostatEditTpiProportionalBand) || 2;
+        const colorOff = state.thermostatEditColorOff || '';
+        const colorFrost = state.thermostatEditColorFrost || '';
+        const colorAway = state.thermostatEditColorAway || '';
+        const colorEco = state.thermostatEditColorEco || '';
+        const colorNight = state.thermostatEditColorNight || '';
+        const colorComfort = state.thermostatEditColorComfort || '';
         const manualDuration = parseInt(state.thermostatEditManualDuration, 10) || 30;
 
         const isEdit = !!(state.thermostatEditDevice && state.thermostatEditDevice.selector);
@@ -144,7 +163,16 @@ function createActions(store) {
             { name: 'THERMOSTAT_PRESET_ECO', value: presetEco },
             { name: 'THERMOSTAT_PRESET_NIGHT', value: presetNight },
             { name: 'THERMOSTAT_PRESET_COMFORT', value: presetComfort },
-            { name: 'THERMOSTAT_ACTIVE_SCHEDULE', value: state.thermostatEditActiveSchedule || '' },
+            { name: 'THERMOSTAT_HYSTERESIS_START', value: String(hysteresisStart) },
+            { name: 'THERMOSTAT_HYSTERESIS_STOP', value: String(hysteresisStop) },
+            { name: 'THERMOSTAT_TPI_CYCLE_TIME', value: String(tpiCycleTime) },
+            { name: 'THERMOSTAT_TPI_PROPORTIONAL_BAND', value: String(tpiProportionalBand) },
+            { name: 'THERMOSTAT_COLOR_OFF', value: colorOff },
+            { name: 'THERMOSTAT_COLOR_FROST', value: colorFrost },
+            { name: 'THERMOSTAT_COLOR_AWAY', value: colorAway },
+            { name: 'THERMOSTAT_COLOR_ECO', value: colorEco },
+            { name: 'THERMOSTAT_COLOR_NIGHT', value: colorNight },
+            { name: 'THERMOSTAT_COLOR_COMFORT', value: colorComfort },
             { name: 'THERMOSTAT_MANUAL_DURATION', value: String(manualDuration) }
           ]
         };
@@ -169,6 +197,16 @@ function createActions(store) {
             preset_eco: parseFloat(presetEco),
             preset_night: parseFloat(presetNight),
             preset_comfort: parseFloat(presetComfort),
+            hysteresis_start: hysteresisStart,
+            hysteresis_stop: hysteresisStop,
+            tpi_cycle_time: tpiCycleTime,
+            tpi_proportional_band: tpiProportionalBand,
+            preset_color_off: colorOff || null,
+            preset_color_frost: colorFrost || null,
+            preset_color_away: colorAway || null,
+            preset_color_eco: colorEco || null,
+            preset_color_night: colorNight || null,
+            preset_color_comfort: colorComfort || null,
             manual_duration: manualDuration
           };
           await state.httpClient.post(`/api/v1/variable/THERMOSTAT_CONFIG_${varKey}`, {
@@ -196,8 +234,17 @@ function createActions(store) {
           thermostatEditPresetEco: '18',
           thermostatEditPresetNight: '17',
           thermostatEditPresetComfort: '21',
+          thermostatEditHysteresisStart: '0.5',
+          thermostatEditHysteresisStop: '0.5',
+          thermostatEditTpiCycleTime: '30',
+          thermostatEditTpiProportionalBand: '2',
+          thermostatEditColorOff: '',
+          thermostatEditColorFrost: '',
+          thermostatEditColorAway: '',
+          thermostatEditColorEco: '',
+          thermostatEditColorNight: '',
+          thermostatEditColorComfort: '',
           thermostatEditRoomId: '',
-          thermostatEditActiveSchedule: '',
           thermostatEditManualDuration: '30'
         });
         route('/dashboard/integration/device/thermostat');

@@ -352,11 +352,51 @@ class ScheduleEditor extends Component {
     this.setState({ slots: [...otherSlots, ...copies], copySourceDay: null, copyTargetDays: [] });
   };
 
+  // ── Validation ────────────────────────────────────────────────────────────
+
+  validateSchedule = () => {
+    const { slots } = this.state;
+    const gapDays = [];
+    DAYS.forEach(day => {
+      const daySlots = slots
+        .filter(s => s.day_of_week === day)
+        .map(s => ({
+          start: timeToMinutes(s.start_time),
+          end: timeToMinutes(s.end_time) || DAY_MINUTES
+        }))
+        .sort((a, b) => a.start - b.start);
+
+      if (daySlots.length === 0) {
+        gapDays.push(day);
+        return;
+      }
+
+      // Check coverage from 0 to DAY_MINUTES
+      let covered = 0;
+      for (const s of daySlots) {
+        if (s.start > covered) {
+          gapDays.push(day);
+          return;
+        }
+        covered = Math.max(covered, s.end);
+      }
+      if (covered < DAY_MINUTES) gapDays.push(day);
+    });
+    return gapDays;
+  };
+
   // ── Save ──────────────────────────────────────────────────────────────────
 
   save = async () => {
     const { name, slots } = this.state;
     if (!name.trim()) return;
+
+    const gapDays = this.validateSchedule();
+    if (gapDays.length > 0) {
+      this.setState({ error: { type: 'gaps', days: gapDays } });
+      return;
+    }
+
     this.setState({ saving: true, error: null });
     const scheduleData = { name: name.trim(), slots: slots.map(({ _key, ...rest }) => rest) };
     try {
@@ -487,7 +527,20 @@ class ScheduleEditor extends Component {
         <div class="card-body">
           {error && (
             <div class="alert alert-danger">
-              {typeof error === 'string' ? error : <Text id="integration.thermostat.schedule.saveError" />}
+              {error && error.type === 'gaps'
+                ? (
+                  <span>
+                    <Text id="integration.thermostat.schedule.gapError" />
+                    {' '}
+                    {error.days.map(d => (
+                      <span key={d} class="badge badge-light mr-1">
+                        <Text id={`integration.thermostat.schedule.daysShort.${d}`} />
+                      </span>
+                    ))}
+                  </span>
+                )
+                : (typeof error === 'string' ? error : <Text id="integration.thermostat.schedule.saveError" />)
+              }
             </div>
           )}
 
