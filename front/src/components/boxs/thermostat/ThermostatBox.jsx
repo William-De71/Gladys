@@ -892,10 +892,15 @@ class ThermostatBox extends Component {
       prevState.remoteConfig !== remoteConfig ||
       prevProps.box !== box;
     if (relevantChanged) {
-      const newActive = this.computeIsActive();
-      if (newActive !== this.lastSwitchActive) {
-        this.lastSwitchActive = newActive;
-        this.sendSwitch(newActive);
+      // When a schedule is active, the server (applySchedules every minute) handles
+      // switch actuation. Only drive the switch from the front when there is no schedule.
+      const hasSchedule = !!this.props.box.schedule_selector;
+      if (!hasSchedule) {
+        const newActive = this.computeIsActive();
+        if (newActive !== this.lastSwitchActive) {
+          this.lastSwitchActive = newActive;
+          this.sendSwitch(newActive);
+        }
       }
     }
   }
@@ -904,7 +909,7 @@ class ThermostatBox extends Component {
     const { box } = this.props;
     if (!box.thermostat_feature) return;
     try {
-      await this.props.httpClient.post(`/api/v1/device_feature/${box.thermostat_feature}/value`, { value });
+      await this.props.httpClient.post(`/api/v1/service/thermostat/setpoint/${box.thermostat_feature}`, { value });
     } catch (e) {
       console.error(e);
     }

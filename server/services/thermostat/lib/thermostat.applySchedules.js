@@ -78,19 +78,21 @@ function getSetpointForPreset(preset, config) {
  * @example
  * computeSwitchActive(18, 20, 'heating', config);
  */
-function computeSwitchActive(currentTemp, setpoint, mode, config) {
+function computeSwitchActive(currentTemp, setpoint, mode, config, currentSwitchOn) {
   if (currentTemp === null || currentTemp === undefined) {
     return false;
   }
   const hystStart = Number((config && config.hysteresis_start)) || 0.5;
   const hystStop = Number((config && config.hysteresis_stop)) || 0.5;
-  const isActive = mode === 'heating'
-    ? currentTemp < setpoint - hystStart
-    : currentTemp > setpoint + hystStart;
-  const isStopped = mode === 'heating'
-    ? currentTemp > setpoint + hystStop
-    : currentTemp < setpoint - hystStop;
-  return isActive && !isStopped;
+  if (mode === 'heating') {
+    if (currentTemp < setpoint - hystStart) return true;   // too cold → ON
+    if (currentTemp > setpoint + hystStop) return false;   // hot enough → OFF
+    return !!currentSwitchOn;                              // neutral zone → keep current state
+  }
+  // cooling
+  if (currentTemp > setpoint + hystStart) return true;    // too hot → ON
+  if (currentTemp < setpoint - hystStop) return false;    // cold enough → OFF
+  return !!currentSwitchOn;                               // neutral zone → keep current state
 }
 
 /**
@@ -101,10 +103,14 @@ function computeSwitchActive(currentTemp, setpoint, mode, config) {
  * const map = await getThermostatBoxConfigs();
  */
 async function getThermostatBoxConfigs() {
-  const dashboards = await db.Dashboard.findAll({ attributes: ['boxes'], raw: true });
+  const dashboards = await db.Dashboard.findAll({ attributes: ['boxes'] });
   const configMap = {};
   dashboards.forEach((dashboard) => {
-    const boxes = Array.isArray(dashboard.boxes) ? dashboard.boxes : [];
+    let rawBoxes = dashboard.boxes;
+    if (typeof rawBoxes === 'string') {
+      try { rawBoxes = JSON.parse(rawBoxes); } catch (e) { rawBoxes = []; }
+    }
+    const boxes = Array.isArray(rawBoxes) ? rawBoxes : [];
     boxes.forEach((row) => {
       if (!Array.isArray(row)) {
         return;
@@ -197,8 +203,9 @@ async function applySchedules() {
 
         // schedule_selector: from dashboard box (set in EditThermostatBox) or ACTIVE_SCHEDULE variable
         const dashboardBox = boxConfigMap[thermostatFeature.selector] || null;
-        const scheduleSelector = (dashboardBox && dashboardBox.schedule_selector)
+        const rawScheduleSelector = (dashboardBox && dashboardBox.schedule_selector)
           || await this.gladys.variable.getValue(`THERMOSTAT_ACTIVE_SCHEDULE_${featureKey}`).catch(() => null);
+        const scheduleSelector = rawScheduleSelector || null;
 
         if (!scheduleSelector) {
           logger.debug(`Thermostat schedule: no active schedule for ${thermostatFeature.selector}`);
@@ -331,10 +338,8 @@ async function applySchedules() {
 
           const setpoint = getSetpointForPreset(matchedPreset, config);
           const mode = config.default_mode || 'heating';
-          const shouldBeActive = computeSwitchActive(currentTemp, setpoint, mode, config);
-          logger.debug(`Thermostat schedule: temp=${currentTemp}, setpoint=${setpoint}, mode=${mode}, shouldBeActive=${shouldBeActive}`);
 
-          // Find switch device and actuate
+          // Read switch device once, use current state for stateful hysteresis
           try {
             const switchDevices = await this.gladys.device.get({
               device_feature_selectors: config.switch_feature,
@@ -344,9 +349,11 @@ async function applySchedules() {
               (f) => f.selector === config.switch_feature,
             );
             if (switchDevice && switchFeature) {
-              const currentSwitchValue = switchFeature.last_value;
+              const currentSwitchOn = switchFeature.last_value === 1;
+              const shouldBeActive = computeSwitchActive(currentTemp, setpoint, mode, config, currentSwitchOn);
+              logger.debug(`Thermostat schedule: temp=${currentTemp}, setpoint=${setpoint}, mode=${mode}, switchWas=${currentSwitchOn}, shouldBeActive=${shouldBeActive}`);
               const desiredValue = shouldBeActive ? 1 : 0;
-              if (currentSwitchValue !== desiredValue) {
+              if (currentSwitchOn !== shouldBeActive) {
                 await this.gladys.device.setValue(switchDevice, switchFeature, desiredValue);
                 logger.info(
                   `Thermostat schedule: switch ${shouldBeActive ? 'ON' : 'OFF'} (preset="${matchedPreset}", temp=${currentTemp}, setpoint=${setpoint}) for ${thermostatFeature.selector}`,

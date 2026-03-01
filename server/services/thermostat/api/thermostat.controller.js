@@ -64,6 +64,18 @@ module.exports = function ThermostatController(thermostatHandler) {
     res.json({ success: true });
   }
 
+  async function setSetpoint(req, res) {
+    const featureSelector = req.params.feature_selector;
+    const value = Number(req.body.value);
+    const deviceFeature = thermostatHandler.gladys.stateManager.get('deviceFeature', featureSelector);
+    if (!deviceFeature) {
+      res.status(404).json({ error: 'FEATURE_NOT_FOUND' });
+      return;
+    }
+    await thermostatHandler.gladys.device.saveState(deviceFeature, value);
+    res.json({ success: true, value });
+  }
+
   return {
     'get /api/v1/service/thermostat/device': {
       authenticated: true,
@@ -88,6 +100,10 @@ module.exports = function ThermostatController(thermostatHandler) {
     'delete /api/v1/service/thermostat/schedule/:selector': {
       authenticated: true,
       controller: asyncMiddleware(deleteSchedule),
+    },
+    'post /api/v1/service/thermostat/setpoint/:feature_selector': {
+      authenticated: true,
+      controller: asyncMiddleware(setSetpoint),
     },
   };
 };
