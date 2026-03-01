@@ -11,6 +11,19 @@ const DEFAULT_PRESET_TEMPS = {
 };
 
 /**
+ * @description Parse end time string, treating 00:00 as end of day (1440 minutes).
+ * @param {string} timeStr - Time string HH:MM.
+ * @returns {number} Minutes since midnight, 1440 if 00:00.
+ * @example
+ * parseEnd('00:00'); // 1440
+ */
+function parseEnd(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const v = h * 60 + m;
+  return v === 0 ? 1440 : v;
+}
+
+/**
  * @description Find the matching preset for the current time in a list of slots.
  * Handles overnight slots (end_time < start_time, e.g. 22:00 → 07:00).
  * @param {Array} todaySlots - Slots for the current day.
@@ -21,16 +34,28 @@ const DEFAULT_PRESET_TEMPS = {
  * findMatchingPreset(todaySlots, yesterdaySlots, 480);
  */
 function findMatchingPreset(todaySlots, yesterdaySlots, currentMinutes) {
-  // Check today's normal slots (start < end)
+  // Check today's normal slots (start < end, same day)
   const matchedToday = todaySlots.find((slot) => {
     const [startH, startM] = slot.start_time.split(':').map(Number);
-    const [endH, endM] = slot.end_time.split(':').map(Number);
     const slotStart = startH * 60 + startM;
-    const slotEnd = endH * 60 + endM;
+    const slotEnd = parseEnd(slot.end_time);
     return slotEnd > slotStart && currentMinutes >= slotStart && currentMinutes < slotEnd;
   });
   if (matchedToday) {
     return matchedToday.preset;
+  }
+
+  // Check today's overnight slots (end < start, crosses midnight)
+  // e.g. slot 22:00 → 07:00: covers 22:00 → 23:59 on the start day
+  const matchedTodayOvernightStart = todaySlots.find((slot) => {
+    const [startH, startM] = slot.start_time.split(':').map(Number);
+    const [endH, endM] = slot.end_time.split(':').map(Number);
+    const slotStart = startH * 60 + startM;
+    const slotEnd = endH * 60 + endM;
+    return slotEnd < slotStart && currentMinutes >= slotStart;
+  });
+  if (matchedTodayOvernightStart) {
+    return matchedTodayOvernightStart.preset;
   }
 
   // Check yesterday's overnight slots (end < start, crosses midnight)

@@ -197,34 +197,6 @@
   color: #467fcf;
 }
 
-.presetBtn_off { background: #6c757d; color: #fff; border-color: #6c757d; }
-.presetBtn_frost { background: #74c0fc; color: #fff; border-color: #74c0fc; }
-.presetBtn_away { background: #f59f00; color: #fff; border-color: #f59f00; }
-.presetBtn_eco { background: #2fb344; color: #fff; border-color: #2fb344; }
-.presetBtn_night { background: #7048e8; color: #fff; border-color: #7048e8; }
-.presetBtn_comfort_heating { background: #f97316; color: #fff; border-color: #f97316; }
-.presetBtn_comfort_cooling { background: #3b82f6; color: #fff; border-color: #3b82f6; }
-
-.presetColor_off { color: #6c757d; }
-.presetColor_off i { color: #6c757d; }
-
-.presetColor_frost { color: #74c0fc; }
-.presetColor_frost i { color: #74c0fc; }
-
-.presetColor_away { color: #f59f00; }
-.presetColor_away i { color: #f59f00; }
-
-.presetColor_eco { color: #2fb344; }
-.presetColor_eco i { color: #2fb344; }
-
-.presetColor_night { color: #7048e8; }
-.presetColor_night i { color: #7048e8; }
-
-.presetColor_comfort_heating { color: #f97316; }
-.presetColor_comfort_heating i { color: #f97316; }
-
-.presetColor_comfort_cooling { color: #3b82f6; }
-.presetColor_comfort_cooling i { color: #3b82f6; }
 
 /* Segmented Control */
 .segmentedControl {
@@ -273,10 +245,39 @@
   transform: scale(0.85);
 }
 
-/* Active segment button - color driven by --preset-color CSS variable */
+/* All segment buttons use --preset-color; inactive at reduced opacity */
+.segmentBtn i {
+  color: var(--preset-color, #adb5bd);
+  opacity: 0.35;
+  transition: opacity 0.25s ease, color 0.25s ease;
+}
+
+/* Active segment button - full color + glow */
 .segmentBtnActive i {
-  color: var(--preset-color, #f59f00);
-  filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--preset-color, #f59f00) 40%, transparent));
+  opacity: 1;
+  filter: drop-shadow(0 2px 6px var(--preset-color, #f59f00));
+}
+
+.segmentBtn:hover i {
+  opacity: 0.65;
+}
+
+/* Dark mode: cancel the global invert(100%) on preset-colored elements.
+   !important needed to override .dark-mode .dashboard .fe { filter: none } */
+:global(.dark-mode) .segmentBtn i {
+  filter: invert(100%) hue-rotate(180deg) !important;
+}
+
+:global(.dark-mode) .segmentBtnActive i {
+  filter: invert(100%) hue-rotate(180deg) !important;
+}
+
+:global(.dark-mode) .scheduleBanner {
+  filter: invert(100%) hue-rotate(180deg) !important;
+}
+
+:global(.dark-mode) .manualBanner {
+  filter: invert(100%) hue-rotate(180deg) !important;
 }
 
 

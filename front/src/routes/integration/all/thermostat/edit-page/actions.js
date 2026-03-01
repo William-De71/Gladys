@@ -73,12 +73,6 @@ function createActions(store) {
           thermostatEditHysteresisStop: getParam('THERMOSTAT_HYSTERESIS_STOP') || '0.5',
           thermostatEditTpiCycleTime: getParam('THERMOSTAT_TPI_CYCLE_TIME') || '30',
           thermostatEditTpiProportionalBand: getParam('THERMOSTAT_TPI_PROPORTIONAL_BAND') || '2',
-          thermostatEditColorOff: getParam('THERMOSTAT_COLOR_OFF') || '',
-          thermostatEditColorFrost: getParam('THERMOSTAT_COLOR_FROST') || '',
-          thermostatEditColorAway: getParam('THERMOSTAT_COLOR_AWAY') || '',
-          thermostatEditColorEco: getParam('THERMOSTAT_COLOR_ECO') || '',
-          thermostatEditColorNight: getParam('THERMOSTAT_COLOR_NIGHT') || '',
-          thermostatEditColorComfort: getParam('THERMOSTAT_COLOR_COMFORT') || '',
           thermostatEditRoomId: device.room_id || '',
           thermostatEditManualDuration: getParam('THERMOSTAT_MANUAL_DURATION') || '30',
           getThermostatDeviceStatus: RequestStatus.Success
@@ -90,6 +84,27 @@ function createActions(store) {
 
     updateThermostatField(state, field, value) {
       store.setState({ [field]: value });
+    },
+
+    updateThermostatUnit(state, newUnit) {
+      const oldUnit = state.thermostatEditTempUnit || 'C';
+      if (oldUnit === newUnit) return;
+      const toF = v => v !== '' && v !== null && v !== undefined ? String(Math.round((parseFloat(v) * 9 / 5 + 32) * 2) / 2) : v;
+      const toC = v => v !== '' && v !== null && v !== undefined ? String(Math.round(((parseFloat(v) - 32) * 5 / 9) * 2) / 2) : v;
+      const conv = newUnit === 'F' ? toF : toC;
+      store.setState({
+        thermostatEditTempUnit: newUnit,
+        thermostatEditMinTemp: conv(state.thermostatEditMinTemp),
+        thermostatEditMaxTemp: conv(state.thermostatEditMaxTemp),
+        thermostatEditPresetFrost: conv(state.thermostatEditPresetFrost),
+        thermostatEditPresetAway: conv(state.thermostatEditPresetAway),
+        thermostatEditPresetEco: conv(state.thermostatEditPresetEco),
+        thermostatEditPresetNight: conv(state.thermostatEditPresetNight),
+        thermostatEditPresetComfort: conv(state.thermostatEditPresetComfort),
+        thermostatEditHysteresisStart: conv(state.thermostatEditHysteresisStart),
+        thermostatEditHysteresisStop: conv(state.thermostatEditHysteresisStop),
+        thermostatEditTpiProportionalBand: conv(state.thermostatEditTpiProportionalBand),
+      });
     },
 
     async saveThermostatDevice(state) {
@@ -113,12 +128,6 @@ function createActions(store) {
         const hysteresisStop = parseFloat(state.thermostatEditHysteresisStop) || 0.5;
         const tpiCycleTime = parseInt(state.thermostatEditTpiCycleTime, 10) || 30;
         const tpiProportionalBand = parseFloat(state.thermostatEditTpiProportionalBand) || 2;
-        const colorOff = state.thermostatEditColorOff || '';
-        const colorFrost = state.thermostatEditColorFrost || '';
-        const colorAway = state.thermostatEditColorAway || '';
-        const colorEco = state.thermostatEditColorEco || '';
-        const colorNight = state.thermostatEditColorNight || '';
-        const colorComfort = state.thermostatEditColorComfort || '';
         const manualDuration = parseInt(state.thermostatEditManualDuration, 10) || 30;
 
         const isEdit = !!(state.thermostatEditDevice && state.thermostatEditDevice.selector);
@@ -167,12 +176,6 @@ function createActions(store) {
             { name: 'THERMOSTAT_HYSTERESIS_STOP', value: String(hysteresisStop) },
             { name: 'THERMOSTAT_TPI_CYCLE_TIME', value: String(tpiCycleTime) },
             { name: 'THERMOSTAT_TPI_PROPORTIONAL_BAND', value: String(tpiProportionalBand) },
-            { name: 'THERMOSTAT_COLOR_OFF', value: colorOff },
-            { name: 'THERMOSTAT_COLOR_FROST', value: colorFrost },
-            { name: 'THERMOSTAT_COLOR_AWAY', value: colorAway },
-            { name: 'THERMOSTAT_COLOR_ECO', value: colorEco },
-            { name: 'THERMOSTAT_COLOR_NIGHT', value: colorNight },
-            { name: 'THERMOSTAT_COLOR_COMFORT', value: colorComfort },
             { name: 'THERMOSTAT_MANUAL_DURATION', value: String(manualDuration) }
           ]
         };
@@ -201,12 +204,6 @@ function createActions(store) {
             hysteresis_stop: hysteresisStop,
             tpi_cycle_time: tpiCycleTime,
             tpi_proportional_band: tpiProportionalBand,
-            preset_color_off: colorOff || null,
-            preset_color_frost: colorFrost || null,
-            preset_color_away: colorAway || null,
-            preset_color_eco: colorEco || null,
-            preset_color_night: colorNight || null,
-            preset_color_comfort: colorComfort || null,
             manual_duration: manualDuration
           };
           await state.httpClient.post(`/api/v1/variable/THERMOSTAT_CONFIG_${varKey}`, {
@@ -238,12 +235,6 @@ function createActions(store) {
           thermostatEditHysteresisStop: '0.5',
           thermostatEditTpiCycleTime: '30',
           thermostatEditTpiProportionalBand: '2',
-          thermostatEditColorOff: '',
-          thermostatEditColorFrost: '',
-          thermostatEditColorAway: '',
-          thermostatEditColorEco: '',
-          thermostatEditColorNight: '',
-          thermostatEditColorComfort: '',
           thermostatEditRoomId: '',
           thermostatEditManualDuration: '30'
         });

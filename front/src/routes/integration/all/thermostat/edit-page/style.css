@@ -2,16 +2,6 @@
   width: 30%;
 }
 
-.presetColColor {
-  width: 80px;
-}
-
-.presetColorInput {
-  height: 34px;
-  width: 48px;
-  cursor: pointer;
-}
-
 .presetTempInput {
   max-width: 90px;
 }

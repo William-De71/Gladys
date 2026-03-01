@@ -71,6 +71,10 @@
   flex-shrink: 0;
 }
 
+:global(.dark-mode) .timeBarWrapper {
+  filter: invert(100%) hue-rotate(180deg);
+}
+
 .timeBarMarkers {
   position: relative;
   height: 18px;
@@ -169,12 +173,10 @@
   flex-shrink: 0;
 }
 
-.dotPreset_off     { background: #adb5bd; }
-.dotPreset_frost   { background: #74c0fc; }
-.dotPreset_away    { background: #f59f00; }
-.dotPreset_eco     { background: #2fb344; }
-.dotPreset_night   { background: #7048e8; }
-.dotPreset_comfort { background: #f97316; }
+:global(.dark-mode) .slotColorDot {
+  filter: invert(100%) hue-rotate(180deg);
+}
+
 
 .slotTimeInput {
   width: 90px !important;

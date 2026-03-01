@@ -5,13 +5,13 @@ import { WEBSOCKET_MESSAGE_TYPES, AC_MODE, DEVICE_FEATURE_UNITS } from '../../..
 import { celsiusToFahrenheit, fahrenheitToCelsius } from '../../../../../server/utils/units';
 import withIntlAsProp from '../../../utils/withIntlAsProp';
 import style from './style.css';
+import PRESET_COLORS from '../../../utils/thermostatPresetColors';
 
 const DEFAULT_MIN = 5;
 const DEFAULT_MAX = 35;
 const ARC_DEGREES = 240;
 const ARC_START_ANGLE = 150;
 const DEFAULT_PRESET_TEMPS = { off: null, frost: 7, away: 16, comfort: 21, eco: 18, night: 17 };
-const PRESET_COLORS_DEFAULT = { off: '#4a4a4a', frost: '#74c0fc', away: '#e03131', eco: '#74b816', comfort: '#f59f00', night: '#1971c2' };
 const PRESET_ICONS = { off: 'fe-power', frost: 'fe-cloud-snow', away: 'fe-user-x', comfort: 'fe-sun', eco: 'fe-feather', night: 'fe-moon' };
 const HEATING_PRESETS = ['off', 'frost', 'away', 'eco', 'night', 'comfort'];
 const COOLING_PRESETS = ['off', 'comfort'];
@@ -30,7 +30,7 @@ function describeArc(cx, cy, r, startAngle, endAngle) {
 }
 
 const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncrement, onDecrement, minTemp, maxTemp, mode, isActive, tempUnit }) => {
-    const cx = 110;
+  const cx = 110;
   const cy = 110;
   const r = 88;
   const sw = 11;
@@ -242,12 +242,6 @@ class ThermostatBox extends Component {
               tpi_cycle_time: getParam('THERMOSTAT_TPI_CYCLE_TIME') ? parseInt(getParam('THERMOSTAT_TPI_CYCLE_TIME'), 10) : null,
               tpi_proportional_band: getParam('THERMOSTAT_TPI_PROPORTIONAL_BAND') ? parseFloat(getParam('THERMOSTAT_TPI_PROPORTIONAL_BAND')) : null,
               manual_duration: getParam('THERMOSTAT_MANUAL_DURATION') ? parseInt(getParam('THERMOSTAT_MANUAL_DURATION'), 10) : null,
-              preset_color_off: getParam('THERMOSTAT_COLOR_OFF') || null,
-              preset_color_frost: getParam('THERMOSTAT_COLOR_FROST') || null,
-              preset_color_away: getParam('THERMOSTAT_COLOR_AWAY') || null,
-              preset_color_eco: getParam('THERMOSTAT_COLOR_ECO') || null,
-              preset_color_night: getParam('THERMOSTAT_COLOR_NIGHT') || null,
-              preset_color_comfort: getParam('THERMOSTAT_COLOR_COMFORT') || null,
             };
           }
         })
@@ -293,12 +287,6 @@ class ThermostatBox extends Component {
       tpi_cycle_time: integrationConfig && integrationConfig.tpi_cycle_time,
       tpi_proportional_band: integrationConfig && integrationConfig.tpi_proportional_band,
       manual_duration: integrationConfig && integrationConfig.manual_duration,
-      preset_color_off: integrationConfig && integrationConfig.preset_color_off,
-      preset_color_frost: integrationConfig && integrationConfig.preset_color_frost,
-      preset_color_away: integrationConfig && integrationConfig.preset_color_away,
-      preset_color_eco: integrationConfig && integrationConfig.preset_color_eco,
-      preset_color_night: integrationConfig && integrationConfig.preset_color_night,
-      preset_color_comfort: integrationConfig && integrationConfig.preset_color_comfort,
     };
     await new Promise(resolve => this.setState({ remoteConfig }, resolve));
     return remoteConfig;
@@ -319,6 +307,21 @@ class ThermostatBox extends Component {
         isManualMode = response.value === 'true';
       }
     } catch (e) { /* ignore */ }
+
+    // If DB says manual=true but the localStorage timer has expired (or is absent),
+    // the manual session ended without persisting false (e.g. page refresh during timer).
+    // Reset to false so the schedule can apply again.
+    if (isManualMode === true && box.schedule_selector) {
+      try {
+        const storedUntil = localStorage.getItem(this.getStorageKey('manual_until'));
+        const timerStillActive = storedUntil && parseInt(storedUntil, 10) > Date.now();
+        if (!timerStillActive) {
+          isManualMode = false;
+          this.saveManualMode(false);
+          this.clearManualSetpoint();
+        }
+      } catch (e) { /* ignore */ }
+    }
 
     const knownPresets = [...HEATING_PRESETS, ...COOLING_PRESETS];
 
@@ -401,9 +404,7 @@ class ThermostatBox extends Component {
   };
 
   getPresetColor = (presetKey) => {
-    const cfg = this.getConfig();
-    const cfgKey = `preset_color_${presetKey}`;
-    return cfg[cfgKey] || PRESET_COLORS_DEFAULT[presetKey] || PRESET_COLORS_DEFAULT.comfort;
+    return PRESET_COLORS[presetKey] || PRESET_COLORS.comfort;
   };
 
   getPresets = () => {
@@ -576,18 +577,31 @@ class ThermostatBox extends Component {
     const yesterdayOfWeek = (dayOfWeek + 6) % 7;
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // Check today's slots (normal case: start < end)
+    const parseEnd = (timeStr) => {
+      const [h, m] = timeStr.split(':').map(Number);
+      const v = h * 60 + m;
+      return v === 0 ? 1440 : v; // 00:00 means end of day (midnight)
+    };
+
+    // Check today's normal slots (start < end)
     const slotsToday = schedule.slots.filter(s => s.day_of_week === dayOfWeek);
+    for (const slot of slotsToday) {
+      const [sh, sm] = slot.start_time.split(':').map(Number);
+      const start = sh * 60 + sm;
+      const end = parseEnd(slot.end_time);
+      if (end > start && currentMinutes >= start && currentMinutes < end) return slot;
+    }
+
+    // Check today's overnight slots (end < start): covers start→23:59 on same day
     for (const slot of slotsToday) {
       const [sh, sm] = slot.start_time.split(':').map(Number);
       const [eh, em] = slot.end_time.split(':').map(Number);
       const start = sh * 60 + sm;
       const end = eh * 60 + em;
-      if (end > start && currentMinutes >= start && currentMinutes < end) return slot;
+      if (end < start && currentMinutes >= start) return slot;
     }
 
-    // Check yesterday's overnight slots (end_time crosses midnight: end < start)
-    // e.g. slot 22:00 → 07:00 on day N covers times 00:00 → 07:00 on day N+1
+    // Check yesterday's overnight slots: covers 00:00→end on next day
     const slotsYesterday = schedule.slots.filter(s => s.day_of_week === yesterdayOfWeek);
     for (const slot of slotsYesterday) {
       const [sh, sm] = slot.start_time.split(':').map(Number);
@@ -1185,9 +1199,9 @@ class ThermostatBox extends Component {
                     const untilDate = new Date(manualUntil);
                     const untilTime = `${String(untilDate.getHours()).padStart(2, '0')}:${String(untilDate.getMinutes()).padStart(2, '0')}`;
                     const t = props.intl && props.intl.dictionary && props.intl.dictionary.dashboard.boxes.thermostat;
-                    const manualLabel = t && t.manualMode ? t.manualMode : 'Manuel';
-                    const manualUntilLabel = t && t.manualUntil ? t.manualUntil : 'jusqu\u2019\u00e0';
-                    const cancelLabel = t && t.cancelManual ? t.cancelManual : 'Annuler';
+                    const manualLabel = (t && t.manualMode) || '';
+                    const manualUntilLabel = (t && t.manualUntil) || '';
+                    const cancelLabel = (t && t.cancelManual) || '';
                     return (
                       <div class={style.manualBanner}>
                         <i class={`fe fe-user ${style.manualBannerIcon}`} />
@@ -1218,7 +1232,7 @@ class ThermostatBox extends Component {
                     : resolvedPresetKey;
                   const bannerColor = this.getPresetColor(resolvedPresetKey);
                   const t2 = props.intl && props.intl.dictionary && props.intl.dictionary.dashboard.boxes.thermostat;
-                  const untilLabel = t2 && t2.scheduleUntil ? t2.scheduleUntil : 'jusqu\u2019\u00e0';
+                  const untilLabel = (t2 && t2.scheduleUntil) || '';
 
                   return (
                     <div
@@ -1255,7 +1269,7 @@ class ThermostatBox extends Component {
                         <button
                           key={preset.key}
                           class={`${style.segmentBtn} ${isActive ? style.segmentBtnActive : ''}`}
-                          style={isActive ? `--preset-color:${presetColor}` : ''}
+                          style={`--preset-color:${presetColor}`}
                           onClick={() => this.selectPreset(preset)}
                           title={presetTitle}
                         >

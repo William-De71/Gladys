@@ -2,20 +2,12 @@ import { Component } from 'preact';
 import { Text } from 'preact-i18n';
 import cx from 'classnames';
 import style from './style.css';
+import PRESET_COLORS from '../../../../../utils/thermostatPresetColors';
 
 const DAYS = [0, 1, 2, 3, 4, 5, 6];
 const PRESETS = ['off', 'frost', 'away', 'eco', 'night', 'comfort'];
 const DAY_MINUTES = 24 * 60; // 1440
 const FIXED_MARKERS = [6 * 60, 12 * 60, 18 * 60];
-
-const PRESET_COLORS = {
-  off: '#adb5bd',
-  frost: '#74c0fc',
-  away: '#f59f00',
-  eco: '#2fb344',
-  night: '#7048e8',
-  comfort: '#f97316'
-};
 
 function timeToMinutes(time) {
   if (!time) return 0;
@@ -468,7 +460,7 @@ class ScheduleEditor extends Component {
   renderSlotForm(formData, onFieldChange, onConfirm, onCancel, onRemove, dictionary, isEdit) {
     return (
       <div class={isEdit ? style.editSlotForm : style.newSlotForm}>
-        <div class={`${style.slotColorDot} ${style[`dotPreset_${formData.preset}`] || ''}`} />
+        <div class={style.slotColorDot} style={`background:${PRESET_COLORS[formData.preset] || PRESET_COLORS.comfort}`} />
         <input
           type="time"
           class={cx('form-control', 'form-control-sm', style.slotTimeInput)}
@@ -610,7 +602,7 @@ class ScheduleEditor extends Component {
                             role="button"
                             tabIndex={0}
                           >
-                            <div class={`${style.slotColorDot} ${style[`dotPreset_${slot.preset}`] || ''}`} />
+                            <div class={style.slotColorDot} style={`background:${PRESET_COLORS[slot.preset] || PRESET_COLORS.comfort}`} />
                             <span class={style.slotTimeDisplay}>{slot.start_time}</span>
                             <span class={style.slotArrow}>→</span>
                             <span class={style.slotTimeDisplay}>{slot.end_time}</span>

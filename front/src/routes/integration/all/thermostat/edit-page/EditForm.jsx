@@ -2,6 +2,7 @@ import { Text, Localizer } from 'preact-i18n';
 import cx from 'classnames';
 import { RequestStatus } from '../../../../../utils/consts';
 import style from './style.css';
+import PRESET_COLORS from '../../../../../utils/thermostatPresetColors';
 
 const FeatureSelect = ({ value, features, onChange, emptyLabel }) => (
   <select class="form-control" value={value} onChange={onChange}>
@@ -30,24 +31,6 @@ const EditForm = ({ ...props }) => {
     eco: 'thermostatEditPresetEco',
     night: 'thermostatEditPresetNight',
     comfort: 'thermostatEditPresetComfort'
-  };
-
-  const presetColorFields = {
-    off: 'thermostatEditColorOff',
-    frost: 'thermostatEditColorFrost',
-    away: 'thermostatEditColorAway',
-    eco: 'thermostatEditColorEco',
-    night: 'thermostatEditColorNight',
-    comfort: 'thermostatEditColorComfort'
-  };
-
-  const presetColorDefaults = {
-    off: '#4a4a4a',
-    frost: '#74c0fc',
-    away: '#e03131',
-    eco: '#74b816',
-    night: '#1971c2',
-    comfort: '#f59f00'
   };
 
   const controlType = props.thermostatEditControlType || 'hysteresis';
@@ -156,7 +139,17 @@ const EditForm = ({ ...props }) => {
                 </option>
               </select>
               <small class="form-text text-muted">
-                <Text id="integration.thermostat.edit.controlTypeHelp" />
+                {controlType === 'hysteresis' ? (
+                  <span>
+                    <strong><Text id="integration.thermostat.edit.controlType.hysteresis" /></strong>{' — '}
+                    <Text id="integration.thermostat.edit.hysteresisExplain" />
+                  </span>
+                ) : (
+                  <span>
+                    <strong><Text id="integration.thermostat.edit.controlType.tpi" /></strong>{' — '}
+                    <Text id="integration.thermostat.edit.tpiExplain" />
+                  </span>
+                )}
               </small>
             </div>
 
@@ -179,7 +172,7 @@ const EditForm = ({ ...props }) => {
                         onInput={e => props.updateThermostatField('thermostatEditHysteresisStart', e.target.value)}
                       />
                       <div class="input-group-append">
-                        <span class="input-group-text">°C</span>
+                        <span class="input-group-text">{(props.thermostatEditTempUnit || 'C') === 'F' ? '°F' : '°C'}</span>
                       </div>
                     </div>
                     <small class="form-text text-muted">
@@ -203,7 +196,7 @@ const EditForm = ({ ...props }) => {
                         onInput={e => props.updateThermostatField('thermostatEditHysteresisStop', e.target.value)}
                       />
                       <div class="input-group-append">
-                        <span class="input-group-text">°C</span>
+                        <span class="input-group-text">{(props.thermostatEditTempUnit || 'C') === 'F' ? '°F' : '°C'}</span>
                       </div>
                     </div>
                     <small class="form-text text-muted">
@@ -257,7 +250,7 @@ const EditForm = ({ ...props }) => {
                         onInput={e => props.updateThermostatField('thermostatEditTpiProportionalBand', e.target.value)}
                       />
                       <div class="input-group-append">
-                        <span class="input-group-text">°C</span>
+                        <span class="input-group-text">{(props.thermostatEditTempUnit || 'C') === 'F' ? '°F' : '°C'}</span>
                       </div>
                     </div>
                     <small class="form-text text-muted">
@@ -278,7 +271,7 @@ const EditForm = ({ ...props }) => {
                   <select
                     class="form-control"
                     value={props.thermostatEditTempUnit}
-                    onChange={e => props.updateThermostatField('thermostatEditTempUnit', e.target.value)}
+                    onChange={e => props.updateThermostatUnit(e.target.value)}
                   >
                     <option value="C">
                       <Text id="integration.thermostat.edit.celsius" />
@@ -294,15 +287,20 @@ const EditForm = ({ ...props }) => {
                   <label class="form-label">
                     <Text id="integration.thermostat.edit.minTempLabel" />
                   </label>
-                  <Localizer>
-                    <input
-                      type="number"
-                      class="form-control"
-                      placeholder={<Text id="integration.thermostat.edit.minTempPlaceholder" />}
-                      value={props.thermostatEditMinTemp}
-                      onInput={e => props.updateThermostatField('thermostatEditMinTemp', e.target.value)}
-                    />
-                  </Localizer>
+                  <div class="input-group">
+                    <Localizer>
+                      <input
+                        type="number"
+                        class="form-control"
+                        placeholder={<Text id="integration.thermostat.edit.minTempPlaceholder" />}
+                        value={props.thermostatEditMinTemp}
+                        onInput={e => props.updateThermostatField('thermostatEditMinTemp', e.target.value)}
+                      />
+                    </Localizer>
+                    <div class="input-group-append">
+                      <span class="input-group-text">{(props.thermostatEditTempUnit || 'C') === 'F' ? '°F' : '°C'}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="col-md-4">
@@ -310,15 +308,20 @@ const EditForm = ({ ...props }) => {
                   <label class="form-label">
                     <Text id="integration.thermostat.edit.maxTempLabel" />
                   </label>
-                  <Localizer>
-                    <input
-                      type="number"
-                      class="form-control"
-                      placeholder={<Text id="integration.thermostat.edit.maxTempPlaceholder" />}
-                      value={props.thermostatEditMaxTemp}
-                      onInput={e => props.updateThermostatField('thermostatEditMaxTemp', e.target.value)}
-                    />
-                  </Localizer>
+                  <div class="input-group">
+                    <Localizer>
+                      <input
+                        type="number"
+                        class="form-control"
+                        placeholder={<Text id="integration.thermostat.edit.maxTempPlaceholder" />}
+                        value={props.thermostatEditMaxTemp}
+                        onInput={e => props.updateThermostatField('thermostatEditMaxTemp', e.target.value)}
+                      />
+                    </Localizer>
+                    <div class="input-group-append">
+                      <span class="input-group-text">{(props.thermostatEditTempUnit || 'C') === 'F' ? '°F' : '°C'}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -377,7 +380,7 @@ const EditForm = ({ ...props }) => {
               </small>
             </div>
 
-            {/* Presets : couleur + température alignées par préréglage */}
+            {/* Presets : nom + couleur fixe + température */}
             <div class="form-group">
               <label class="form-label">
                 <Text id="integration.thermostat.edit.presetsLabel" />
@@ -386,7 +389,6 @@ const EditForm = ({ ...props }) => {
                 <thead>
                   <tr>
                     <th class={style.presetColName}><Text id="integration.thermostat.edit.presetColNameLabel" /></th>
-                    <th class={style.presetColColor}><Text id="integration.thermostat.edit.presetColColorLabel" /></th>
                     <th><Text id="integration.thermostat.edit.presetColTempLabel" /></th>
                   </tr>
                 </thead>
@@ -394,15 +396,11 @@ const EditForm = ({ ...props }) => {
                   {['off', ...activePresets].map(key => (
                     <tr key={key}>
                       <td class="align-middle">
-                        <Text id={`integration.thermostat.edit.preset.${key}`} />
-                      </td>
-                      <td class="align-middle">
-                        <input
-                          type="color"
-                          class={`form-control p-1 ${style.presetColorInput}`}
-                          value={props[presetColorFields[key]] || presetColorDefaults[key]}
-                          onInput={e => props.updateThermostatField(presetColorFields[key], e.target.value)}
+                        <span
+                          class="dark-mode-no-invert"
+                          style={`display:inline-block;width:10px;height:10px;border-radius:50%;background:${PRESET_COLORS[key]};margin-right:6px;flex-shrink:0`}
                         />
+                        <Text id={`integration.thermostat.edit.preset.${key}`} />
                       </td>
                       <td class="align-middle">
                         {presetFields[key] ? (
