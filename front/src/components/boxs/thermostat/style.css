@@ -245,15 +245,16 @@
   transform: scale(0.85);
 }
 
-/* All segment buttons use --preset-color; inactive at reduced opacity */
+/* Inactive segment buttons: medium grey to clearly show inactive state */
 .segmentBtn i {
-  color: var(--preset-color, #adb5bd);
-  opacity: 0.35;
-  transition: opacity 0.25s ease, color 0.25s ease;
+  color: #6c757d;
+  opacity: 1;
+  transition: color 0.25s ease, opacity 0.25s ease;
 }
 
-/* Active segment button - full color + glow */
+/* Active segment button: use preset color + glow */
 .segmentBtnActive i {
+  color: var(--preset-color, #f59f00);
   opacity: 1;
   filter: drop-shadow(0 2px 6px var(--preset-color, #f59f00));
 }

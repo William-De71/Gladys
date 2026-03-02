@@ -1,5 +1,5 @@
 const PRESET_COLORS = {
-  off: '#343a40',
+  off: '#fa5252',
   frost: '#74c0fc',
   away: '#e03131',
   eco: '#74b816',

@@ -1269,7 +1269,7 @@ class ThermostatBox extends Component {
                         <button
                           key={preset.key}
                           class={`${style.segmentBtn} ${isActive ? style.segmentBtnActive : ''}`}
-                          style={`--preset-color:${presetColor}`}
+                          style={isActive ? `--preset-color:${presetColor}` : undefined}
                           onClick={() => this.selectPreset(preset)}
                           title={presetTitle}
                         >
