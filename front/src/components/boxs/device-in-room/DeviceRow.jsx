@@ -14,6 +14,7 @@ import SetpointDeviceFeature from './device-features/SetpointDeviceFeature';
 import AirConditioningModeDeviceFeature from './device-features/AirConditioningModeDeviceFeature';
 import PilotWireModeDeviceFeature from './device-features/PilotWireModeDeviceFeature';
 import LMHVolumeDeviceFeature from './device-features/LMHVolumeDeviceFeature';
+import MultiLevelWithInputDeviceFeature from './device-features/MultiLevelWithInputDeviceFeature';
 import SirenModeDeviceFeature from './device-features/SirenModeDeviceFeature';
 import SirenLevelDeviceFeature from './device-features/SirenLevelDeviceFeature';
 import PushDeviceFeature from './device-features/PushDeviceFeature';
@@ -42,7 +43,8 @@ const ROW_TYPE_BY_FEATURE_TYPE = {
   [DEVICE_FEATURE_TYPES.SIREN.STROBE]: BinaryDeviceFeature,
   [DEVICE_FEATURE_TYPES.SIREN.STROBE_DUTY_CYCLE]: NumberDeviceFeature,
   [DEVICE_FEATURE_TYPES.SIREN.MELODY]: NumberDeviceFeature,
-  [DEVICE_FEATURE_TYPES.DURATION.DECIMAL]: MultiLevelDeviceFeature,
+  [DEVICE_FEATURE_TYPES.SIREN.VOLUME]: MultiLevelDeviceFeature,
+  [DEVICE_FEATURE_TYPES.DURATION.DECIMAL]: MultiLevelWithInputDeviceFeature,
   [DEVICE_FEATURE_TYPES.BUTTON.PUSH]: PushDeviceFeature,
   [DEVICE_FEATURE_TYPES.SWITCH.TARGET_CURRENT]: SetpointDeviceFeature,
   [DEVICE_FEATURE_TYPES.ELECTRICAL_VEHICLE_CHARGE.CHARGE_ON]: BinaryDeviceFeature,

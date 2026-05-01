@@ -658,6 +658,7 @@ const DEVICE_FEATURE_TYPES = {
     STROBE: 'strobe',
     STROBE_LEVEL: 'strobe_level',
     STROBE_DUTY_CYCLE: 'strobe_duty_cycle',
+    VOLUME: 'volume',
   },
   CHILD_LOCK: {
     BINARY: 'binary',

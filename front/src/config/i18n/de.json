@@ -3647,6 +3647,7 @@
       "shortCategoryName": "Sirene",
       "binary": "Sirene",
       "lmh_volume": "Lautstärke der Sirene",
+      "volume": "Lautstärke der Sirene",
       "melody": "Melodie",
       "mode": "Warnmodus",
       "level": "Lautstärke",

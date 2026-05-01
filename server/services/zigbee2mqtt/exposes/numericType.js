@@ -22,6 +22,8 @@ module.exports = {
         category: DEVICE_FEATURE_CATEGORIES.DURATION,
         type: DEVICE_FEATURE_TYPES.DURATION.DECIMAL,
         unit: DEVICE_FEATURE_UNITS.SECONDS,
+        min: 0,
+        max: 3600,
       },
       types: {
         composite: {
@@ -1075,6 +1077,14 @@ module.exports = {
         category: DEVICE_FEATURE_CATEGORIES.LEVEL_SENSOR,
         type: DEVICE_FEATURE_TYPES.LEVEL_SENSOR.LIQUID_LEVEL_PERCENT,
         unit: DEVICE_FEATURE_UNITS.PERCENT,
+        min: 0,
+        max: 100,
+      },
+    },
+    volume: {
+      feature: {
+        category: DEVICE_FEATURE_CATEGORIES.SIREN,
+        type: DEVICE_FEATURE_TYPES.SIREN.VOLUME,
         min: 0,
         max: 100,
       },

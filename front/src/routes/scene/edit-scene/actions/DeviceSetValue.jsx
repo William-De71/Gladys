@@ -14,6 +14,7 @@ import '../../../../components/boxs/device-in-room/device-features/style.css';
 import style from './DeviceSetValue.css';
 import ShutterButtons from '../../../../components/device/ShutterButtons';
 import SelectPilotWireMode from '../../../../components/device/SelectPilotWireMode';
+import SelectSirenMode from '../../../../components/device/SelectSirenMode';
 
 class DeviceSetValue extends Component {
   constructor(props) {
@@ -151,6 +152,13 @@ class DeviceSetValue extends Component {
           value={this.props.action.value}
         />
       );
+    }
+
+    if (
+      this.state.deviceFeature.category === DEVICE_FEATURE_CATEGORIES.SIREN &&
+      this.state.deviceFeature.type === DEVICE_FEATURE_TYPES.SIREN.MODE
+    ) {
+      return <SelectSirenMode updateValue={this.handleNewPureValue} value={this.props.action.value} />;
     }
 
     return (

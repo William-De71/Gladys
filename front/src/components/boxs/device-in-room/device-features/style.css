@@ -56,3 +56,32 @@ input[type='range'][class~='light-temperature']::-ms-fill-lower {
 .rangeInput {
   flex: 1;
 }
+
+.numericInput {
+  width: 5rem;
+}
+
+.fullWidthCell {
+  width: 100%;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.stackedControl {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  align-items: stretch;
+}
+
+.numericRow {
+  display: flex;
+  align-items: right;
+  justify-content: right;
+  margin-bottom: -0.5rem;
+}

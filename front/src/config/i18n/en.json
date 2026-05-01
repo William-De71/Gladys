@@ -3647,6 +3647,7 @@
       "shortCategoryName": "Siren",
       "binary": "Siren",
       "lmh_volume": "Siren volume",
+      "volume": "Siren volume",
       "melody": "Melody",
       "mode": "Warning mode",
       "level": "Sound level",
