@@ -260,6 +260,10 @@ async function applySchedules() {
 
         const presetVarKey = `THERMOSTAT_${featureKey}_PRESET`;
         const manualVarKey = `THERMOSTAT_${featureKey}_MANUAL_MODE`;
+        const config = boxConfig || null;
+        if (!config) {
+          logger.warn(`Thermostat schedule: no config found for ${thermostatFeature.selector}`);
+        }
 
         try {
           const [currentPreset, manualVal] = await Promise.all([
@@ -268,16 +272,77 @@ async function applySchedules() {
           ]);
 
           if (manualVal === 'true') {
-            logger.debug(`Thermostat schedule: manual mode active for ${thermostatFeature.selector}, skipping`);
-            return;
+            const manualUntilKey = `THERMOSTAT_${featureKey}_MANUAL_UNTIL`;
+            const manualUntilVal = await this.gladys.variable.getValue(manualUntilKey).catch(() => null);
+            const manualUntil = manualUntilVal ? parseInt(manualUntilVal, 10) : null;
+            if (manualUntil && Date.now() > manualUntil) {
+              logger.info(`Thermostat schedule: manual timer expired for ${thermostatFeature.selector}, reverting to schedule`);
+              await this.gladys.variable.setValue(manualVarKey, 'false');
+              await this.gladys.variable.setValue(manualUntilKey, '');
+              this.gladys.event.emit(EVENTS.WEBSOCKET.SEND_ALL, {
+                type: WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.MANUAL_MODE_UPDATED,
+                payload: { key: manualVarKey, value: 'false' },
+              });
+              // Continue — schedule will now be applied below
+            } else {
+              logger.debug(
+                `Thermostat schedule: manual mode active for ${thermostatFeature.selector},`
+                + ` actuating switch with manual setpoint`,
+              );
+              const manualSetpointKey = `THERMOSTAT_${featureKey}_MANUAL_SETPOINT`;
+              const manualSetpointRaw = await this.gladys.variable
+                .getValue(manualSetpointKey).catch(() => null);
+              let manualSetpoint = null;
+              if (manualSetpointRaw) {
+                try {
+                  const parsed = JSON.parse(manualSetpointRaw);
+                  if (parsed && parsed.setpoint !== null && !Number.isNaN(parsed.setpoint)) {
+                    manualSetpoint = parsed.setpoint;
+                  }
+                } catch (e) { /* ignore */ }
+              }
+              if (manualSetpoint !== null && config && config.switch_feature) {
+                try {
+                  const swDevices = await this.gladys.device.get(
+                    { device_feature_selectors: config.switch_feature },
+                  );
+                  const swDevice = swDevices && swDevices[0];
+                  const swFeature = swDevice && swDevice.features
+                    .find((f) => f.selector === config.switch_feature);
+                  const tmpDevices = await this.gladys.device.get(
+                    { device_feature_selectors: config.temperature_feature },
+                  );
+                  const tmpFeature = tmpDevices && tmpDevices[0]
+                    && tmpDevices[0].features.find((f) => f.selector === config.temperature_feature);
+                  const currentTemp = tmpFeature ? tmpFeature.last_value : null;
+                  if (swDevice && swFeature && currentTemp !== null) {
+                    const currentSwitchOn = swFeature.last_value === 1;
+                    const mode = config.default_mode || 'heating';
+                    const shouldBeActive = computeSwitchActive(
+                      currentTemp, manualSetpoint, mode, config, currentSwitchOn,
+                    );
+                    if (currentSwitchOn !== shouldBeActive) {
+                      await this.gladys.device.setValue(swDevice, swFeature, shouldBeActive ? 1 : 0);
+                      logger.info(
+                        `Thermostat schedule: switch ${shouldBeActive ? 'ON' : 'OFF'}`
+                        + ` (manual, setpoint=${manualSetpoint}, temp=${currentTemp})`
+                        + ` for ${thermostatFeature.selector}`,
+                      );
+                    }
+                  }
+                } catch (e) {
+                  logger.warn(`Thermostat schedule: Failed to actuate switch in manual mode: ${e.message}`);
+                }
+              }
+              return;
+            }
           }
 
-          // Use boxConfig read from dashboard (already loaded above)
-          const config = boxConfig || null;
-          if (!config) {
-            logger.warn(`Thermostat schedule: no config found for ${thermostatFeature.selector} — check dashboard box configuration`);
-          } else {
-            logger.debug(`Thermostat schedule: config loaded for ${thermostatFeature.selector}: switch=${config.switch_feature}, temp=${config.temperature_feature}`);
+          if (config) {
+            logger.debug(
+              `Thermostat schedule: config loaded for ${thermostatFeature.selector}:`
+              + ` switch=${config.switch_feature}, temp=${config.temperature_feature}`,
+            );
           }
 
           // Always enforce the scheduled setpoint (handles manual overrides being reverted)

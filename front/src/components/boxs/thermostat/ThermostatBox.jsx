@@ -158,7 +158,6 @@ class ThermostatBox extends Component {
   savingPreset = false;
   lastSwitchActive = null;
   _initialized = false;
-  manualTimer = null;
 
   getConfig = () => ({ ...this.props.box, ...(this.state.remoteConfig || {}) });
   getMinTemp = () => {
@@ -307,21 +306,6 @@ class ThermostatBox extends Component {
         isManualMode = response.value === 'true';
       }
     } catch (e) { /* ignore */ }
-
-    // If DB says manual=true but the localStorage timer has expired (or is absent),
-    // the manual session ended without persisting false (e.g. page refresh during timer).
-    // Reset to false so the schedule can apply again.
-    if (isManualMode === true && box.schedule_selector) {
-      try {
-        const storedUntil = localStorage.getItem(this.getStorageKey('manual_until'));
-        const timerStillActive = storedUntil && parseInt(storedUntil, 10) > Date.now();
-        if (!timerStillActive) {
-          isManualMode = false;
-          this.saveManualMode(false);
-          this.clearManualSetpoint();
-        }
-      } catch (e) { /* ignore */ }
-    }
 
     const knownPresets = [...HEATING_PRESETS, ...COOLING_PRESETS];
 
@@ -548,7 +532,13 @@ class ThermostatBox extends Component {
     const key = this.getFeatureVarKey();
     if (!key || payload.key !== `THERMOSTAT_${key}_MANUAL_MODE`) return;
     const isManual = payload.value === 'true';
-    if (isManual !== this.state.isManualMode && !this.savingPreset) {
+    if (!isManual && this.state.isManualMode) {
+      // Server expired the manual timer — revert UI to schedule
+      this.setState({ isManualMode: false, manualUntil: null, manualSetpointOverride: false });
+      this.clearManualSetpoint();
+      this.applyPlanningPreset();
+      this.loadSchedule();
+    } else if (isManual !== this.state.isManualMode && !this.savingPreset) {
       this.setState({ isManualMode: isManual });
     }
   };
@@ -665,14 +655,8 @@ class ThermostatBox extends Component {
   };
 
   cancelManualMode = () => {
-    if (this.manualTimer) clearTimeout(this.manualTimer);
-    this.manualTimer = null;
     this.clearManualSetpoint();
-    try {
-      localStorage.removeItem(this.getStorageKey('manual_until'));
-    } catch (e) {
-      // ignore
-    }
+    this.saveManualUntilToDb(0);
     this.setState({ isManualMode: false, manualUntil: null, manualSetpointOverride: false });
     this.saveManualMode(false);
     this.applyPlanningPreset();
@@ -686,34 +670,27 @@ class ThermostatBox extends Component {
     if (preset && preset.temp !== null && preset.temp !== undefined) {
       this.setState({ setpoint: preset.temp });
       this.sendSetpoint(preset.temp);
+      this.applyManualSwitch(preset.temp);
     }
   };
 
+  saveManualUntilToDb = async (until) => {
+    const { box } = this.props;
+    if (!box.thermostat_feature) return;
+    const key = box.thermostat_feature.toUpperCase().replace(/-/g, '_');
+    try {
+      await this.props.httpClient.post(`/api/v1/variable/THERMOSTAT_${key}_MANUAL_UNTIL`, { value: String(until) });
+    } catch (e) { /* ignore */ }
+  };
+
   startManualTimer = (setpoint) => {
-    if (this.manualTimer) clearTimeout(this.manualTimer);
     const cfg = this.getConfig();
     const durationMs = cfg.manual_duration ? cfg.manual_duration * 60 * 1000 : MANUAL_DURATION_MS;
     const until = Date.now() + durationMs;
     this.setState({ manualUntil: until });
-    // Persist both the expiry and the current manual setpoint
-    try {
-      localStorage.setItem(this.getStorageKey('manual_until'), String(until));
-    } catch (e) {
-      // ignore
-    }
     this.saveManualSetpoint(setpoint !== undefined ? setpoint : this.state.setpoint);
-    this.manualTimer = setTimeout(() => {
-      this.setState({ isManualMode: false, manualUntil: null });
-      try {
-        localStorage.removeItem(this.getStorageKey('manual_until'));
-      } catch (e) {
-        // ignore
-      }
-      this.clearManualSetpoint();
-      this.saveManualMode(false);
-      this.applyPlanningPreset();
-      this.loadSchedule();
-    }, durationMs);
+    // Persist expiry server-side so the server can expire it even when browser is closed
+    this.saveManualUntilToDb(until);
   };
 
   initData = async () => {
@@ -738,44 +715,30 @@ class ThermostatBox extends Component {
       }
     }
 
-    // Restore manual setpoint: try localStorage first, fall back to DB variable
-    try {
-      const storedSp = localStorage.getItem(this.getStorageKey('manual_setpoint'));
-      const storedUntil = localStorage.getItem(this.getStorageKey('manual_until'));
-      const timerActive = storedUntil && parseInt(storedUntil, 10) > Date.now();
-      const storedOverride = localStorage.getItem(this.getStorageKey('manual_override')) === '1';
-      const manualActive = timerActive || (isManualMode === true);
-      if (manualActive && storedSp !== null) {
-        const sp = parseFloat(storedSp);
-        if (!isNaN(sp)) {
-          stateInit.setpoint = sp;
-          stateInit.isManualMode = true;
-          if (storedOverride) stateInit.manualSetpointOverride = true;
-        }
-      } else if (manualActive) {
-        // localStorage empty (different browser/device): read from DB
-        const { box } = this.props;
-        if (box.thermostat_feature) {
-          try {
-            const key = box.thermostat_feature.toUpperCase().replace(/-/g, '_');
-            const resp = await this.props.httpClient.get(`/api/v1/variable/THERMOSTAT_${key}_MANUAL_SETPOINT`);
-            if (resp && resp.value) {
-              const parsed = JSON.parse(resp.value);
-              if (parsed && parsed.setpoint !== null && !isNaN(parsed.setpoint)) {
-                stateInit.setpoint = parsed.setpoint;
-                stateInit.isManualMode = true;
-                if (parsed.override) stateInit.manualSetpointOverride = true;
-                // Sync localStorage for next time
-                try {
-                  localStorage.setItem(this.getStorageKey('manual_setpoint'), String(parsed.setpoint));
-                  if (parsed.override) localStorage.setItem(this.getStorageKey('manual_override'), '1');
-                } catch (e2) { /* ignore */ }
-              }
+    // Restore manual mode state from DB (server is the source of truth)
+    if (isManualMode === true) {
+      const { box } = this.props;
+      if (box.thermostat_feature) {
+        const key = box.thermostat_feature.toUpperCase().replace(/-/g, '_');
+        try {
+          // Restore manual until for UI countdown display
+          const untilResp = await this.props.httpClient.get(`/api/v1/variable/THERMOSTAT_${key}_MANUAL_UNTIL`);
+          if (untilResp && untilResp.value) {
+            const until = parseInt(untilResp.value, 10);
+            if (until > Date.now()) stateInit.manualUntil = until;
+          }
+          // Restore manual setpoint
+          const spResp = await this.props.httpClient.get(`/api/v1/variable/THERMOSTAT_${key}_MANUAL_SETPOINT`);
+          if (spResp && spResp.value) {
+            const parsed = JSON.parse(spResp.value);
+            if (parsed && parsed.setpoint !== null && !isNaN(parsed.setpoint)) {
+              stateInit.setpoint = parsed.setpoint;
+              if (parsed.override) stateInit.manualSetpointOverride = true;
             }
-          } catch (e2) { /* ignore */ }
-        }
+          }
+        } catch (e) { /* ignore */ }
       }
-    } catch (e) { /* ignore */ }
+    }
 
     // Commit everything atomically and wait for the state to be applied
     if (Object.keys(stateInit).length > 0) {
@@ -806,49 +769,8 @@ class ThermostatBox extends Component {
     this._initialized = true;
   };
 
-  restoreManualTimer = () => {
-    try {
-      const stored = localStorage.getItem(this.getStorageKey('manual_until'));
-      if (!stored) return;
-      const until = parseInt(stored, 10);
-      const remaining = until - Date.now();
-      if (remaining <= 0) {
-        localStorage.removeItem(this.getStorageKey('manual_until'));
-        return;
-      }
-      // Restore manual setpoint persisted before the refresh
-      try {
-        const storedSetpoint = localStorage.getItem(this.getStorageKey('manual_setpoint'));
-        if (storedSetpoint !== null) {
-          const sp = parseFloat(storedSetpoint);
-          if (!isNaN(sp)) {
-            this.setState({ setpoint: sp });
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-      this.setState({ isManualMode: true, manualUntil: until });
-      if (this.manualTimer) clearTimeout(this.manualTimer);
-      this.manualTimer = setTimeout(() => {
-        this.setState({ isManualMode: false, manualUntil: null, manualSetpointOverride: false });
-        try {
-          localStorage.removeItem(this.getStorageKey('manual_until'));
-        } catch (e) {
-          // ignore
-        }
-        this.clearManualSetpoint();
-        this.saveManualMode(false);
-        this.applyPlanningPreset();
-        this.loadSchedule();
-      }, remaining);
-    } catch (e) {
-      // ignore
-    }
-  };
 
   componentDidMount() {
-    this.restoreManualTimer();
     this.initData();
     this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.DEVICE.NEW_STATE, this.handleWebsocketMessage);
     this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.CONFIG_UPDATED, this.handleThermostatConfigUpdated);
@@ -863,7 +785,6 @@ class ThermostatBox extends Component {
     this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.PRESET_UPDATED, this.handleThermostatPresetUpdated);
     this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.MANUAL_MODE_UPDATED, this.handleThermostatManualModeUpdated);
     this.props.session.dispatcher.removeListener('websocket.connected', this.handleWebsocketConnected);
-    if (this.manualTimer) clearTimeout(this.manualTimer);
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -926,6 +847,40 @@ class ThermostatBox extends Component {
       await this.props.httpClient.post(`/api/v1/service/thermostat/setpoint/${box.thermostat_feature}`, { value });
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  applyManualSwitch = (newSetpoint) => {
+    const { currentTemp, activePreset } = this.state;
+    const cfg = this.getConfig();
+    if (!cfg.switch_feature) {
+      return;
+    }
+    const mode = (activePreset === 'off') ? 'off' : (cfg.default_mode || 'heating');
+    if (mode === 'off') {
+      this.sendSwitch(false);
+      return;
+    }
+    if (currentTemp === null || currentTemp === undefined) {
+      return;
+    }
+    const hystStart = Number(cfg.hysteresis_start) || 0.5;
+    const hystStop = Number(cfg.hysteresis_stop) || 0.5;
+    let shouldBeActive = this.lastSwitchActive;
+    if (mode === 'heating') {
+      if (currentTemp < newSetpoint - hystStart) {
+        shouldBeActive = true;
+      } else if (currentTemp > newSetpoint + hystStop) {
+        shouldBeActive = false;
+      }
+    } else if (currentTemp > newSetpoint + hystStart) {
+      shouldBeActive = true;
+    } else if (currentTemp < newSetpoint - hystStop) {
+      shouldBeActive = false;
+    }
+    if (shouldBeActive !== this.lastSwitchActive) {
+      this.lastSwitchActive = shouldBeActive;
+      this.sendSwitch(shouldBeActive);
     }
   };
 
@@ -1025,6 +980,7 @@ class ThermostatBox extends Component {
     this._onUp = () => {
       this.stopDrag();
       this.sendSetpoint(lastDragSetpoint);
+      this.applyManualSwitch(lastDragSetpoint);
       this.saveManualSetpoint(lastDragSetpoint);
       if (this.props.box.schedule_selector) this.startManualTimer(lastDragSetpoint);
     };
@@ -1077,6 +1033,7 @@ class ThermostatBox extends Component {
     this.saveManualMode(true);
     this.saveManualSetpoint(newSetpoint);
     this.sendSetpoint(newSetpoint);
+    this.applyManualSwitch(newSetpoint);
     if (this.props.box.schedule_selector) this.startManualTimer(newSetpoint);
   };
 
@@ -1093,6 +1050,7 @@ class ThermostatBox extends Component {
     this.saveManualMode(true);
     this.saveManualSetpoint(newSetpoint);
     this.sendSetpoint(newSetpoint);
+    this.applyManualSwitch(newSetpoint);
     if (this.props.box.schedule_selector) this.startManualTimer(newSetpoint);
   };
 
