@@ -127,29 +127,18 @@ const EditForm = ({ ...props }) => {
               </label>
               <select
                 class="form-control"
-                value={props.thermostatEditControlType || 'hysteresis'}
-                onChange={e => props.updateThermostatField('thermostatEditControlType', e.target.value)}
-                disabled={mode === 'cooling'}
+                value="hysteresis"
+                disabled
               >
                 <option value="hysteresis">
                   <Text id="integration.thermostat.edit.controlType.hysteresis" />
                 </option>
-                <option value="tpi">
-                  <Text id="integration.thermostat.edit.controlType.tpi" />
-                </option>
               </select>
               <small class="form-text text-muted">
-                {controlType === 'hysteresis' ? (
-                  <span>
-                    <strong><Text id="integration.thermostat.edit.controlType.hysteresis" /></strong>{' — '}
-                    <Text id="integration.thermostat.edit.hysteresisExplain" />
-                  </span>
-                ) : (
-                  <span>
-                    <strong><Text id="integration.thermostat.edit.controlType.tpi" /></strong>{' — '}
-                    <Text id="integration.thermostat.edit.tpiExplain" />
-                  </span>
-                )}
+                <span>
+                  <strong><Text id="integration.thermostat.edit.controlType.hysteresis" /></strong>{' — '}
+                  <Text id="integration.thermostat.edit.hysteresisExplain" />
+                </span>
               </small>
             </div>
 
@@ -377,6 +366,24 @@ const EditForm = ({ ...props }) => {
               </Localizer>
               <small class="form-text text-muted">
                 <Text id="integration.thermostat.edit.switchFeatureHelp" />
+              </small>
+            </div>
+
+            {/* Capteur d'ouverture de fenêtre */}
+            <div class="form-group">
+              <label class="form-label">
+                <Text id="integration.thermostat.edit.windowFeatureLabel" />
+              </label>
+              <Localizer>
+                <FeatureSelect
+                  value={props.thermostatEditWindowFeature || ''}
+                  features={props.openingFeatures}
+                  onChange={e => props.updateThermostatField('thermostatEditWindowFeature', e.target.value)}
+                  emptyLabel={<Text id="global.emptySelectOption" />}
+                />
+              </Localizer>
+              <small class="form-text text-muted">
+                <Text id="integration.thermostat.edit.windowFeatureHelp" />
               </small>
             </div>
 

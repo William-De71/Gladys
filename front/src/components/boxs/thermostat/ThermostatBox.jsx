@@ -29,7 +29,7 @@ function describeArc(cx, cy, r, startAngle, endAngle) {
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`;
 }
 
-const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncrement, onDecrement, minTemp, maxTemp, mode, isActive, tempUnit }) => {
+const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncrement, onDecrement, minTemp, maxTemp, mode, isActive, isWindowOpen, tempUnit }) => {
   const cx = 110;
   const cy = 110;
   const r = 88;
@@ -109,10 +109,13 @@ const CircularGauge = ({ setpoint, currentTemp, humidity, onPointerDown, onIncre
       <text x={suffixX + 4} y={cy + 4} textAnchor="start" dominantBaseline="auto" class={style.tempUnit}>{tempUnit || 'C'}</text>
 
       {/* Active icon: at bottom of gauge */}
-      {isActive && mode === 'heating' && (
+      {isWindowOpen && (
+        <text x={cx} y={cy + 54} textAnchor="middle" dominantBaseline="middle" class={style.activeIconHeating}>🪟</text>
+      )}
+      {!isWindowOpen && isActive && mode === 'heating' && (
         <text x={cx} y={cy + 54} textAnchor="middle" dominantBaseline="middle" class={style.activeIconHeating}>🔥</text>
       )}
-      {isActive && mode === 'cooling' && (
+      {!isWindowOpen && isActive && mode === 'cooling' && (
         <text x={cx} y={cy + 54} textAnchor="middle" dominantBaseline="middle" class={style.activeIconCooling}>❄️</text>
       )}
 
@@ -150,6 +153,7 @@ class ThermostatBox extends Component {
     activeSchedule: null,
     currentSlot: null,
     manualUntil: null,
+    isWindowOpen: false,
   };
 
   svgRef = null;
@@ -227,6 +231,7 @@ class ThermostatBox extends Component {
               temperature_feature: getParam('THERMOSTAT_TEMPERATURE_FEATURE') || null,
               humidity_feature: getParam('THERMOSTAT_HUMIDITY_FEATURE') || null,
               switch_feature: getParam('THERMOSTAT_SWITCH_FEATURE') || null,
+              window_feature: getParam('THERMOSTAT_WINDOW_FEATURE') || null,
               default_mode: getParam('THERMOSTAT_MODE') || null,
               control_type: getParam('THERMOSTAT_CONTROL_TYPE') || null,
               temp_min: getParam('THERMOSTAT_MIN_TEMP') ? parseFloat(getParam('THERMOSTAT_MIN_TEMP')) : null,
@@ -272,6 +277,7 @@ class ThermostatBox extends Component {
       temperature_feature: (integrationConfig && integrationConfig.temperature_feature) || null,
       humidity_feature: (integrationConfig && integrationConfig.humidity_feature) || null,
       switch_feature: (integrationConfig && integrationConfig.switch_feature) || null,
+      window_feature: (integrationConfig && integrationConfig.window_feature) || null,
       default_mode: (integrationConfig && integrationConfig.default_mode) || 'heating',
       control_type: (integrationConfig && integrationConfig.control_type) || 'hysteresis',
       temp_min: integrationConfig && integrationConfig.temp_min,
@@ -409,9 +415,10 @@ class ThermostatBox extends Component {
   getDeviceData = async () => {
     const { box } = this.props;
     const thermostatFeature = box.thermostat_feature;
-    // temperature/humidity features come from integration config (remoteConfig), not box props
+    // temperature/humidity/window features come from integration config (remoteConfig), not box props
     const temperatureFeature = (this.state.remoteConfig && this.state.remoteConfig.temperature_feature) || null;
     const humidityFeature = (this.state.remoteConfig && this.state.remoteConfig.humidity_feature) || null;
+    const windowFeature = (this.state.remoteConfig && this.state.remoteConfig.window_feature) || null;
     if (!thermostatFeature && !temperatureFeature) {
       this.setState({ noConfig: true });
       return;
@@ -420,8 +427,9 @@ class ThermostatBox extends Component {
     const stateUpdate = { noConfig: false, error: false };
     if (!temperatureFeature) stateUpdate.currentTemp = null;
     if (!humidityFeature) stateUpdate.humidity = null;
+    if (!windowFeature) stateUpdate.isWindowOpen = false;
     this.setState(stateUpdate);
-    const selectors = [thermostatFeature, temperatureFeature, humidityFeature]
+    const selectors = [thermostatFeature, temperatureFeature, humidityFeature, windowFeature]
       .filter(Boolean)
       .join(',');
     if (!selectors) return;
@@ -452,6 +460,9 @@ class ThermostatBox extends Component {
             if (humidityFeature && feat.selector === humidityFeature && feat.last_value !== null && feat.last_value !== undefined) {
               this.setState({ humidity: feat.last_value });
             }
+            if (windowFeature && feat.selector === windowFeature && feat.last_value !== null && feat.last_value !== undefined) {
+              this.setState({ isWindowOpen: feat.last_value === 0 });
+            }
           });
         });
       }
@@ -477,6 +488,14 @@ class ThermostatBox extends Component {
     }
     if (humidityFeature && payload.device_feature_selector === humidityFeature) {
       this.setState({ humidity: payload.last_value });
+    }
+    const windowFeature = (this.state.remoteConfig && this.state.remoteConfig.window_feature) || null;
+    if (windowFeature && payload.device_feature_selector === windowFeature) {
+      const isWindowOpen = payload.last_value === 0;
+      this.setState({ isWindowOpen });
+      if (isWindowOpen) {
+        this.sendSwitch(false);
+      }
     }
   };
 
@@ -1079,7 +1098,7 @@ class ThermostatBox extends Component {
     }
   };
 
-  render(props, { setpoint, currentTemp, humidity, activePreset, error, noConfig, isManualMode, currentSlot, manualUntil, manualSetpointOverride }) {
+  render(props, { setpoint, currentTemp, humidity, activePreset, error, noConfig, isManualMode, currentSlot, manualUntil, manualSetpointOverride, isWindowOpen }) {
     const cfg = this.getConfig();
     const minTemp = this.getMinTemp();
     const maxTemp = this.getMaxTemp();
@@ -1099,7 +1118,7 @@ class ThermostatBox extends Component {
       : mode === 'cooling'
         ? (hasCurrent && currentTemp < setpoint - hystStop)
         : true;
-    const showActive = isActive && !isStopped;
+    const showActive = !isWindowOpen && isActive && !isStopped;
 
     // Convert temperatures for display
     const displaySetpoint = this.toDisplayTemp(setpoint);
@@ -1144,6 +1163,7 @@ class ThermostatBox extends Component {
                     maxTemp={displayMaxTemp}
                     mode={mode}
                     isActive={showActive}
+                    isWindowOpen={isWindowOpen}
                     tempUnit={tempUnit}
                   />
                 </div>

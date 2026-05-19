@@ -6,6 +6,7 @@ import createActionsHouse from '../../../../../actions/house';
 const TEMPERATURE_CATEGORIES = [DEVICE_FEATURE_CATEGORIES.TEMPERATURE_SENSOR];
 const HUMIDITY_CATEGORIES = [DEVICE_FEATURE_CATEGORIES.HUMIDITY_SENSOR];
 const SWITCH_CATEGORIES = [DEVICE_FEATURE_CATEGORIES.SWITCH];
+const OPENING_CATEGORIES = [DEVICE_FEATURE_CATEGORIES.OPENING_SENSOR];
 
 function createActions(store) {
   const houseActions = createActionsHouse(store);
@@ -25,6 +26,7 @@ function createActions(store) {
         const temperatureFeatures = [];
         const humidityFeatures = [];
         const switchFeatures = [];
+        const openingFeatures = [];
         devices.forEach(device => {
           device.features.forEach(feature => {
             const entry = { selector: feature.selector, label: `${device.name} - ${feature.name}` };
@@ -37,9 +39,12 @@ function createActions(store) {
             if (SWITCH_CATEGORIES.includes(feature.category) && feature.type === 'binary') {
               switchFeatures.push(entry);
             }
+            if (OPENING_CATEGORIES.includes(feature.category)) {
+              openingFeatures.push(entry);
+            }
           });
         });
-        store.setState({ temperatureFeatures, humidityFeatures, switchFeatures });
+        store.setState({ temperatureFeatures, humidityFeatures, switchFeatures, openingFeatures });
       } catch (e) {
         store.setState({ temperatureFeatures: [], humidityFeatures: [], switchFeatures: [] });
       }
@@ -64,6 +69,7 @@ function createActions(store) {
           thermostatEditTemperatureFeature: getParam('THERMOSTAT_TEMPERATURE_FEATURE') || '',
           thermostatEditHumidityFeature: getParam('THERMOSTAT_HUMIDITY_FEATURE') || '',
           thermostatEditSwitchFeature: getParam('THERMOSTAT_SWITCH_FEATURE') || '',
+          thermostatEditWindowFeature: getParam('THERMOSTAT_WINDOW_FEATURE') || '',
           thermostatEditPresetFrost: getParam('THERMOSTAT_PRESET_FROST') || '7',
           thermostatEditPresetAway: getParam('THERMOSTAT_PRESET_AWAY') || '16',
           thermostatEditPresetEco: getParam('THERMOSTAT_PRESET_ECO') || '18',
@@ -119,6 +125,7 @@ function createActions(store) {
         const temperatureFeature = state.thermostatEditTemperatureFeature || '';
         const humidityFeature = state.thermostatEditHumidityFeature || '';
         const switchFeature = state.thermostatEditSwitchFeature || '';
+        const windowFeature = state.thermostatEditWindowFeature || '';
         const presetFrost = state.thermostatEditPresetFrost || '7';
         const presetAway = state.thermostatEditPresetAway || '16';
         const presetEco = state.thermostatEditPresetEco || '18';
@@ -167,6 +174,7 @@ function createActions(store) {
             { name: 'THERMOSTAT_TEMPERATURE_FEATURE', value: temperatureFeature },
             { name: 'THERMOSTAT_HUMIDITY_FEATURE', value: humidityFeature },
             { name: 'THERMOSTAT_SWITCH_FEATURE', value: switchFeature },
+            { name: 'THERMOSTAT_WINDOW_FEATURE', value: windowFeature },
             { name: 'THERMOSTAT_PRESET_FROST', value: presetFrost },
             { name: 'THERMOSTAT_PRESET_AWAY', value: presetAway },
             { name: 'THERMOSTAT_PRESET_ECO', value: presetEco },
@@ -195,6 +203,7 @@ function createActions(store) {
             temperature_feature: temperatureFeature || null,
             humidity_feature: humidityFeature || null,
             switch_feature: switchFeature || null,
+            window_feature: windowFeature || null,
             preset_frost: parseFloat(presetFrost),
             preset_away: parseFloat(presetAway),
             preset_eco: parseFloat(presetEco),

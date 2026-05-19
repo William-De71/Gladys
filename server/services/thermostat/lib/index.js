@@ -5,6 +5,7 @@ const { createSchedule } = require('./thermostat.createSchedule');
 const { updateSchedule } = require('./thermostat.updateSchedule');
 const { deleteSchedule } = require('./thermostat.deleteSchedule');
 const { applySchedules } = require('./thermostat.applySchedules');
+const { onDeviceNewState } = require('./thermostat.onWindowOpen');
 const { setValue } = require('./thermostat.setValue');
 
 const ThermostatHandler = function ThermostatHandler(gladys, serviceId) {
@@ -19,6 +20,7 @@ ThermostatHandler.prototype.createSchedule = createSchedule;
 ThermostatHandler.prototype.updateSchedule = updateSchedule;
 ThermostatHandler.prototype.deleteSchedule = deleteSchedule;
 ThermostatHandler.prototype.applySchedules = applySchedules;
+ThermostatHandler.prototype.onDeviceNewState = onDeviceNewState;
 ThermostatHandler.prototype.setValue = setValue;
 
 module.exports = ThermostatHandler;

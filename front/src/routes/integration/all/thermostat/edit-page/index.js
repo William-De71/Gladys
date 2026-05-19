@@ -22,6 +22,7 @@ class ThermostatEditPage extends Component {
       this.props.updateThermostatField('thermostatEditTemperatureFeature', '');
       this.props.updateThermostatField('thermostatEditHumidityFeature', '');
       this.props.updateThermostatField('thermostatEditSwitchFeature', '');
+      this.props.updateThermostatField('thermostatEditWindowFeature', '');
       this.props.updateThermostatField('thermostatEditPresetFrost', '7');
       this.props.updateThermostatField('thermostatEditPresetAway', '16');
       this.props.updateThermostatField('thermostatEditPresetEco', '18');
@@ -47,6 +48,6 @@ class ThermostatEditPage extends Component {
 }
 
 export default connect(
-  'user,houses,thermostatEditDevice,thermostatEditName,thermostatEditMode,thermostatEditMinTemp,thermostatEditMaxTemp,thermostatEditTempUnit,thermostatEditControlType,thermostatEditTemperatureFeature,thermostatEditHumidityFeature,thermostatEditSwitchFeature,thermostatEditPresetFrost,thermostatEditPresetAway,thermostatEditPresetEco,thermostatEditPresetNight,thermostatEditPresetComfort,thermostatEditHysteresisStart,thermostatEditHysteresisStop,thermostatEditTpiCycleTime,thermostatEditTpiProportionalBand,thermostatEditRoomId,thermostatEditManualDuration,thermostatCreateStatus,temperatureFeatures,humidityFeatures,switchFeatures',
+  'user,houses,thermostatEditDevice,thermostatEditName,thermostatEditMode,thermostatEditMinTemp,thermostatEditMaxTemp,thermostatEditTempUnit,thermostatEditControlType,thermostatEditTemperatureFeature,thermostatEditHumidityFeature,thermostatEditSwitchFeature,thermostatEditWindowFeature,thermostatEditPresetFrost,thermostatEditPresetAway,thermostatEditPresetEco,thermostatEditPresetNight,thermostatEditPresetComfort,thermostatEditHysteresisStart,thermostatEditHysteresisStop,thermostatEditTpiCycleTime,thermostatEditTpiProportionalBand,thermostatEditRoomId,thermostatEditManualDuration,thermostatCreateStatus,temperatureFeatures,humidityFeatures,switchFeatures,openingFeatures',
   actions
 )(ThermostatEditPage);

@@ -194,6 +194,7 @@ async function applySchedules() {
             temperature_feature: getParam('THERMOSTAT_TEMPERATURE_FEATURE') || null,
             humidity_feature: getParam('THERMOSTAT_HUMIDITY_FEATURE') || null,
             switch_feature: getParam('THERMOSTAT_SWITCH_FEATURE') || null,
+            window_feature: getParam('THERMOSTAT_WINDOW_FEATURE') || null,
             default_mode: getParam('THERMOSTAT_MODE') || 'heating',
             control_type: getParam('THERMOSTAT_CONTROL_TYPE') || 'hysteresis',
             preset_frost: parseFloat(getParam('THERMOSTAT_PRESET_FROST')) || 7,
@@ -266,6 +267,36 @@ async function applySchedules() {
         }
 
         try {
+          // Window open check: if window sensor configured and open, cut heating immediately
+          if (config && config.window_feature) {
+            try {
+              const winDevices = await this.gladys.device.get(
+                { device_feature_selectors: config.window_feature },
+              );
+              const winFeature = winDevices && winDevices[0]
+                && winDevices[0].features.find((f) => f.selector === config.window_feature);
+              if (winFeature && winFeature.last_value === 0) {
+                logger.info(
+                  `Thermostat schedule: window open for ${thermostatFeature.selector}, switch OFF`,
+                );
+                if (config.switch_feature) {
+                  const swDevices = await this.gladys.device.get(
+                    { device_feature_selectors: config.switch_feature },
+                  );
+                  const swDevice = swDevices && swDevices[0];
+                  const swFeature = swDevice && swDevice.features
+                    .find((f) => f.selector === config.switch_feature);
+                  if (swDevice && swFeature && swFeature.last_value !== 0) {
+                    await this.gladys.device.setValue(swDevice, swFeature, 0);
+                  }
+                }
+                return;
+              }
+            } catch (e) {
+              logger.warn(`Thermostat schedule: Failed to read window sensor: ${e.message}`);
+            }
+          }
+
           const [currentPreset, manualVal] = await Promise.all([
             this.gladys.variable.getValue(presetVarKey).catch(() => null),
             this.gladys.variable.getValue(manualVarKey).catch(() => null),
@@ -467,4 +498,4 @@ async function applySchedules() {
   }
 }
 
-module.exports = { applySchedules };
+module.exports = { applySchedules, getThermostatBoxConfigs };

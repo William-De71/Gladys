@@ -1,10 +1,12 @@
 const logger = require('../../utils/logger');
+const { EVENTS } = require('../../utils/constants');
 const ThermostatHandler = require('./lib');
 const ThermostatController = require('./api/thermostat.controller');
 
 module.exports = function ThermostatService(gladys, serviceId) {
   const thermostatHandler = new ThermostatHandler(gladys, serviceId);
   let scheduleInterval = null;
+  let newStateListener = null;
 
   /**
    * @public
@@ -18,6 +20,9 @@ module.exports = function ThermostatService(gladys, serviceId) {
     scheduleInterval = setInterval(async () => {
       await thermostatHandler.applySchedules();
     }, 60 * 1000);
+    // React immediately when a device feature changes (e.g. window opens)
+    newStateListener = (event) => thermostatHandler.onDeviceNewState(event);
+    gladys.event.on(EVENTS.DEVICE.NEW_STATE, newStateListener);
     // Run once immediately on start (non-blocking — errors must not prevent Gladys startup)
     (async () => {
       try {
@@ -39,6 +44,10 @@ module.exports = function ThermostatService(gladys, serviceId) {
     if (scheduleInterval) {
       clearInterval(scheduleInterval);
       scheduleInterval = null;
+    }
+    if (newStateListener) {
+      gladys.event.removeListener(EVENTS.DEVICE.NEW_STATE, newStateListener);
+      newStateListener = null;
     }
   }
 

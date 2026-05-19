@@ -2592,6 +2592,8 @@
         "humidityFeatureHelp": "Optionnel. Affiché dans le widget thermostat.",
         "switchFeatureLabel": "Commutateur (actionneur)",
         "switchFeatureHelp": "Le switch qui sera activé/désactivé pour chauffer ou refroidir.",
+        "windowFeatureLabel": "Capteur d'ouverture de fenêtre",
+        "windowFeatureHelp": "Optionnel. Si une fenêtre est ouverte, le chauffage est coupé automatiquement.",
         "hysteresisStartLabel": "Seuil de démarrage",
         "hysteresisStartHelp": "Le chauffage s'allume quand la température est inférieure à (consigne − seuil de démarrage). Ex: consigne 21°C, seuil 0.5°C → allumage sous 20.5°C.",
         "hysteresisStopLabel": "Seuil d'arrêt",
