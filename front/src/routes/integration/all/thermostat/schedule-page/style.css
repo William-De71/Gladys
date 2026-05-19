@@ -61,7 +61,9 @@
   height: 14px;
   border-radius: 4px;
   overflow: hidden;
-  background: #e9ecef;
+  background: transparent;
+  outline: 1px solid rgba(0, 0, 0, 0.06);
+  outline-offset: -1px;
 }
 
 .timeBarSegment {
