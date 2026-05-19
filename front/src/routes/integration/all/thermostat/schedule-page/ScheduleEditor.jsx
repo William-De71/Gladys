@@ -38,7 +38,7 @@ function ensureKeys(slots) {
 // Adjusts overlapping slots AND the immediately adjacent slot before the new range
 // (extends its end to fill any gap created by pushing the new start forward).
 // Returns { fixedSlots, overflowSlot }.
-function applySlotToDay(existingDaySlots, newStart, newEnd, newPreset, newKey, excludeKey) {
+function applySlotToDay(existingDaySlots, dayOfWeek, newStart, newEnd, newPreset, newKey, excludeKey) {
   const clampedEnd = Math.min(newEnd, DAY_MINUTES);
   const overflowMins = newEnd > DAY_MINUTES ? newEnd - DAY_MINUTES : 0;
 
@@ -91,7 +91,7 @@ function applySlotToDay(existingDaySlots, newStart, newEnd, newPreset, newKey, e
   });
 
   adjusted.push({
-    day_of_week: existingDaySlots.length > 0 ? existingDaySlots[0].day_of_week : 0,
+    day_of_week: dayOfWeek,
     start_time: minutesToTime(newStart),
     end_time: minutesToTime(clampedEnd),
     preset: newPreset,
@@ -229,7 +229,7 @@ class ScheduleEditor extends Component {
     const existingDaySlots = this.state.slots.filter(s => s.day_of_week === dayOfWeek);
 
     const { fixedSlots, overflowSlot } = applySlotToDay(
-      existingDaySlots, newStart, newEnd, form.preset, newKey, null
+      existingDaySlots, dayOfWeek, newStart, newEnd, form.preset, newKey, null
     );
     const taggedFixed = fixedSlots.map(s => ({ ...s, day_of_week: dayOfWeek }));
     const finalSlots = mergeIntoSlots(this.state.slots, dayOfWeek, taggedFixed, overflowSlot);
@@ -287,7 +287,7 @@ class ScheduleEditor extends Component {
     const existingDaySlots = this.state.slots.filter(s => s.day_of_week === dayOfWeek);
 
     const { fixedSlots, overflowSlot } = applySlotToDay(
-      existingDaySlots, newStart, newEnd, form.preset, slotKey, slotKey
+      existingDaySlots, dayOfWeek, newStart, newEnd, form.preset, slotKey, slotKey
     );
     const taggedFixed = fixedSlots.map(s => ({ ...s, day_of_week: dayOfWeek }));
     const finalSlots = mergeIntoSlots(this.state.slots, dayOfWeek, taggedFixed, overflowSlot);
@@ -460,7 +460,7 @@ class ScheduleEditor extends Component {
   renderSlotForm(formData, onFieldChange, onConfirm, onCancel, onRemove, dictionary, isEdit) {
     return (
       <div class={isEdit ? style.editSlotForm : style.newSlotForm}>
-        <div class={style.slotColorDot} style={`background:${PRESET_COLORS[formData.preset] || PRESET_COLORS.comfort}`} />
+        <div class={style.slotColorDot} style={`--dot-color:${PRESET_COLORS[formData.preset] || PRESET_COLORS.comfort}`} />
         <input
           type="time"
           class={cx('form-control', 'form-control-sm', style.slotTimeInput)}
@@ -602,7 +602,7 @@ class ScheduleEditor extends Component {
                             role="button"
                             tabIndex={0}
                           >
-                            <div class={style.slotColorDot} style={`background:${PRESET_COLORS[slot.preset] || PRESET_COLORS.comfort}`} />
+                            <div class={style.slotColorDot} style={`--dot-color:${PRESET_COLORS[slot.preset] || PRESET_COLORS.comfort}`} />
                             <span class={style.slotTimeDisplay}>{slot.start_time}</span>
                             <span class={style.slotArrow}>→</span>
                             <span class={style.slotTimeDisplay}>{slot.end_time}</span>

@@ -171,6 +171,7 @@
   height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
+  background: var(--dot-color, #adb5bd);
 }
 
 :global(.dark-mode) .slotColorDot {
