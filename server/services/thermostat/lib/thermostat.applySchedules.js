@@ -99,9 +99,10 @@ function getSetpointForPreset(preset, config) {
  * @param {number} setpoint - Target setpoint.
  * @param {string} mode - 'heating' or 'cooling'.
  * @param {object} config - Thermostat config with hysteresis values.
+ * @param {boolean} currentSwitchOn - Whether the switch is currently ON (for neutral-zone hold).
  * @returns {boolean} True if switch should be ON.
  * @example
- * computeSwitchActive(18, 20, 'heating', config);
+ * computeSwitchActive(18, 20, 'heating', config, false);
  */
 function computeSwitchActive(currentTemp, setpoint, mode, config, currentSwitchOn) {
   if (currentTemp === null || currentTemp === undefined) {
@@ -110,14 +111,22 @@ function computeSwitchActive(currentTemp, setpoint, mode, config, currentSwitchO
   const hystStart = Number((config && config.hysteresis_start)) || 0.5;
   const hystStop = Number((config && config.hysteresis_stop)) || 0.5;
   if (mode === 'heating') {
-    if (currentTemp < setpoint - hystStart) return true;   // too cold → ON
-    if (currentTemp > setpoint + hystStop) return false;   // hot enough → OFF
-    return !!currentSwitchOn;                              // neutral zone → keep current state
+    if (currentTemp < setpoint - hystStart) {
+      return true; // too cold → ON
+    }
+    if (currentTemp > setpoint + hystStop) {
+      return false; // hot enough → OFF
+    }
+    return !!currentSwitchOn; // neutral zone → keep current state
   }
   // cooling
-  if (currentTemp > setpoint + hystStart) return true;    // too hot → ON
-  if (currentTemp < setpoint - hystStop) return false;    // cold enough → OFF
-  return !!currentSwitchOn;                               // neutral zone → keep current state
+  if (currentTemp > setpoint + hystStart) {
+    return true; // too hot → ON
+  }
+  if (currentTemp < setpoint - hystStop) {
+    return false; // cold enough → OFF
+  }
+  return !!currentSwitchOn; // neutral zone → keep current state
 }
 
 /**
@@ -133,7 +142,11 @@ async function getThermostatBoxConfigs() {
   dashboards.forEach((dashboard) => {
     let rawBoxes = dashboard.boxes;
     if (typeof rawBoxes === 'string') {
-      try { rawBoxes = JSON.parse(rawBoxes); } catch (e) { rawBoxes = []; }
+      try {
+        rawBoxes = JSON.parse(rawBoxes);
+      } catch (e) {
+        rawBoxes = [];
+      }
     }
     const boxes = Array.isArray(rawBoxes) ? rawBoxes : [];
     boxes.forEach((row) => {
@@ -498,4 +511,11 @@ async function applySchedules() {
   }
 }
 
-module.exports = { applySchedules, getThermostatBoxConfigs };
+module.exports = {
+  applySchedules,
+  getThermostatBoxConfigs,
+  parseEnd,
+  findMatchingPreset,
+  getSetpointForPreset,
+  computeSwitchActive,
+};
