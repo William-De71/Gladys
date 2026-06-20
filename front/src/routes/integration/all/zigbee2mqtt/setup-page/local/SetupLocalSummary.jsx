@@ -1,7 +1,10 @@
 import { Text } from 'preact-i18n';
 
+import { DONGLE_MODE } from '../constants';
+
 const SetupLocalSummary = ({ configuration, enableEditionMode, disabled }) => {
-  const { z2mDriverPath, z2mDongleName, z2mTcpPort } = configuration;
+  const { z2mDriverPath, z2mDongleName, z2mDongleMode, z2mTcpPort } = configuration;
+  const isEthernet = z2mDongleMode === DONGLE_MODE.ETHERNET;
   return (
     <div class="form-inline" data-cy="z2m-setup-local-summary">
       <div class="form-group">
@@ -14,7 +17,23 @@ const SetupLocalSummary = ({ configuration, enableEditionMode, disabled }) => {
               <table>
                 <tr>
                   <td class="pr-4">
-                    <Text id="integration.zigbee2mqtt.setup.modes.local.summary.usbPort" />
+                    <Text id="integration.zigbee2mqtt.setup.modes.local.summary.connectionMode" />
+                  </td>
+                  <td class="text-muted" data-cy="z2m-setup-local-mode-summary">
+                    {isEthernet ? (
+                      <Text id="integration.zigbee2mqtt.setup.modes.local.dongleModeEthernet" />
+                    ) : (
+                      <Text id="integration.zigbee2mqtt.setup.modes.local.dongleModeUsb" />
+                    )}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="pr-4">
+                    {isEthernet ? (
+                      <Text id="integration.zigbee2mqtt.setup.modes.local.summary.ethernetAddress" />
+                    ) : (
+                      <Text id="integration.zigbee2mqtt.setup.modes.local.summary.usbPort" />
+                    )}
                   </td>
                   <td class="text-muted" data-cy="z2m-setup-local-usb-summary">
                     {z2mDriverPath}

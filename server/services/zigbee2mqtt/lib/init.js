@@ -1,5 +1,5 @@
 const logger = require('../../../utils/logger');
-const { CONFIGURATION, MQTT_MODE } = require('./constants');
+const { CONFIGURATION, DONGLE_MODE, MQTT_MODE } = require('./constants');
 const { generate } = require('../../../utils/password');
 const { PlatformNotCompatible } = require('../../../utils/coreErrors');
 
@@ -27,7 +27,7 @@ async function init(setupMode = false) {
 
   // Load stored configuration
   const configuration = await this.getConfiguration();
-  const { z2mDriverPath, mqttPassword, mqttMode, mqttUrl } = configuration;
+  const { z2mDriverPath, z2mDongleMode, mqttPassword, mqttMode, mqttUrl } = configuration;
 
   try {
     const dockerBased = await this.gladys.system.isDocker();
@@ -54,7 +54,10 @@ async function init(setupMode = false) {
   // Test if dongle is present
   this.usbConfigured = false;
   if (!z2mDriverPath) {
-    logger.info(`Zigbee2mqtt USB dongle not attached`);
+    logger.info(`Zigbee2mqtt dongle not configured`);
+  } else if (z2mDongleMode === DONGLE_MODE.ETHERNET) {
+    logger.info(`Zigbee2mqtt ethernet dongle configured at ${z2mDriverPath}`);
+    this.usbConfigured = true;
   } else {
     const usb = this.gladys.service.getService('usb');
     const usbList = await usb.list();

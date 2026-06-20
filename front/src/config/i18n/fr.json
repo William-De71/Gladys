@@ -1098,9 +1098,9 @@
       "discoverTab": "Découverte Zigbee",
       "setupTab": "Configuration",
       "status": {
-        "notConfigured": "Aucun dongle USB Zigbee2mqtt configuré, veuillez vous rendre sur ",
+        "notConfigured": "Le dongle Zigbee2mqtt n'est pas configuré, allez sur la ",
         "notEnabled": "Le service Zigbee2mqtt n'est pas activé, veuillez vous rendre sur ",
-        "settingsPageLink": "la page de paramétrage du dongle USB",
+        "settingsPageLink": "page de configuration du dongle",
         "setupPageLink": "la page de configuration de Zigbee2mqtt"
       },
       "setup": {
@@ -1112,7 +1112,7 @@
             "dockerInstallationRequirementLabel": "Gladys doit s'exécuter sous Docker",
             "dockerNetworkHostRequirementLabel": "Le conteneur Docker de Gladys doit être démarré avec l'option \"network=host\"",
             "usbDongleRequirementLabel": "Le dongle USB Zigbee doit être connecté",
-            "detailsDescription": "Pour utiliser Zigbee2mqtt avec Gladys, il faut insérer un dongle USB Zigbee.",
+            "detailsDescription": "Pour utiliser Zigbee2mqtt avec Gladys, il faut connecter un dongle Zigbee en USB ou en Ethernet.",
             "usbDriverPathLabel": "Sélectionner le port USB sur lequel le dongle Zigbee est inséré",
             "usbDriverPathPlaceholder": "Port USB",
             "usbDongleNameLabel": "Sélectionner le modèle du dongle Zigbee utilisé",
@@ -1124,12 +1124,20 @@
               "usbPort": "Port USB",
               "dongleName": "Dongle",
               "unknownDongle": "Non défini",
-              "tcpPort": "Port TCP"
+              "tcpPort": "Port TCP",
+              "connectionMode": "Connexion",
+              "ethernetAddress": "Adresse Ethernet"
             },
             "containerErrors": {
               "EZSP_PROTOCOL_VERSION": "Attention : Le firmware de votre coordinateur Ember est obsolète. La version 7.4.x ou supérieure est requise. Vous pouvez suivre ce <a href=\"https://www.zigbee2mqtt.io/guide/adapters/emberznet.html#firmware-flashing\" target=\"_blank\" rel=\"noopener noreferrer\">guide</a> pour le mettre à jour. Dans le cas contraire, sélectionner le dongle (legacy ezsp) dans la configuration.",
               "unknownErrorPrefix": "Erreur du conteneur Zigbee2MQTT : "
-            }
+            },
+            "dongleModeLabel": "Type de connexion du dongle",
+            "dongleModeUsb": "USB",
+            "dongleModeEthernet": "Ethernet",
+            "ethernetAddressLabel": "Entrer l'adresse TCP du coordinateur Zigbee",
+            "ethernetAddressDescription": "Adresse au format tcp://IP:PORT (ex : tcp://192.168.1.100:6638)",
+            "dongleRequirementLabel": "Le dongle Zigbee doit être connecté (USB ou Ethernet)"
           },
           "remote": {
             "title": "Connexion à une installation existante",

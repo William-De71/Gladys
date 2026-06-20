@@ -2,6 +2,7 @@ const cloneDeep = require('lodash.clonedeep');
 const { promisify } = require('util');
 
 const logger = require('../../../utils/logger');
+const { DONGLE_MODE } = require('./constants');
 
 const containerDescriptor = require('../docker/gladys-z2m-zigbee2mqtt-container.json');
 
@@ -15,7 +16,8 @@ const sleep = promisify(setTimeout);
  * await z2m.installZ2mContainer(config);
  */
 async function installZ2mContainer(config, setupMode = false) {
-  const { z2mDriverPath } = config;
+  const { z2mDriverPath, z2mDongleMode } = config;
+  const isEthernet = z2mDongleMode === DONGLE_MODE.ETHERNET;
   let creationNeeded = false;
 
   let dockerContainers = await this.gladys.system.getContainers({
@@ -25,14 +27,18 @@ async function installZ2mContainer(config, setupMode = false) {
   let [container] = dockerContainers;
 
   /*
-   * Manage case where Zigbee USB Dongle Path has changed by removing the container.
+   * Manage case where Zigbee Dongle Path has changed by removing the container.
    * It will be created with good config later
    */
   if (dockerContainers.length > 0) {
     const containerDescription = await this.gladys.system.inspectContainer(container.id);
-    if (containerDescription.HostConfig.Devices[0].PathOnHost !== z2mDriverPath) {
+    const currentDevices = containerDescription.HostConfig.Devices || [];
+    const currentDevicePath = currentDevices.length > 0 ? currentDevices[0].PathOnHost : null;
+    const devicePathChanged = isEthernet ? currentDevicePath !== null : currentDevicePath !== z2mDriverPath;
+
+    if (devicePathChanged) {
       logger.info(
-        `Zigbee2mqtt container with USB dongle path ${containerDescription.HostConfig.Devices[0].PathOnHost} should be removed (new USB dongle path ${z2mDriverPath} configured)...`,
+        `Zigbee2mqtt container dongle config changed (current: ${currentDevicePath}, new: ${isEthernet ? 'ethernet' : z2mDriverPath}), removing container...`,
       );
       await this.gladys.system.stopContainer(container.id);
       await this.gladys.system.removeContainer(container.id);
@@ -51,10 +57,15 @@ async function installZ2mContainer(config, setupMode = false) {
       logger.info(`Pulling ${containerDescriptor.Image} image...`);
       await this.gladys.system.pull(containerDescriptor.Image);
 
-      logger.info(`Configuration of Device ${z2mDriverPath}`);
       const containerDescriptorToMutate = cloneDeep(containerDescriptor);
       containerDescriptorToMutate.HostConfig.Binds.push(`${containerPath}:/app/data`);
-      containerDescriptorToMutate.HostConfig.Devices[0].PathOnHost = z2mDriverPath;
+      if (isEthernet) {
+        logger.info(`Configuration of ethernet dongle at ${z2mDriverPath}`);
+        containerDescriptorToMutate.HostConfig.Devices = [];
+      } else {
+        logger.info(`Configuration of USB device ${z2mDriverPath}`);
+        containerDescriptorToMutate.HostConfig.Devices[0].PathOnHost = z2mDriverPath;
+      }
 
       logger.info(`Creation of container...`);
       const containerLog = await this.gladys.system.createContainer(containerDescriptorToMutate);
@@ -87,7 +98,11 @@ async function installZ2mContainer(config, setupMode = false) {
 
       const containerDescriptorToMutate = cloneDeep(containerDescriptor);
       containerDescriptorToMutate.HostConfig.Binds.push(`${containerPath}:/app/data`);
-      containerDescriptorToMutate.HostConfig.Devices[0].PathOnHost = z2mDriverPath;
+      if (isEthernet) {
+        containerDescriptorToMutate.HostConfig.Devices = [];
+      } else {
+        containerDescriptorToMutate.HostConfig.Devices[0].PathOnHost = z2mDriverPath;
+      }
       await this.gladys.system.createContainer(containerDescriptorToMutate);
 
       dockerContainers = await this.gladys.system.getContainers({

@@ -30,7 +30,7 @@ const SetupLocalModeCard = ({ dockerBased, networkModeValid, usbConfigured, disa
         </li>
         <li>
           <Requirement verified={usbConfigured}>
-            <Text id="integration.zigbee2mqtt.setup.modes.local.usbDongleRequirementLabel" />
+            <Text id="integration.zigbee2mqtt.setup.modes.local.dongleRequirementLabel" />
           </Requirement>
         </li>
       </ul>

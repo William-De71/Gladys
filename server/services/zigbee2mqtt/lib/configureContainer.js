@@ -5,7 +5,7 @@ const yaml = require('yaml');
 const portfinder = require('portfinder');
 
 const logger = require('../../../utils/logger');
-const { DEFAULT } = require('./constants');
+const { DEFAULT, DONGLE_MODE } = require('./constants');
 const { DEFAULT_KEY, CONFIG_KEYS, ADAPTERS_BY_CONFIG_KEY } = require('../adapters');
 
 const YAML_CONFIG = { singleQuote: true };
@@ -67,6 +67,14 @@ async function configureContainer(basePathOnContainer, config, setupMode = false
     loadedConfig.serial.adapter = adapterKey;
     configChanged = true;
     adapterChanged = true;
+  }
+
+  // Setup serial port path
+  const isEthernet = config.z2mDongleMode === DONGLE_MODE.ETHERNET;
+  const serialPort = isEthernet ? config.z2mDriverPath : config.z2mDriverPath || DEFAULT.CONFIGURATION_CONTENT.serial.port;
+  if (serial.port !== serialPort) {
+    loadedConfig.serial.port = serialPort;
+    configChanged = true;
   }
 
   // Setup TCP port
