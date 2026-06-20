@@ -1,3 +1,6 @@
+const path = require('path');
+const { spawn } = require('child_process');
+
 const logger = require('../../utils/logger');
 const { JOB_TYPES, JOB_STATUS } = require('../../utils/constants');
 
@@ -24,10 +27,16 @@ async function restart() {
     logger.info('Database is probably already closed');
     logger.warn(e);
   }
-  // exit(1): Docker/systemd restarts on non-zero exit.
-  // In dev, nodemon with exitcrash:true would loop on other crashes,
-  // so we rely on the user restarting manually or use a process manager.
-  process.exit(1);
+  // Touch index.js to trigger nodemon file-watcher restart (dev without Docker).
+  // In production, Docker restart:always handles the clean exit.
+  const indexPath = path.join(__dirname, '../../index.js');
+  const script = `var t=new Date();require('fs').utimesSync(${JSON.stringify(indexPath)},t,t)`;
+  const child = spawn(process.execPath, ['-e', script], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  child.unref();
+  process.exit(0);
 }
 
 module.exports = {

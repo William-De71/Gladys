@@ -1,6 +1,6 @@
 import { connect } from 'unistore/preact';
 import { Text } from 'preact-i18n';
-import { useState } from 'preact/hooks';
+import { useState, useEffect } from 'preact/hooks';
 import { RequestStatus } from '../../../utils/consts';
 import style from './style.css';
 
@@ -16,13 +16,51 @@ const SettingsSystemOperations = ({
   SystemRestartStatus
 }) => {
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [restarting, setRestarting] = useState(false);
 
   const handleRestartClick = () => setShowRestartConfirm(true);
   const handleRestartCancel = () => setShowRestartConfirm(false);
   const handleRestartConfirm = () => {
     setShowRestartConfirm(false);
+    setRestarting(true);
     restartGladys();
   };
+
+  useEffect(() => {
+    if (SystemRestartStatus !== RequestStatus.Success) {
+      return undefined;
+    }
+
+    let hasBeenDown = false;
+    let interval;
+
+    const checkServer = async () => {
+      try {
+        const response = await fetch('/api/v1/ping');
+        if (response.status >= 502) {
+          hasBeenDown = true;
+        } else if (response.status < 500 && hasBeenDown) {
+          window.location.reload();
+        }
+      } catch (e) {
+        hasBeenDown = true;
+      }
+    };
+
+    const timeout = setTimeout(() => {
+      interval = setInterval(checkServer, 1000);
+    }, 500);
+
+    const fallback = setTimeout(() => window.location.reload(), 15000);
+
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(fallback);
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [SystemRestartStatus]);
 
   return (
   <div class="card">
@@ -133,11 +171,12 @@ const SettingsSystemOperations = ({
               <Text id="systemSettings.restartError" />
             </div>
           )}
-          <p>
-            {SystemRestartStatus === RequestStatus.Getting ? (
-              <span>
+          <div>
+            {restarting || SystemRestartStatus === RequestStatus.Getting || SystemRestartStatus === RequestStatus.Success ? (
+              <div class="alert alert-info mb-0">
+                <span class={style.spinner} role="status" aria-hidden="true" />
                 <Text id="systemSettings.restartingGladys" />
-              </span>
+              </div>
             ) : !showRestartConfirm ? (
               <button class="btn btn-danger" onClick={handleRestartClick}>
                 <Text id="systemSettings.restartGladys" />
@@ -152,7 +191,7 @@ const SettingsSystemOperations = ({
                 </button>
               </span>
             )}
-          </p>
+          </div>
         </div>
       </div>
     </div>
