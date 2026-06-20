@@ -5,6 +5,8 @@ const CONFIG_KEYS = {
   ZSTACK: 'zstack',
 };
 
+const ADAPTER_TYPES = ['deconz', 'ember', 'ezsp', 'zboss', 'zigate', 'zoh', 'zstack'];
+
 const ADAPTERS_BY_CONFIG_KEY = {
   [CONFIG_KEYS.DECONZ]: ['ConBee', 'ConBee II', 'RaspBee', 'RaspBee II'],
   [CONFIG_KEYS.EMBER]: [
@@ -60,4 +62,4 @@ const ADAPTERS = Object.entries(ADAPTERS_BY_CONFIG_KEY)
   .flatMap(([configKey, labels]) => labels.map((label) => ({ label, configKey })))
   .sort((a, b) => a.label.localeCompare(b.label));
 
-module.exports = { ADAPTERS, ADAPTERS_BY_CONFIG_KEY, CONFIG_KEYS, DEFAULT_KEY: CONFIG_KEYS.ZSTACK };
+module.exports = { ADAPTER_TYPES, ADAPTERS, ADAPTERS_BY_CONFIG_KEY, CONFIG_KEYS, DEFAULT_KEY: CONFIG_KEYS.ZSTACK };

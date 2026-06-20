@@ -139,6 +139,7 @@ describe('Zigbee2Mqtt setup wizard local mode from scratch', () => {
         ZIGBEE2MQTT_DRIVER_PATH: '/dev/ttyUSB0',
         ZIGBEE_DONGLE_NAME: "CircuitSetup's CC2652P2 USB Coordinator",
         Z2M_DONGLE_MODE: 'usb',
+        Z2M_DONGLE_BAUDRATE: null,
         Z2M_TCP_PORT: '12345',
         Z2M_MQTT_MODE: 'local'
       });
@@ -187,6 +188,7 @@ describe('Zigbee2Mqtt setup wizard local mode from scratch', () => {
         ZIGBEE2MQTT_DRIVER_PATH: '/dev/ttyUSB0',
         ZIGBEE_DONGLE_NAME: "CircuitSetup's CC2652P2 USB Coordinator",
         Z2M_DONGLE_MODE: 'usb',
+        Z2M_DONGLE_BAUDRATE: null,
         Z2M_TCP_PORT: null,
         Z2M_MQTT_MODE: 'local'
       });

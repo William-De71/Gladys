@@ -993,7 +993,9 @@
               "unknownDongle": "Nicht definiert",
               "tcpPort": "TCP-Port",
               "connectionMode": "Verbindung",
-              "ethernetAddress": "Ethernet-Adresse"
+              "ethernetAddress": "Ethernet-Adresse",
+              "adapterType": "Adapter",
+              "baudrate": "Baudrate"
             },
             "containerErrors": {
               "EZSP_PROTOCOL_VERSION": "Warnung: Die Firmware Ihres Ember-Koordinators ist veraltet. Version 7.4.x oder höher ist erforderlich. Bitte folgen Sie der <a href=\"https://www.zigbee2mqtt.io/guide/adapters/emberznet.html#firmware-flashing\" target=\"_blank\" rel=\"noopener noreferrer\">Firmware-Aktualisierungsanleitung</a>, um sie zu aktualisieren. Wählen Sie andernfalls den Dongle (legacy ezsp) in der Konfiguration aus.",
@@ -1004,7 +1006,11 @@
             "dongleModeEthernet": "Ethernet",
             "ethernetAddressLabel": "Geben Sie die TCP-Adresse des Zigbee-Koordinators ein",
             "ethernetAddressDescription": "Adresse im Format tcp://IP:PORT (z.B. tcp://192.168.1.100:6638)",
-            "dongleRequirementLabel": "Der Zigbee-Dongle muss angeschlossen sein (USB oder Ethernet)"
+            "dongleRequirementLabel": "Der Zigbee-Dongle muss angeschlossen sein (USB oder Ethernet)",
+            "adapterTypeLabel": "Wählen Sie den Adaptertyp",
+            "adapterTypePlaceholder": "Adaptertyp",
+            "baudrateLabel": "Baudrate",
+            "baudrateDescription": "Wenn leer gelassen, wird die Standard-Baudrate des ausgewählten Adapters verwendet."
           },
           "remote": {
             "title": "Verbindung zu einer vorhandenen Installation",

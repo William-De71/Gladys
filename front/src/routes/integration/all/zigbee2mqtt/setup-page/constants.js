@@ -1,3 +1,5 @@
+const ADAPTER_TYPES = ['deconz', 'ember', 'ezsp', 'zboss', 'zigate', 'zoh', 'zstack'];
+
 const DONGLE_MODE = {
   USB: 'usb',
   ETHERNET: 'ethernet'
@@ -13,4 +15,4 @@ const SETUP_MODES = {
   REMOTE: 'remote'
 };
 
-export { DONGLE_MODE, MQTT_MODE, SETUP_MODES };
+export { ADAPTER_TYPES, DONGLE_MODE, MQTT_MODE, SETUP_MODES };

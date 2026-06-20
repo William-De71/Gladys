@@ -3,14 +3,16 @@ import { Text, MarkupText } from 'preact-i18n';
 import get from 'get-value';
 
 import { RequestStatus } from '../../../../../../utils/consts';
-import { DONGLE_MODE, MQTT_MODE } from '../constants';
+import { ADAPTER_TYPES, DONGLE_MODE, MQTT_MODE } from '../constants';
 import Select from 'react-select';
 import SubmitConfiguration from '../components/SubmitConfiguration';
+
+const ADAPTER_TYPE_OPTIONS = ADAPTER_TYPES.map(type => ({ label: type, value: type }));
 
 class SetupLocalOptions extends Component {
   updateDongleMode = e => {
     const z2mDongleMode = e.target.value;
-    this.setState({ z2mDongleMode, z2mDriverPath: null });
+    this.setState({ z2mDongleMode, z2mDriverPath: null, z2mDongleName: null, z2mDongleBaudrate: null, z2mDongleConfigKey: null });
   };
 
   updateZigbeeDriverPath = option => {
@@ -29,6 +31,17 @@ class SetupLocalOptions extends Component {
     this.setState({ z2mDongleName, z2mDongleConfigKey });
   };
 
+  updateAdapterType = option => {
+    const z2mDongleName = get(option, 'value') || null;
+    this.setState({ z2mDongleName });
+  };
+
+  updateBaudrate = e => {
+    const { value } = e.target;
+    const z2mDongleBaudrate = value.trim() === '' ? null : value;
+    this.setState({ z2mDongleBaudrate });
+  };
+
   updateTcpPort = e => {
     const { value } = e.target;
     const z2mTcpPort = value.trim() === '' ? null : value;
@@ -36,15 +49,22 @@ class SetupLocalOptions extends Component {
   };
 
   saveConfiguration = () => {
-    const { z2mDriverPath, z2mDongleName, z2mDongleMode, z2mTcpPort, mqttMode } = this.state;
-    this.props.saveConfiguration({ z2mDriverPath, z2mDongleName, z2mDongleMode, z2mTcpPort, mqttMode });
+    const { z2mDriverPath, z2mDongleName, z2mDongleMode, z2mDongleBaudrate, z2mTcpPort, mqttMode } = this.state;
+    this.props.saveConfiguration({ z2mDriverPath, z2mDongleName, z2mDongleMode, z2mDongleBaudrate, z2mTcpPort, mqttMode });
   };
 
   resetConfiguration = () => {
     const { configuration } = this.props;
-    const { z2mDriverPath, z2mDongleName, z2mDongleMode, z2mTcpPort } = configuration;
+    const { z2mDriverPath, z2mDongleName, z2mDongleMode, z2mDongleBaudrate, z2mTcpPort } = configuration;
 
-    this.setState({ z2mDriverPath, z2mDongleName, z2mDongleMode: z2mDongleMode || DONGLE_MODE.USB, z2mTcpPort, z2mDongleConfigKey: null });
+    this.setState({
+      z2mDriverPath,
+      z2mDongleName,
+      z2mDongleMode: z2mDongleMode || DONGLE_MODE.USB,
+      z2mDongleBaudrate,
+      z2mTcpPort,
+      z2mDongleConfigKey: null
+    });
     this.props.resetConfiguration();
   };
 
@@ -128,7 +148,7 @@ class SetupLocalOptions extends Component {
     super(props);
 
     const { configuration } = props;
-    const { z2mDriverPath, z2mDongleName, z2mDongleMode, z2mTcpPort } = configuration;
+    const { z2mDriverPath, z2mDongleName, z2mDongleMode, z2mDongleBaudrate, z2mTcpPort } = configuration;
 
     this.state = {
       z2mDongleMode: z2mDongleMode || DONGLE_MODE.USB,
@@ -136,6 +156,7 @@ class SetupLocalOptions extends Component {
       usbPorts: [],
       loadUsbPortsStatus: RequestStatus.Getting,
       z2mDongleName,
+      z2mDongleBaudrate,
       z2mDongleConfigKey: null,
       zigbeeAdapters: [],
       loadZigbeeAdaptersStatus: RequestStatus.Getting,
@@ -151,7 +172,17 @@ class SetupLocalOptions extends Component {
 
   render(
     { disabled },
-    { z2mDongleMode, z2mDriverPath, usbPorts, loadUsbPortsStatus, z2mDongleName, zigbeeAdapters, loadZigbeeAdaptersStatus, z2mTcpPort }
+    {
+      z2mDongleMode,
+      z2mDriverPath,
+      usbPorts,
+      loadUsbPortsStatus,
+      z2mDongleName,
+      z2mDongleBaudrate,
+      zigbeeAdapters,
+      loadZigbeeAdaptersStatus,
+      z2mTcpPort
+    }
   ) {
     const isEthernet = z2mDongleMode === DONGLE_MODE.ETHERNET;
     const emberFirmwareTooOld = this.isEmberFirmwareTooOld();
@@ -243,37 +274,80 @@ class SetupLocalOptions extends Component {
             </small>
           </div>
         )}
-        <div class="form-group">
-          <label class="form-label">
-            <Text id="integration.zigbee2mqtt.setup.modes.local.usbDongleNameLabel" />
-          </label>
-          <div class="row">
-            <div class="col" data-cy="z2m-setup-local-dongle-field">
-              <Select
-                value={this.buildSelectOption(z2mDongleName)}
-                onChange={this.updateZigbeeDongleName}
-                options={zigbeeAdapters}
-                isLoading={loadZigbeeAdaptersStatus === RequestStatus.Getting}
-                placeholder={<Text id="integration.zigbee2mqtt.setup.modes.local.usbDongleNamePlaceholder" />}
-                isClearable
-                className="react-select-container"
-                classNamePrefix="react-select"
-              />
-            </div>
-            <div class="col-1 d-none d-sm-block">
-              <button
-                class="btn btn-outline-success ml-auto"
-                onClick={this.loadZigbeeAdapters}
-                disabled={loadZigbeeAdaptersStatus === RequestStatus.Getting}
-              >
-                <i class="fe fe-refresh-cw" />
-              </button>
+        {!isEthernet && (
+          <div class="form-group">
+            <label class="form-label">
+              <Text id="integration.zigbee2mqtt.setup.modes.local.usbDongleNameLabel" />
+            </label>
+            <div class="row">
+              <div class="col" data-cy="z2m-setup-local-dongle-field">
+                <Select
+                  value={this.buildSelectOption(z2mDongleName)}
+                  onChange={this.updateZigbeeDongleName}
+                  options={zigbeeAdapters}
+                  isLoading={loadZigbeeAdaptersStatus === RequestStatus.Getting}
+                  placeholder={<Text id="integration.zigbee2mqtt.setup.modes.local.usbDongleNamePlaceholder" />}
+                  isClearable
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                />
+              </div>
+              <div class="col-1 d-none d-sm-block">
+                <button
+                  class="btn btn-outline-success ml-auto"
+                  onClick={this.loadZigbeeAdapters}
+                  disabled={loadZigbeeAdaptersStatus === RequestStatus.Getting}
+                >
+                  <i class="fe fe-refresh-cw" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-        {emberFirmwareTooOld && (
+        )}
+        {!isEthernet && emberFirmwareTooOld && (
           <div class="alert alert-warning">
             <MarkupText id="integration.zigbee2mqtt.setup.modes.local.containerErrors.EZSP_PROTOCOL_VERSION" />
+          </div>
+        )}
+        {isEthernet && (
+          <div class="form-group">
+            <label class="form-label">
+              <Text id="integration.zigbee2mqtt.setup.modes.local.adapterTypeLabel" />
+            </label>
+            <div class="row">
+              <div class="col" data-cy="z2m-setup-local-adapter-type-field">
+                <Select
+                  value={this.buildSelectOption(z2mDongleName)}
+                  onChange={this.updateAdapterType}
+                  options={ADAPTER_TYPE_OPTIONS}
+                  placeholder={<Text id="integration.zigbee2mqtt.setup.modes.local.adapterTypePlaceholder" />}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+        {isEthernet && (
+          <div class="form-group">
+            <label class="form-label">
+              <Text id="integration.zigbee2mqtt.setup.modes.local.baudrateLabel" />
+            </label>
+            <div class="row">
+              <div class="col col-sm-11" data-cy="z2m-setup-local-baudrate-field">
+                <input
+                  type="number"
+                  class="form-control"
+                  value={z2mDongleBaudrate}
+                  onChange={this.updateBaudrate}
+                  placeholder="115200"
+                  min="1"
+                />
+              </div>
+            </div>
+            <small class="form-text text-muted">
+              <Text id="integration.zigbee2mqtt.setup.modes.local.baudrateDescription" />
+            </small>
           </div>
         )}
         <div class="form-group">

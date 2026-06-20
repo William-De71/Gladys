@@ -3,7 +3,7 @@ import { Text } from 'preact-i18n';
 import { DONGLE_MODE } from '../constants';
 
 const SetupLocalSummary = ({ configuration, enableEditionMode, disabled }) => {
-  const { z2mDriverPath, z2mDongleName, z2mDongleMode, z2mTcpPort } = configuration;
+  const { z2mDriverPath, z2mDongleName, z2mDongleMode, z2mDongleBaudrate, z2mTcpPort } = configuration;
   const isEthernet = z2mDongleMode === DONGLE_MODE.ETHERNET;
   return (
     <div class="form-inline" data-cy="z2m-setup-local-summary">
@@ -41,12 +41,26 @@ const SetupLocalSummary = ({ configuration, enableEditionMode, disabled }) => {
                 </tr>
                 <tr>
                   <td class="pr-4">
-                    <Text id="integration.zigbee2mqtt.setup.modes.local.summary.dongleName" />
+                    {isEthernet ? (
+                      <Text id="integration.zigbee2mqtt.setup.modes.local.summary.adapterType" />
+                    ) : (
+                      <Text id="integration.zigbee2mqtt.setup.modes.local.summary.dongleName" />
+                    )}
                   </td>
                   <td class="text-muted" data-cy="z2m-setup-local-dongle-summary">
                     {z2mDongleName || <Text id="integration.zigbee2mqtt.setup.modes.local.summary.unknownDongle" />}
                   </td>
                 </tr>
+                {isEthernet && z2mDongleBaudrate && (
+                  <tr>
+                    <td class="pr-4">
+                      <Text id="integration.zigbee2mqtt.setup.modes.local.summary.baudrate" />
+                    </td>
+                    <td class="text-muted" data-cy="z2m-setup-local-baudrate-summary">
+                      {z2mDongleBaudrate}
+                    </td>
+                  </tr>
+                )}
                 <tr>
                   <td class="pr-4">
                     <Text id="integration.zigbee2mqtt.setup.modes.local.summary.tcpPort" />

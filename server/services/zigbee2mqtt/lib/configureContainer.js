@@ -55,13 +55,18 @@ async function configureContainer(basePathOnContainer, config, setupMode = false
   }
 
   // Setup adapter
-  let adapterKey = Object.values(CONFIG_KEYS).find((configKey) =>
-    ADAPTERS_BY_CONFIG_KEY[configKey].includes(config.z2mDongleName),
-  );
+  const isEthernet = config.z2mDongleMode === DONGLE_MODE.ETHERNET;
   const { serial = {} } = loadedConfig;
+  let adapterKey;
 
-  // Set default adapter if not found
-  adapterKey = adapterKey || DEFAULT_KEY;
+  if (isEthernet) {
+    adapterKey = config.z2mDongleName || DEFAULT_KEY;
+  } else {
+    adapterKey = Object.values(CONFIG_KEYS).find((configKey) =>
+      ADAPTERS_BY_CONFIG_KEY[configKey].includes(config.z2mDongleName),
+    );
+    adapterKey = adapterKey || DEFAULT_KEY;
+  }
 
   if (serial.adapter !== adapterKey) {
     loadedConfig.serial.adapter = adapterKey;
@@ -70,10 +75,19 @@ async function configureContainer(basePathOnContainer, config, setupMode = false
   }
 
   // Setup serial port path
-  const isEthernet = config.z2mDongleMode === DONGLE_MODE.ETHERNET;
   const serialPort = isEthernet ? config.z2mDriverPath : config.z2mDriverPath || DEFAULT.CONFIGURATION_CONTENT.serial.port;
   if (serial.port !== serialPort) {
     loadedConfig.serial.port = serialPort;
+    configChanged = true;
+  }
+
+  // Setup baudrate (ethernet dongles)
+  const baudrate = config.z2mDongleBaudrate ? Number(config.z2mDongleBaudrate) : undefined;
+  if (baudrate && serial.baudrate !== baudrate) {
+    loadedConfig.serial.baudrate = baudrate;
+    configChanged = true;
+  } else if (!baudrate && serial.baudrate) {
+    delete loadedConfig.serial.baudrate;
     configChanged = true;
   }
 

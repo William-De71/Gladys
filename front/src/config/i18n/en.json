@@ -888,7 +888,9 @@
               "unknownDongle": "Not defined",
               "tcpPort": "TCP Port",
               "connectionMode": "Connection",
-              "ethernetAddress": "Ethernet Address"
+              "ethernetAddress": "Ethernet Address",
+              "adapterType": "Adapter",
+              "baudrate": "Baudrate"
             },
             "containerErrors": {
               "EZSP_PROTOCOL_VERSION": "Warning: Your Ember coordinator firmware is outdated. Firmware version 7.4.x or higher is required. Please follow the <a href=\"https://www.zigbee2mqtt.io/guide/adapters/emberznet.html#firmware-flashing\" target=\"_blank\" rel=\"noopener noreferrer\">firmware flashing guide</a> to update it. Otherwise, select the dongle (legacy ezsp) in the configuration.",
@@ -899,7 +901,11 @@
             "dongleModeEthernet": "Ethernet",
             "ethernetAddressLabel": "Enter the TCP address of the Zigbee coordinator",
             "ethernetAddressDescription": "Address in tcp://IP:PORT format (e.g. tcp://192.168.1.100:6638)",
-            "dongleRequirementLabel": "Zigbee dongle must be connected (USB or Ethernet)"
+            "dongleRequirementLabel": "Zigbee dongle must be connected (USB or Ethernet)",
+            "adapterTypeLabel": "Select the adapter type",
+            "adapterTypePlaceholder": "Adapter type",
+            "baudrateLabel": "Baudrate",
+            "baudrateDescription": "If left empty, the default baudrate for the selected adapter will be used."
           },
           "remote": {
             "title": "Connect to an Existing Installation",
