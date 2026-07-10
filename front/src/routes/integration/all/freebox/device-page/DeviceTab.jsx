@@ -114,6 +114,7 @@ class DeviceTab extends Component {
                       editButton
                       saveButton
                       deleteButton
+                      showCameraSettings
                       device={device}
                       deviceIndex={index}
                       getFreeboxDevices={this.getFreeboxDevices.bind(this)}
@@ -127,9 +128,7 @@ class DeviceTab extends Component {
         </div>
       </div>
     );
-
   }
-
 }
 
 export default connect('httpClient', {})(DeviceTab);

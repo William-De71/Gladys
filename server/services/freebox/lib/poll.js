@@ -1,6 +1,7 @@
 const { BadParameters } = require('../../../utils/coreErrors');
 const { readValues } = require('./device/deviceMapping');
 const { EVENTS, DEVICE_FEATURE_CATEGORIES } = require('../../../utils/constants');
+const logger = require('../../../utils/logger');
 
 /**
  *
@@ -31,7 +32,22 @@ async function poll(device) {
   if (!nodeId || nodeId.length === 0) {
     throw new BadParameters(`Freebox device external_id is invalid: "${externalId}" have no network indicator`);
   }
-  
+
+  // Camera devices: capture a still image (through the rtsp-camera service) and store it
+  const hasCameraFeature = device.features.some(
+    (deviceFeature) => deviceFeature.category === DEVICE_FEATURE_CATEGORIES.CAMERA,
+  );
+  if (hasCameraFeature) {
+    try {
+      const cameraImage = await this.getImage(device);
+      await this.gladys.device.camera.setImage(device.selector, cameraImage);
+    } catch (e) {
+      logger.warn(`Freebox: unable to get camera image of device "${device.selector}"`);
+      logger.debug(e);
+    }
+  }
+
+
   let response = null;
 
   try {
@@ -76,7 +92,7 @@ async function poll(device) {
 
   device.features.forEach((deviceFeature) => {
     // Skip camera features: their value is a URL string, not numeric.
-    // Image capture is handled by the RTSP camera service.
+    // The image itself is captured above and stored with camera.setImage.
     if (deviceFeature.category === DEVICE_FEATURE_CATEGORIES.CAMERA) {
       return;
     }

@@ -15,10 +15,10 @@ const { discoverFreebox } = require('./discoverFreebox');
 const { connectFreebox} = require('./connectFreebox');
 const { discoverDevices } = require('./discoverDevices');
 const { loadDevices } = require('./loadDevices');
-const { loadDeviceDetails } = require('./loadDeviceDetails');
 const { disconnect } = require('./disconnect');
 const { setValue } = require('./setValue');
 const { poll } = require('./poll');
+const { getImage } = require('./getImage');
 
 const { CONFIGURATION } = require('./utils/constants');
 
@@ -41,6 +41,8 @@ const FreeboxHandler = function FreeboxHandler(gladys, serviceId) {
   this.app_token = null;
   this.sessionToken = null;
 
+  this.discoveredDevices = [];
+
 };
 
 FreeboxHandler.prototype.init = init;
@@ -60,9 +62,9 @@ FreeboxHandler.prototype.discoverFreebox = discoverFreebox;
 FreeboxHandler.prototype.connectFreebox = connectFreebox;
 FreeboxHandler.prototype.discoverDevices = discoverDevices;
 FreeboxHandler.prototype.loadDevices = loadDevices;
-FreeboxHandler.prototype.loadDeviceDetails = loadDeviceDetails;
 FreeboxHandler.prototype.disconnect = disconnect;
 FreeboxHandler.prototype.setValue = setValue;
 FreeboxHandler.prototype.poll = poll;
+FreeboxHandler.prototype.getImage = getImage;
 
 module.exports = FreeboxHandler;

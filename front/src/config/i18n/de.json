@@ -983,6 +983,25 @@
         "noDeviceFound": "Kein Freebox-Gerät gefunden.",
         "featuresLabel": "Funktionen"
       },
+      "camera": {
+        "nameLabel": "Kameraname",
+        "namePlaceholder": "Gib den Namen deiner Kamera ein",
+        "pollFrequencyLabel": "Aktualisierungsfrequenz",
+        "everyMinutes": "Jede Minute (empfohlen)",
+        "every30Seconds": "Alle 30 Sekunden",
+        "every10Seconds": "Alle 10 Sekunden",
+        "every2Seconds": "Alle 2 Sekunden",
+        "every1Seconds": "Alle 1 Sekunde (auf eigene Gefahr)",
+        "urlLabel": "RTSP/HTTP-Feed der Kamera",
+        "urlPlaceholder": "Z.B.: rtsp://[Benutzername]:[Passwort]@[Kamera-IP-Adresse]:554/Media",
+        "urlExplanation": "Wenn du die Livestream-Funktion verwenden möchten, dann muss die URL zu einem Video-Feed zeigen und nicht zu einem festen Bild.",
+        "rotation0": "Keine Rotation",
+        "rotation90": "90°",
+        "rotation180": "180°",
+        "rotation270": "270°",
+        "testConnectionButton": "Verbindung testen",
+        "testConnectionError": "Beim Abrufen des RTSP-Feeds ist ein Fehler aufgetreten. Bist du sicher, dass die angegebene URL richtig ist und von der Gladys-Instanz aus erreichbar ist?"
+      },
       "status": {
         "notConnected": "Gladys konnte keine Verbindung zu deiner lokalen Freebox herstellen, bitte gehe zu ",
         "setupPageLink": "Freebox-Konfigurationsseite."

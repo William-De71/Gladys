@@ -43,7 +43,7 @@ class DiscoverTab extends Component {
     }
   }
 
-  async getDiscoveredDevices() {
+  async getDiscoveredDevices(refresh = false) {
     this.setState({
       loading: true,
       errorLoading: false,
@@ -51,7 +51,8 @@ class DiscoverTab extends Component {
     });
     try {
       const discoveredDevices = await this.props.httpClient.get('/api/v1/service/freebox/discover', {
-        filter_existing: this.state.filterExisting
+        filter_existing: this.state.filterExisting,
+        refresh
       });
       this.setState({
         discoveredDevices,
@@ -69,10 +70,14 @@ class DiscoverTab extends Component {
   }
 
   toggleFilterExisting = async () => {
-    await new Promise((resolve) => {
-      this.setState((prevState) => ({ filterExisting: !prevState.filterExisting }), resolve);
+    await new Promise(resolve => {
+      this.setState(prevState => ({ filterExisting: !prevState.filterExisting }), resolve);
     });
     this.getDiscoveredDevices();
+  };
+
+  scan = () => {
+    this.getDiscoveredDevices(true);
   };
 
   render(props, { loading, errorLoading, discoverError, discoveredDevices, housesWithRooms, filterExisting }) {
@@ -83,11 +88,7 @@ class DiscoverTab extends Component {
             <Text id="integration.freebox.discover.title" />
           </h1>
           <div class="page-options d-flex">
-            <button
-              onClick={this.getDiscoveredDevices.bind(this)}
-              class="btn btn-outline-primary ml-2"
-              disabled={loading}
-            >
+            <button onClick={this.scan} class="btn btn-outline-primary ml-2" disabled={loading}>
               <Text id="integration.freebox.discover.scan" /> <i class="fe fe-radio" />
             </button>
           </div>
@@ -127,7 +128,9 @@ class DiscoverTab extends Component {
                     <Text id="integration.freebox.status.setupPageLink" />
                   </Link>
                   {discoverError && (
-                    <div class="mt-2"><small>{discoverError}</small></div>
+                    <div class="mt-2">
+                      <small>{discoverError}</small>
+                    </div>
                   )}
                 </div>
               )}
