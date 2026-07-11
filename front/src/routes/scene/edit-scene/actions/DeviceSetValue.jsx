@@ -2,7 +2,7 @@ import { Component } from 'preact';
 import { connect } from 'unistore/preact';
 import { Text, Localizer } from 'preact-i18n';
 import cx from 'classnames';
-import ColorPicker from '../../../../components/device/ColorPicker';
+import ColorPickerPopover from '../../../../components/device/ColorPickerPopover';
 
 import SelectDeviceFeature from '../../../../components/device/SelectDeviceFeature';
 import withIntlAsProp from '../../../../utils/withIntlAsProp';
@@ -125,7 +125,7 @@ class DeviceSetValue extends Component {
     }
 
     if (this.state.deviceFeature.type === DEVICE_FEATURE_TYPES.LIGHT.COLOR) {
-      return <ColorPicker value={this.props.action.value} updateValue={this.handleNewPureValue} />;
+      return <ColorPickerPopover value={this.props.action.value} updateValue={this.handleNewPureValue} />;
     }
 
     if (
