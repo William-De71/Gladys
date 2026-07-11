@@ -1543,6 +1543,14 @@ const WEBSOCKET_MESSAGE_TYPES = {
   MATTERBRIDGE: {
     STATUS_CHANGE: 'matterbridge.status-change',
   },
+  SPOTIFY: {
+    STATUS: 'spotify.status',
+    PLAYBACK: 'spotify.playback',
+    ERROR: {
+      CONNECTING: 'spotify.error-connecting',
+      PROCESSING_TOKEN: 'spotify.error-processing-token',
+    },
+  },
 };
 
 const DASHBOARD_TYPE = {

@@ -154,6 +154,11 @@ import NetatmoDiscoverPage from '../routes/integration/all/netatmo/discover-page
 import SonosDevicePage from '../routes/integration/all/sonos/device-page';
 import SonosDiscoveryPage from '../routes/integration/all/sonos/discover-page';
 
+// Spotify integration
+import SpotifyDevicePage from '../routes/integration/all/spotify/device-page';
+import SpotifyDiscoverPage from '../routes/integration/all/spotify/discover-page';
+import SpotifySetupPage from '../routes/integration/all/spotify/setup-page';
+
 // Google Cast integration
 import GoogleCastDevicePage from '../routes/integration/all/google-cast/device-page';
 import GoogleCastDiscoveryPage from '../routes/integration/all/google-cast/discover-page';
@@ -332,6 +337,10 @@ const AppRouter = connect(
 
         <SonosDevicePage path="/dashboard/integration/device/sonos" />
         <SonosDiscoveryPage path="/dashboard/integration/device/sonos/discover" />
+
+        <SpotifyDevicePage path="/dashboard/integration/device/spotify" />
+        <SpotifyDiscoverPage path="/dashboard/integration/device/spotify/discover" />
+        <SpotifySetupPage path="/dashboard/integration/device/spotify/setup" />
 
         <GoogleCastDevicePage path="/dashboard/integration/device/google-cast" />
         <GoogleCastDiscoveryPage path="/dashboard/integration/device/google-cast/discover" />

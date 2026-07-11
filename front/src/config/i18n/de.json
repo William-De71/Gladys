@@ -1442,6 +1442,69 @@
         "conflictError": "Das aktuelle Gerät ist bereits in Gladys vorhanden."
       }
     },
+    "spotify": {
+      "title": "Spotify",
+      "description": "Steuere die Spotify-Wiedergabe auf deinen Spotify-Connect-Geräten",
+      "deviceTab": "Geräte",
+      "discoverTab": "Spotify-Entdeckung",
+      "setupTab": "Einrichtung",
+      "documentation": "Spotify-Dokumentation",
+      "discoverDeviceDescr": "Spotify-Connect-Geräte deines Kontos entdecken",
+      "nameLabel": "Gerätename",
+      "namePlaceholder": "Gib den Namen deines Geräts ein",
+      "modelLabel": "Gerätetyp",
+      "roomLabel": "Raum",
+      "saveButton": "Sichern",
+      "alreadyCreatedButton": "Bereits erstellt",
+      "deleteButton": "Löschen",
+      "device": {
+        "title": "Spotify-Geräte in Gladys",
+        "noDeviceFound": "Du hast noch keine Spotify-Geräte hinzugefügt."
+      },
+      "discover": {
+        "title": "Spotify-Connect-Geräte deines Kontos",
+        "description": "Nur aktuell verbundene Geräte (Spotify-App geöffnet oder Lautsprecher aktiv) werden von der Spotify-API zurückgegeben. Falls ein Gerät fehlt, öffne dort die Spotify-App und klicke auf \"Scannen\".",
+        "noDeviceFound": "Es wurden keine Spotify-Connect-Geräte gefunden. Prüfe auf der Einrichtungsseite, ob Gladys mit deinem Spotify-Konto verbunden ist und ob die Spotify-App auf mindestens einem Gerät geöffnet ist.",
+        "errorWhileScanning": "Beim Scannen ist ein Fehler aufgetreten. Prüfe auf der Einrichtungsseite, ob Gladys mit deinem Spotify-Konto verbunden ist.",
+        "scan": "Scannen"
+      },
+      "status": {
+        "connect": "Gladys ist mit Spotify verbunden",
+        "connecting": "Konfiguration gespeichert. Weiterleitung zu Spotify zur Autorisierung...",
+        "processingToken": "Verbindung mit deinem Spotify-Konto... Zugriffstoken wird abgerufen.",
+        "disconnect": "Gladys ist nicht mit Spotify verbunden",
+        "error": "Beim Verbinden mit Spotify ist ein Fehler aufgetreten. Prüfe deine Zugangsdaten und versuche es erneut.",
+        "errorConnecting": {
+          "access_denied": "Autorisierung abgelehnt. Bitte versuche es erneut und akzeptiere die Zugriffsanfrage.",
+          "other_error": "Fehler bei der Autorisierung. Du kannst den Fehler in der Browserkonsole einsehen. Wenn der Fehler weiterhin besteht, poste bitte die Logs im Forum."
+        }
+      },
+      "setup": {
+        "title": "Spotify-Einrichtung",
+        "description": "Du kannst Gladys mit deinem Spotify-Konto verbinden, um die Wiedergabe auf deinen Spotify-Connect-Geräten zu steuern (Lautsprecher, TVs, Smartphones...). ",
+        "descriptionCreateProject": "Erstelle eine App im <a href=\"https://developer.spotify.com/dashboard\" target=\"_blank\" rel=\"noopener noreferrer\">Spotify-Entwickler-Dashboard</a> (wähle die \"Web API\"). ",
+        "descriptionRedirectUri": "Füge in den Einstellungen deiner Spotify-App genau diese Weiterleitungs-URL hinzu: <code>{{redirectUri}}</code>. ",
+        "descriptionGetKeys": "Kopiere anschließend die \"Client ID\" und das \"Client secret\" deiner App unten ein.",
+        "descriptionPremium": "<b>Wichtig:</b> Ein <b>Spotify-Premium</b>-Konto ist erforderlich, um die Wiedergabe über die Spotify-API zu steuern.",
+        "loopbackExplanation": "Du greifst über HTTP auf Gladys zu: Spotify akzeptiert nur HTTPS- oder <code>http://127.0.0.1</code>-Weiterleitungs-URLs, deshalb verwendet die oben zu registrierende URL <code>127.0.0.1</code>. Keine Sorge: Spotify muss deine Gladys nie erreichen. Die Autorisierung öffnet sich in einem neuen Tab; am Ende zeigt dieser Tab lediglich eine Fehlerseite an: <b>Kopiere die vollständige URL aus dessen Adressleiste</b>, kehre zum Gladys-Tab zurück und füge sie unten in das Feld ein, um die Verbindung abzuschließen.",
+        "clientIdLabel": "Client ID",
+        "clientIdPlaceholder": "Client ID deiner Spotify-App",
+        "clientSecretLabel": "Client secret",
+        "clientSecretPlaceholder": "Client secret deiner Spotify-App",
+        "connectionInfoLabel": "Wenn du auf \"Sichern und verbinden\" klickst, wirst du zu Spotify weitergeleitet, um Gladys den Zugriff auf dein Konto zu erlauben.",
+        "saveLabel": "Sichern und verbinden",
+        "disconnectLabel": "Trennen",
+        "returnedUrlLabel": "Spotify-Rückgabe-URL (falls dein Browser nach der Autorisierung eine Fehlerseite angezeigt hat)",
+        "returnedUrlPlaceholder": "http://127.0.0.1/dashboard/integration/device/spotify/setup?code=...&state=...",
+        "returnedUrlButton": "Verbindung abschließen",
+        "invalidReturnedUrl": "Ungültige URL: Sie muss die von Spotify zurückgegebenen Parameter \"code\" und \"state\" enthalten. Kopiere die vollständige URL aus der Adressleiste deines Browsers."
+      },
+      "error": {
+        "defaultError": "Beim Sichern des Geräts ist ein Fehler aufgetreten.",
+        "defaultDeletionError": "Beim Löschen des Geräts ist ein Fehler aufgetreten.",
+        "conflictError": "Das aktuelle Gerät ist bereits in Gladys vorhanden."
+      }
+    },
     "google-cast": {
       "title": "Google Cast",
       "description": "Steuern Sie Google Cast-Geräte in Ihrem lokalen Netzwerk",

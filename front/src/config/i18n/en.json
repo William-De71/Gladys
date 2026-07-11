@@ -1337,6 +1337,69 @@
         "conflictError": "The current device is already in Gladys."
       }
     },
+    "spotify": {
+      "title": "Spotify",
+      "description": "Control Spotify playback on your Spotify Connect devices",
+      "deviceTab": "Devices",
+      "discoverTab": "Spotify Discovery",
+      "setupTab": "Setup",
+      "documentation": "Spotify Documentation",
+      "discoverDeviceDescr": "Discover the Spotify Connect devices of your account",
+      "nameLabel": "Device Name",
+      "namePlaceholder": "Enter your device name",
+      "modelLabel": "Device type",
+      "roomLabel": "Room",
+      "saveButton": "Save",
+      "alreadyCreatedButton": "Already Created",
+      "deleteButton": "Delete",
+      "device": {
+        "title": "Spotify Devices in Gladys",
+        "noDeviceFound": "No Spotify device has been added yet."
+      },
+      "discover": {
+        "title": "Spotify Connect devices of your account",
+        "description": "Only devices currently online (Spotify app open or speaker awake) are returned by the Spotify API. If a device is missing, open the Spotify app on it and click \"Scan\".",
+        "noDeviceFound": "No Spotify Connect device was found. Check that Gladys is connected to your Spotify account on the setup page, and that the Spotify app is open on at least one device.",
+        "errorWhileScanning": "An error occurred during scanning. Check that Gladys is connected to your Spotify account on the setup page.",
+        "scan": "Scan"
+      },
+      "status": {
+        "connect": "Gladys is connected to Spotify",
+        "connecting": "Configuration saved. Redirecting to Spotify for authorization...",
+        "processingToken": "Connecting to your Spotify account... Retrieving the access token.",
+        "disconnect": "Gladys is not connected to Spotify",
+        "error": "An error occurred while connecting to Spotify. Check your credentials and try again.",
+        "errorConnecting": {
+          "access_denied": "Authorization declined. Please try again and accept the data access request.",
+          "other_error": "Error during authorization. You can inspect the error in your browser console. If the error persists, please post the logs on the forum."
+        }
+      },
+      "setup": {
+        "title": "Spotify Setup",
+        "description": "You can connect Gladys to your Spotify account to control playback on your Spotify Connect devices (speakers, TVs, phones...). ",
+        "descriptionCreateProject": "Create an app on the <a href=\"https://developer.spotify.com/dashboard\" target=\"_blank\" rel=\"noopener noreferrer\">Spotify Developer Dashboard</a> (select the \"Web API\"). ",
+        "descriptionRedirectUri": "In your Spotify app settings, add exactly this redirect URL: <code>{{redirectUri}}</code>. ",
+        "descriptionGetKeys": "Then copy the \"Client ID\" and \"Client secret\" of your app below.",
+        "descriptionPremium": "<b>Important:</b> a <b>Spotify Premium</b> account is required to control playback through the Spotify API.",
+        "loopbackExplanation": "You are accessing Gladys through HTTP: Spotify only accepts HTTPS or <code>http://127.0.0.1</code> redirect URLs, which is why the URL to register above uses <code>127.0.0.1</code>. Don't worry: Spotify never needs to reach your Gladys. The authorization will open in a new tab; at the end, that tab will simply show an error page: <b>copy the full URL from its address bar</b>, come back to the Gladys tab and paste it in the field at the bottom to finish the connection.",
+        "clientIdLabel": "Client ID",
+        "clientIdPlaceholder": "Client ID of your Spotify app",
+        "clientSecretLabel": "Client secret",
+        "clientSecretPlaceholder": "Client secret of your Spotify app",
+        "connectionInfoLabel": "When you click on \"Save and connect\", you will be redirected to Spotify to authorize Gladys to access your account.",
+        "saveLabel": "Save and connect",
+        "disconnectLabel": "Disconnect",
+        "returnedUrlLabel": "Spotify return URL (if your browser showed an error page after authorization)",
+        "returnedUrlPlaceholder": "http://127.0.0.1/dashboard/integration/device/spotify/setup?code=...&state=...",
+        "returnedUrlButton": "Finish the connection",
+        "invalidReturnedUrl": "Invalid URL: it must contain the \"code\" and \"state\" parameters returned by Spotify. Copy the full URL from your browser address bar."
+      },
+      "error": {
+        "defaultError": "An error occurred while saving the device.",
+        "defaultDeletionError": "An error occurred while deleting the device.",
+        "conflictError": "The current device is already in Gladys."
+      }
+    },
     "google-cast": {
       "title": "Google Cast",
       "description": "Control Google Cast devices on your local network",

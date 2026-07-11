@@ -128,6 +128,13 @@
     "local": true
   },
   {
+    "key": "spotify",
+    "link": "spotify",
+    "img": "/assets/integrations/cover/spotify.jpg",
+    "invertInDarkMode": true,
+    "cloud": true
+  },
+  {
     "key": "zwavejs-ui",
     "link": "zwavejs-ui",
     "img": "/assets/integrations/cover/zwave-js-ui.jpg",

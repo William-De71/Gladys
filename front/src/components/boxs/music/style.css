@@ -1,0 +1,23 @@
+.artwork {
+  width: 96px;
+  height: 96px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.trackInfo {
+  margin-left: 15px;
+  min-width: 0;
+}
+
+.trackName {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress {
+  height: 6px;
+  margin-bottom: 4px;
+}
