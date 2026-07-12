@@ -13,6 +13,18 @@ const CONFIGURATION = {
   FREEBOX_PORT_KEY: 'FREEBOX_PORT',
 };
 
+// Freebox Player (set-top box) constants.
+// Players have their own API, versioned independently from the Freebox Server API:
+// /player/{id}/api/{version}/...
+const PLAYER = {
+  // Second segment of the external_id ("freebox:player:{id}:{type}"),
+  // used to tell player devices apart from home automation nodes
+  EXTERNAL_ID_SEGMENT: 'player',
+  API_VERSION_PARAM: 'PLAYER_API_VERSION',
+  DEFAULT_API_VERSION: 'v6',
+  MODEL: 'player',
+};
+
 
 // HTTPS Access: https://dev.freebox.fr/sdk/os/#https-access
 const FREEBOX_ROOT_CA = `
@@ -54,5 +66,6 @@ module.exports = {
   FREEBOX_APPTOKEN_KEY,
   TOKENREQUEST,
   CONFIGURATION,
+  PLAYER,
   FREEBOX_ROOT_CA,
 };

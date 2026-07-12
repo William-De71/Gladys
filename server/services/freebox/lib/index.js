@@ -19,6 +19,11 @@ const { disconnect } = require('./disconnect');
 const { setValue } = require('./setValue');
 const { poll } = require('./poll');
 const { getImage } = require('./getImage');
+const { playerRequest } = require('./player/playerRequest');
+const { loadPlayers } = require('./player/loadPlayers');
+const { convertPlayer } = require('./player/convertPlayer');
+const { pollPlayer } = require('./player/pollPlayer');
+const { setPlayerValue } = require('./player/setPlayerValue');
 
 const { CONFIGURATION } = require('./utils/constants');
 
@@ -42,6 +47,7 @@ const FreeboxHandler = function FreeboxHandler(gladys, serviceId) {
   this.sessionToken = null;
 
   this.discoveredDevices = [];
+  this.discoveredPlayers = [];
 
 };
 
@@ -66,5 +72,10 @@ FreeboxHandler.prototype.disconnect = disconnect;
 FreeboxHandler.prototype.setValue = setValue;
 FreeboxHandler.prototype.poll = poll;
 FreeboxHandler.prototype.getImage = getImage;
+FreeboxHandler.prototype.playerRequest = playerRequest;
+FreeboxHandler.prototype.loadPlayers = loadPlayers;
+FreeboxHandler.prototype.convertPlayer = convertPlayer;
+FreeboxHandler.prototype.pollPlayer = pollPlayer;
+FreeboxHandler.prototype.setPlayerValue = setPlayerValue;
 
 module.exports = FreeboxHandler;

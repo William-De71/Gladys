@@ -2,6 +2,7 @@ const logger = require('../../../utils/logger');
 const { mergeDevices } = require('../../../utils/device');
 
 const { convertDevice } = require('./device/convertDevice');
+const { convertPlayer } = require('./player/convertPlayer');
 
 /**
  * @description Discover Freebox devices.
@@ -36,20 +37,43 @@ async function discoverDevices(filters = {}) {
     } catch (e) {
       logger.error('Unable to load Freebox devices', e);
     }
+
+    try {
+      this.discoveredPlayers = await this.loadPlayers();
+      logger.debug(`Freebox discoverDevices: ${this.discoveredPlayers.length} player(s) loaded from Freebox`);
+    } catch (e) {
+      logger.warn(
+        'Unable to load Freebox players. Check that the app has the "player" permission in Freebox OS settings',
+      );
+      logger.debug(e);
+    }
   }
 
-  let result = this.discoveredDevices
-    .map((device) => {
-      try {
-        return {
-          ...convertDevice(device),
-          service_id: this.serviceId,
-        };
-      } catch (e) {
-        logger.error(`Freebox discoverDevices: error converting device`, e);
-        return null;
-      }
-    })
+  const convertedDevices = this.discoveredDevices.map((device) => {
+    try {
+      return {
+        ...convertDevice(device),
+        service_id: this.serviceId,
+      };
+    } catch (e) {
+      logger.error(`Freebox discoverDevices: error converting device`, e);
+      return null;
+    }
+  });
+
+  const convertedPlayers = this.discoveredPlayers.map((player) => {
+    try {
+      return {
+        ...convertPlayer(player),
+        service_id: this.serviceId,
+      };
+    } catch (e) {
+      logger.error(`Freebox discoverDevices: error converting player`, e);
+      return null;
+    }
+  });
+
+  let result = [...convertedDevices, ...convertedPlayers]
     .filter((device) => device !== null)
     .map((device) => {
       const existingDevice = this.gladys.stateManager.get('deviceByExternalId', device.external_id);

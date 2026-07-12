@@ -2,6 +2,7 @@ const logger = require('../../../utils/logger');
 const { BadParameters } = require('../../../utils/coreErrors');
 const { writeValues } = require('./device/deviceMapping');
 const { COVER_STATE } = require('../../../utils/constants');
+const { PLAYER } = require('./utils/constants');
 
 /**
  * @description Send the new device value over device protocol.
@@ -31,6 +32,12 @@ async function setValue(device, deviceFeature, value) {
   }
   if (!nodeId || nodeId.length === 0) {
     throw new BadParameters(`Freebox device external_id is invalid: "${externalId}" have no network indicator`);
+  }
+
+  // Freebox Player devices have their own API (volume, media control)
+  if (nodeId === PLAYER.EXTERNAL_ID_SEGMENT) {
+    await this.setPlayerValue(device, deviceFeature, value);
+    return;
   }
 
   const transformedValue = writeValues[deviceFeature.category][deviceFeature.type](value);

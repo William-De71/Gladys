@@ -1,6 +1,7 @@
 const { BadParameters } = require('../../../utils/coreErrors');
 const { readValues } = require('./device/deviceMapping');
 const { EVENTS, DEVICE_FEATURE_CATEGORIES } = require('../../../utils/constants');
+const { PLAYER } = require('./utils/constants');
 const logger = require('../../../utils/logger');
 
 /**
@@ -31,6 +32,12 @@ async function poll(device) {
   }
   if (!nodeId || nodeId.length === 0) {
     throw new BadParameters(`Freebox device external_id is invalid: "${externalId}" have no network indicator`);
+  }
+
+  // Freebox Player devices have their own API (status, volume)
+  if (nodeId === PLAYER.EXTERNAL_ID_SEGMENT) {
+    await this.pollPlayer(device);
+    return;
   }
 
   // Camera devices: capture a still image (through the rtsp-camera service) and store it
