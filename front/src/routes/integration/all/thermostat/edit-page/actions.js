@@ -95,8 +95,10 @@ function createActions(store) {
     updateThermostatUnit(state, newUnit) {
       const oldUnit = state.thermostatEditTempUnit || 'C';
       if (oldUnit === newUnit) return;
-      const toF = v => v !== '' && v !== null && v !== undefined ? String(Math.round((parseFloat(v) * 9 / 5 + 32) * 2) / 2) : v;
-      const toC = v => v !== '' && v !== null && v !== undefined ? String(Math.round(((parseFloat(v) - 32) * 5 / 9) * 2) / 2) : v;
+      const toF = v =>
+        v !== '' && v !== null && v !== undefined ? String(Math.round(((parseFloat(v) * 9) / 5 + 32) * 2) / 2) : v;
+      const toC = v =>
+        v !== '' && v !== null && v !== undefined ? String(Math.round((((parseFloat(v) - 32) * 5) / 9) * 2) / 2) : v;
       const conv = newUnit === 'F' ? toF : toC;
       store.setState({
         thermostatEditTempUnit: newUnit,
@@ -109,7 +111,7 @@ function createActions(store) {
         thermostatEditPresetComfort: conv(state.thermostatEditPresetComfort),
         thermostatEditHysteresisStart: conv(state.thermostatEditHysteresisStart),
         thermostatEditHysteresisStop: conv(state.thermostatEditHysteresisStop),
-        thermostatEditTpiProportionalBand: conv(state.thermostatEditTpiProportionalBand),
+        thermostatEditTpiProportionalBand: conv(state.thermostatEditTpiProportionalBand)
       });
     },
 
@@ -191,8 +193,13 @@ function createActions(store) {
         const savedDevice = await state.httpClient.post('/api/v1/service/thermostat/device', device);
 
         // Write THERMOSTAT_CONFIG variable so the dashboard widget can read all params
-        const featureSelector = (savedDevice && savedDevice.features && savedDevice.features[0] && savedDevice.features[0].selector) ||
-          (isEdit && state.thermostatEditDevice && state.thermostatEditDevice.features && state.thermostatEditDevice.features[0] && state.thermostatEditDevice.features[0].selector);
+        const featureSelector =
+          (savedDevice && savedDevice.features && savedDevice.features[0] && savedDevice.features[0].selector) ||
+          (isEdit &&
+            state.thermostatEditDevice &&
+            state.thermostatEditDevice.features &&
+            state.thermostatEditDevice.features[0] &&
+            state.thermostatEditDevice.features[0].selector);
         if (featureSelector) {
           const varKey = featureSelector.toUpperCase().replace(/-/g, '_');
           const thermostatConfig = {
@@ -215,10 +222,12 @@ function createActions(store) {
             tpi_proportional_band: tpiProportionalBand,
             manual_duration: manualDuration
           };
-          await state.httpClient.post(`/api/v1/variable/THERMOSTAT_CONFIG_${varKey}`, {
+          // Service endpoint: persists the variable, broadcasts CONFIG_UPDATED
+          // to open dashboards and triggers a server regulation pass
+          await state.httpClient.post(`/api/v1/service/thermostat/variable/THERMOSTAT_CONFIG_${varKey}`, {
             value: JSON.stringify(thermostatConfig)
           });
-          await state.httpClient.post(`/api/v1/variable/THERMOSTAT_ACTIVE_SCHEDULE_${varKey}`, {
+          await state.httpClient.post(`/api/v1/service/thermostat/variable/THERMOSTAT_ACTIVE_SCHEDULE_${varKey}`, {
             value: state.thermostatEditActiveSchedule || ''
           });
         }

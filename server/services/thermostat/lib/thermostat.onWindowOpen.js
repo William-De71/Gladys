@@ -1,22 +1,31 @@
 const logger = require('../../../utils/logger');
 const { getThermostatBoxConfigs } = require('./thermostat.applySchedules');
+const { buildParamsConfig, getFeatureBySelector } = require('./thermostat.deviceConfig');
 
 /**
  * @description Called when a device feature state changes.
  * If the feature is a configured window sensor and the window is now open,
  * immediately turn off the associated heating switch.
+ * Services emit EVENTS.DEVICE.NEW_STATE with { device_feature_external_id, state };
+ * the legacy { device_feature, last_value } shape is also accepted.
  * @param {object} event - The device new-state event payload.
- * @param {string} event.device_feature_selector - Selector of the feature that changed.
- * @param {number} event.last_value - New value of the feature.
  * @returns {Promise<void>}
  * @example
- * await thermostatHandler.onDeviceNewState({ device_feature_selector: 'my-window', last_value: 0 });
+ * await thermostatHandler.onDeviceNewState({ device_feature_external_id: 'zigbee2mqtt:xx', state: 0 });
  */
 async function onDeviceNewState(event) {
-  if (!event || event.last_value !== 0) {
+  if (!event) {
     return;
   }
-  const changedSelector = event.device_feature || event.device_feature_selector || null;
+  const newValue = event.state !== undefined ? event.state : event.last_value;
+  if (newValue !== 0) {
+    return;
+  }
+  let changedSelector = event.device_feature || event.device_feature_selector || null;
+  if (!changedSelector && event.device_feature_external_id) {
+    const feature = this.gladys.stateManager.get('deviceFeatureByExternalId', event.device_feature_external_id);
+    changedSelector = feature ? feature.selector : null;
+  }
   if (!changedSelector) {
     return;
   }
@@ -32,17 +41,9 @@ async function onDeviceNewState(event) {
         if (!thermostatFeature) {
           return;
         }
-        // Build config from device params
-        let windowFeature = null;
-        let switchFeature = null;
-        if (device.params && device.params.length > 0) {
-          const getParam = (name) => {
-            const p = device.params.find((x) => x.name === name);
-            return p ? p.value : null;
-          };
-          windowFeature = getParam('THERMOSTAT_WINDOW_FEATURE') || null;
-          switchFeature = getParam('THERMOSTAT_SWITCH_FEATURE') || null;
-        }
+        const paramsConfig = buildParamsConfig(device) || {};
+        let windowFeature = paramsConfig.window_feature || null;
+        let switchFeature = paramsConfig.switch_feature || null;
         // Fallback to dashboard box config
         if (!windowFeature || !switchFeature) {
           const dashboardBox = boxConfigMap[thermostatFeature.selector] || null;
@@ -53,25 +54,17 @@ async function onDeviceNewState(event) {
             switchFeature = (dashboardBox && dashboardBox.switch_feature) || null;
           }
         }
-        if (!windowFeature || windowFeature !== changedSelector) {
-          return;
-        }
-        if (!switchFeature) {
+        if (!windowFeature || windowFeature !== changedSelector || !switchFeature) {
           return;
         }
         logger.info(
-          `Thermostat: window opened (${changedSelector})`
-          + ` for ${thermostatFeature.selector}, turning switch OFF immediately`,
+          `Thermostat: window opened (${changedSelector})` +
+            ` for ${thermostatFeature.selector}, turning switch OFF immediately`,
         );
         try {
-          const swDevices = await this.gladys.device.get(
-            { device_feature_selectors: switchFeature },
-          );
-          const swDevice = swDevices && swDevices[0];
-          const swFeature = swDevice && swDevice.features
-            .find((f) => f.selector === switchFeature);
-          if (swDevice && swFeature && swFeature.last_value !== 0) {
-            await this.gladys.device.setValue(swDevice, swFeature, 0);
+          const sw = await getFeatureBySelector(this.gladys, switchFeature);
+          if (sw && sw.feature.last_value !== 0) {
+            await this.gladys.device.setValue(sw.device, sw.feature, 0);
           }
         } catch (e) {
           logger.warn(`Thermostat: Failed to turn off switch on window open: ${e.message}`);

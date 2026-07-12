@@ -28,7 +28,7 @@ function formatLabel(minutes) {
 }
 
 function ensureKeys(slots) {
-  return slots.map((s, i) => s._key ? s : { ...s, _key: Date.now() + i + Math.random() });
+  return slots.map((s, i) => (s._key ? s : { ...s, _key: Date.now() + i + Math.random() }));
 }
 
 // Apply a slot (new or edited) into a day's slot list.
@@ -42,9 +42,7 @@ function applySlotToDay(existingDaySlots, dayOfWeek, newStart, newEnd, newPreset
   const clampedEnd = Math.min(newEnd, DAY_MINUTES);
   const overflowMins = newEnd > DAY_MINUTES ? newEnd - DAY_MINUTES : 0;
 
-  const slots = excludeKey
-    ? existingDaySlots.filter(s => s._key !== excludeKey)
-    : existingDaySlots;
+  const slots = excludeKey ? existingDaySlots.filter(s => s._key !== excludeKey) : existingDaySlots;
 
   // Find the slot that ends exactly at (or just before) newStart — it may need its end extended
   // if the new slot's start moved forward, creating a gap.
@@ -98,12 +96,15 @@ function applySlotToDay(existingDaySlots, dayOfWeek, newStart, newEnd, newPreset
     _key: newKey
   });
 
-  const overflowSlot = overflowMins > 0 ? {
-    start_time: '00:00',
-    end_time: minutesToTime(overflowMins),
-    preset: newPreset,
-    _key: Date.now() + Math.random()
-  } : null;
+  const overflowSlot =
+    overflowMins > 0
+      ? {
+          start_time: '00:00',
+          end_time: minutesToTime(overflowMins),
+          preset: newPreset,
+          _key: Date.now() + Math.random()
+        }
+      : null;
 
   return { fixedSlots: adjusted, overflowSlot };
 }
@@ -111,25 +112,13 @@ function applySlotToDay(existingDaySlots, dayOfWeek, newStart, newEnd, newPreset
 // Merge fixed day slots + optional overflow into global slots array
 function mergeIntoSlots(allSlots, dayOfWeek, taggedFixed, overflowSlot) {
   if (!overflowSlot) {
-    return [
-      ...allSlots.filter(s => s.day_of_week !== dayOfWeek),
-      ...taggedFixed
-    ];
+    return [...allSlots.filter(s => s.day_of_week !== dayOfWeek), ...taggedFixed];
   }
   const nextDay = (dayOfWeek + 1) % 7;
   // Keep next day slots that don't start at 00:00 (overflow replaces them)
-  const nextDayKept = allSlots.filter(
-    s => s.day_of_week === nextDay && timeToMinutes(s.start_time) > 0
-  );
-  const otherDays = allSlots.filter(
-    s => s.day_of_week !== dayOfWeek && s.day_of_week !== nextDay
-  );
-  return [
-    ...otherDays,
-    ...taggedFixed,
-    ...nextDayKept,
-    { ...overflowSlot, day_of_week: nextDay }
-  ];
+  const nextDayKept = allSlots.filter(s => s.day_of_week === nextDay && timeToMinutes(s.start_time) > 0);
+  const otherDays = allSlots.filter(s => s.day_of_week !== dayOfWeek && s.day_of_week !== nextDay);
+  return [...otherDays, ...taggedFixed, ...nextDayKept, { ...overflowSlot, day_of_week: nextDay }];
 }
 
 class ScheduleEditor extends Component {
@@ -144,8 +133,8 @@ class ScheduleEditor extends Component {
       lastScheduleSelector: props.schedule ? props.schedule.selector : null,
       copySourceDay: null,
       copyTargetDays: [],
-      newSlotForms: {},  // { [day]: { start_time, end_time, preset } }
-      editForms: {}      // { [_key]: { start_time, end_time, preset, day_of_week } }
+      newSlotForms: {}, // { [day]: { start_time, end_time, preset } }
+      editForms: {} // { [_key]: { start_time, end_time, preset, day_of_week } }
     };
   }
 
@@ -229,7 +218,13 @@ class ScheduleEditor extends Component {
     const existingDaySlots = this.state.slots.filter(s => s.day_of_week === dayOfWeek);
 
     const { fixedSlots, overflowSlot } = applySlotToDay(
-      existingDaySlots, dayOfWeek, newStart, newEnd, form.preset, newKey, null
+      existingDaySlots,
+      dayOfWeek,
+      newStart,
+      newEnd,
+      form.preset,
+      newKey,
+      null
     );
     const taggedFixed = fixedSlots.map(s => ({ ...s, day_of_week: dayOfWeek }));
     const finalSlots = mergeIntoSlots(this.state.slots, dayOfWeek, taggedFixed, overflowSlot);
@@ -287,7 +282,13 @@ class ScheduleEditor extends Component {
     const existingDaySlots = this.state.slots.filter(s => s.day_of_week === dayOfWeek);
 
     const { fixedSlots, overflowSlot } = applySlotToDay(
-      existingDaySlots, dayOfWeek, newStart, newEnd, form.preset, slotKey, slotKey
+      existingDaySlots,
+      dayOfWeek,
+      newStart,
+      newEnd,
+      form.preset,
+      slotKey,
+      slotKey
     );
     const taggedFixed = fixedSlots.map(s => ({ ...s, day_of_week: dayOfWeek }));
     const finalSlots = mergeIntoSlots(this.state.slots, dayOfWeek, taggedFixed, overflowSlot);
@@ -394,7 +395,7 @@ class ScheduleEditor extends Component {
     try {
       const { schedule, httpClient, onSaved } = this.props;
       if (schedule) {
-        await httpClient.put(`/api/v1/service/thermostat/schedule/${schedule.selector}`, scheduleData);
+        await httpClient.patch(`/api/v1/service/thermostat/schedule/${schedule.selector}`, scheduleData);
       } else {
         await httpClient.post('/api/v1/service/thermostat/schedule', scheduleData);
       }
@@ -417,9 +418,9 @@ class ScheduleEditor extends Component {
       segments.push({ start, end, preset: slot.preset });
     });
 
-    const allPoints = Array.from(
-      new Set([0, ...segments.flatMap(s => [s.start, s.end]), DAY_MINUTES])
-    ).sort((a, b) => a - b);
+    const allPoints = Array.from(new Set([0, ...segments.flatMap(s => [s.start, s.end]), DAY_MINUTES])).sort(
+      (a, b) => a - b
+    );
 
     const barParts = [];
     for (let i = 0; i < allPoints.length - 1; i++) {
@@ -427,7 +428,7 @@ class ScheduleEditor extends Component {
       const to = allPoints[i + 1];
       const widthPct = ((to - from) / DAY_MINUTES) * 100;
       const seg = segments.find(s => s.start <= from && s.end >= to);
-      const color = seg ? (PRESET_COLORS[seg.preset] || '#ddd') : '#e9ecef';
+      const color = seg ? PRESET_COLORS[seg.preset] || '#ddd' : '#e9ecef';
       barParts.push({ from, to, widthPct, color });
     }
 
@@ -444,11 +445,7 @@ class ScheduleEditor extends Component {
         </div>
         <div class={style.timeBarMarkers}>
           {FIXED_MARKERS.map(m => (
-            <div
-              key={m}
-              class={style.timeMarker}
-              style={`--marker-left:${(m / DAY_MINUTES) * 100}%`}
-            >
+            <div key={m} class={style.timeMarker} style={`--marker-left:${(m / DAY_MINUTES) * 100}%`}>
               {formatLabel(m)}
             </div>
           ))}
@@ -460,7 +457,10 @@ class ScheduleEditor extends Component {
   renderSlotForm(formData, onFieldChange, onConfirm, onCancel, onRemove, dictionary, isEdit) {
     return (
       <div class={isEdit ? style.editSlotForm : style.newSlotForm}>
-        <div class={style.slotColorDot} style={`--dot-color:${PRESET_COLORS[formData.preset] || PRESET_COLORS.comfort}`} />
+        <div
+          class={style.slotColorDot}
+          style={`--dot-color:${PRESET_COLORS[formData.preset] || PRESET_COLORS.comfort}`}
+        />
         <input
           type="time"
           class={cx('form-control', 'form-control-sm', style.slotTimeInput)}
@@ -502,37 +502,43 @@ class ScheduleEditor extends Component {
     );
   }
 
-  render({ onCancel, intl }, { name, slots, saving, error, selectedDay, copySourceDay, copyTargetDays, newSlotForms, editForms }) {
-    const dictionary = intl && intl.dictionary && intl.dictionary.integration && intl.dictionary.integration.thermostat
-      ? intl.dictionary.integration.thermostat.schedule
-      : {};
+  render(
+    { onCancel, intl },
+    { name, slots, saving, error, selectedDay, copySourceDay, copyTargetDays, newSlotForms, editForms }
+  ) {
+    const dictionary =
+      intl && intl.dictionary && intl.dictionary.integration && intl.dictionary.integration.thermostat
+        ? intl.dictionary.integration.thermostat.schedule
+        : {};
 
     return (
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">
-            {this.props.schedule
-              ? <Text id="integration.thermostat.schedule.editButton" />
-              : <Text id="integration.thermostat.schedule.newButton" />}
+            {this.props.schedule ? (
+              <Text id="integration.thermostat.schedule.editButton" />
+            ) : (
+              <Text id="integration.thermostat.schedule.newButton" />
+            )}
           </h3>
         </div>
         <div class="card-body">
           {error && (
             <div class="alert alert-danger">
-              {error && error.type === 'gaps'
-                ? (
-                  <span>
-                    <Text id="integration.thermostat.schedule.gapError" />
-                    {' '}
-                    {error.days.map(d => (
-                      <span key={d} class="badge badge-light mr-1">
-                        <Text id={`integration.thermostat.schedule.daysShort.${d}`} />
-                      </span>
-                    ))}
-                  </span>
-                )
-                : (typeof error === 'string' ? error : <Text id="integration.thermostat.schedule.saveError" />)
-              }
+              {error && error.type === 'gaps' ? (
+                <span>
+                  <Text id="integration.thermostat.schedule.gapError" />{' '}
+                  {error.days.map(d => (
+                    <span key={d} class="badge badge-light mr-1">
+                      <Text id={`integration.thermostat.schedule.daysShort.${d}`} />
+                    </span>
+                  ))}
+                </span>
+              ) : typeof error === 'string' ? (
+                error
+              ) : (
+                <Text id="integration.thermostat.schedule.saveError" />
+              )}
             </div>
           )}
 
@@ -602,7 +608,10 @@ class ScheduleEditor extends Component {
                             role="button"
                             tabIndex={0}
                           >
-                            <div class={style.slotColorDot} style={`--dot-color:${PRESET_COLORS[slot.preset] || PRESET_COLORS.comfort}`} />
+                            <div
+                              class={style.slotColorDot}
+                              style={`--dot-color:${PRESET_COLORS[slot.preset] || PRESET_COLORS.comfort}`}
+                            />
                             <span class={style.slotTimeDisplay}>{slot.start_time}</span>
                             <span class={style.slotArrow}>→</span>
                             <span class={style.slotTimeDisplay}>{slot.end_time}</span>
@@ -614,15 +623,16 @@ class ScheduleEditor extends Component {
                         );
                       })}
 
-                      {newForm && this.renderSlotForm(
-                        newForm,
-                        (field, value) => this.updateNewSlotForm(day, field, value),
-                        () => this.confirmNewSlot(day),
-                        () => this.closeNewSlotForm(day),
-                        null,
-                        dictionary,
-                        false
-                      )}
+                      {newForm &&
+                        this.renderSlotForm(
+                          newForm,
+                          (field, value) => this.updateNewSlotForm(day, field, value),
+                          () => this.confirmNewSlot(day),
+                          () => this.closeNewSlotForm(day),
+                          null,
+                          dictionary,
+                          false
+                        )}
 
                       <div class={style.dayPanelActions}>
                         {!newForm && (
@@ -657,8 +667,7 @@ class ScheduleEditor extends Component {
                                   type="checkbox"
                                   checked={(copyTargetDays || []).includes(d)}
                                   onChange={() => this.toggleCopyTarget(d)}
-                                />
-                                {' '}
+                                />{' '}
                                 <Text id={`integration.thermostat.schedule.daysShort.${d}`} />
                               </label>
                             ))}
@@ -670,11 +679,7 @@ class ScheduleEditor extends Component {
                             >
                               <Text id="integration.thermostat.schedule.applyButton" />
                             </button>
-                            <button
-                              type="button"
-                              class="btn btn-xs btn-secondary ml-1"
-                              onClick={this.closeCopyPicker}
-                            >
+                            <button type="button" class="btn btn-xs btn-secondary ml-1" onClick={this.closeCopyPicker}>
                               <Text id="integration.thermostat.schedule.cancelButton" />
                             </button>
                           </div>

@@ -1,5 +1,5 @@
 /**
- * @description Set a thermostat device feature value (e.g. setpoint).
+ * @description Set a thermostat device feature value (for example the setpoint).
  * Persists the new value via saveState so it appears in graphs and history.
  * @param {object} device - The device object.
  * @param {object} deviceFeature - The device feature to update.

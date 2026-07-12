@@ -49,6 +49,10 @@ module.exports = function ThermostatService(gladys, serviceId) {
       gladys.event.removeListener(EVENTS.DEVICE.NEW_STATE, newStateListener);
       newStateListener = null;
     }
+    if (thermostatHandler.applyTimer) {
+      clearTimeout(thermostatHandler.applyTimer);
+      thermostatHandler.applyTimer = null;
+    }
   }
 
   return Object.freeze({

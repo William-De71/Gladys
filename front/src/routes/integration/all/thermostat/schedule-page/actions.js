@@ -28,13 +28,8 @@ function createActions(store) {
     async updateSchedule(state, selector, scheduleData) {
       store.setState({ saveScheduleStatus: RequestStatus.Getting });
       try {
-        const updated = await state.httpClient.put(
-          `/api/v1/service/thermostat/schedule/${selector}`,
-          scheduleData
-        );
-        const schedules = (state.thermostatSchedules || []).map(s =>
-          s.selector === selector ? updated : s
-        );
+        const updated = await state.httpClient.patch(`/api/v1/service/thermostat/schedule/${selector}`, scheduleData);
+        const schedules = (state.thermostatSchedules || []).map(s => (s.selector === selector ? updated : s));
         store.setState({ thermostatSchedules: schedules, saveScheduleStatus: RequestStatus.Success });
         return updated;
       } catch (e) {

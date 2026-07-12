@@ -1,6 +1,5 @@
 const asyncMiddleware = require('../middlewares/asyncMiddleware');
 const { NotFoundError } = require('../../utils/coreErrors');
-const { EVENTS, WEBSOCKET_MESSAGE_TYPES } = require('../../utils/constants');
 
 module.exports = function VariableController(gladys) {
   /**
@@ -41,23 +40,6 @@ module.exports = function VariableController(gladys) {
    */
   async function setValue(req, res) {
     const variable = await gladys.variable.setValue(req.params.variable_key, req.body.value);
-    const varKey = req.params.variable_key;
-    if (varKey.startsWith('THERMOSTAT_CONFIG_')) {
-      gladys.event.emit(EVENTS.WEBSOCKET.SEND_ALL, {
-        type: WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.CONFIG_UPDATED,
-        payload: { key: varKey, value: req.body.value }
-      });
-    } else if (varKey.startsWith('THERMOSTAT_') && varKey.endsWith('_PRESET')) {
-      gladys.event.emit(EVENTS.WEBSOCKET.SEND_ALL, {
-        type: WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.PRESET_UPDATED,
-        payload: { key: varKey, value: req.body.value }
-      });
-    } else if (varKey.startsWith('THERMOSTAT_') && varKey.endsWith('_MANUAL_MODE')) {
-      gladys.event.emit(EVENTS.WEBSOCKET.SEND_ALL, {
-        type: WEBSOCKET_MESSAGE_TYPES.THERMOSTAT.MANUAL_MODE_UPDATED,
-        payload: { key: varKey, value: req.body.value }
-      });
-    }
     res.json(variable);
   }
 
@@ -79,8 +61,10 @@ module.exports = function VariableController(gladys) {
    */
   async function getForUser(req, res) {
     const value = await gladys.variable.getValue(req.params.variable_key, null, req.user.id);
-    // Return null if variable doesn't exist instead of throwing error
-    res.json({ value: value || null });
+    if (!value) {
+      throw new NotFoundError('VARIABLE_NOT_FOUND');
+    }
+    res.json({ value });
   }
 
   /**
@@ -91,8 +75,10 @@ module.exports = function VariableController(gladys) {
    */
   async function getValue(req, res) {
     const value = await gladys.variable.getValue(req.params.variable_key);
-    // Return null if variable doesn't exist instead of throwing error
-    res.json({ value: value || null });
+    if (!value) {
+      throw new NotFoundError('VARIABLE_NOT_FOUND');
+    }
+    res.json({ value });
   }
 
   return Object.freeze({

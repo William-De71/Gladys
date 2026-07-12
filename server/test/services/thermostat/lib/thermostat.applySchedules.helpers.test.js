@@ -91,6 +91,11 @@ describe('thermostat.applySchedules - getSetpointForPreset', () => {
   it('should use generic 20 default for an unknown preset', () => {
     expect(getSetpointForPreset('unknown', {})).to.equal(20);
   });
+
+  it('should keep a legitimate 0 value instead of falling back to the default', () => {
+    expect(getSetpointForPreset('frost', { preset_frost: 0 })).to.equal(0);
+    expect(getSetpointForPreset('frost', { preset_frost: '0' })).to.equal(0);
+  });
 });
 
 describe('thermostat.applySchedules - computeSwitchActive', () => {
@@ -135,5 +140,44 @@ describe('thermostat.applySchedules - computeSwitchActive', () => {
   it('should use default hysteresis of 0.5 when config missing', () => {
     expect(computeSwitchActive(19, 20, 'heating', {}, false)).to.equal(true);
     expect(computeSwitchActive(19.6, 20, 'heating', {}, false)).to.equal(false);
+  });
+
+  it('should return false when setpoint is null', () => {
+    expect(computeSwitchActive(19, null, 'heating', config, true)).to.equal(false);
+  });
+
+  it('should honor a legitimate 0 hysteresis instead of falling back to 0.5', () => {
+    const zeroConfig = { hysteresis_start: 0, hysteresis_stop: 0 };
+    // With 0 hysteresis, 19.9 < 20 - 0 → ON (with default 0.5 it would stay in the neutral zone)
+    expect(computeSwitchActive(19.9, 20, 'heating', zeroConfig, false)).to.equal(true);
+  });
+
+  describe('TPI control type', () => {
+    const tpiConfig = { control_type: 'tpi', tpi_cycle_time: 10, tpi_proportional_band: 2 };
+
+    it('should be fully ON when the error exceeds the proportional band', () => {
+      // error = 20 - 17 = 3 ≥ band 2 → always ON regardless of cycle position
+      expect(computeSwitchActive(17, 20, 'heating', tpiConfig, false, 0)).to.equal(true);
+      expect(computeSwitchActive(17, 20, 'heating', tpiConfig, false, 9 * 60000)).to.equal(true);
+    });
+
+    it('should be fully OFF when at or above the setpoint', () => {
+      expect(computeSwitchActive(20, 20, 'heating', tpiConfig, true, 0)).to.equal(false);
+      expect(computeSwitchActive(21, 20, 'heating', tpiConfig, true, 0)).to.equal(false);
+    });
+
+    it('should modulate within the cycle when inside the proportional band', () => {
+      // error = 1, band = 2 → ON 50% of a 10-minute cycle: minutes 0-4 ON, 5-9 OFF
+      expect(computeSwitchActive(19, 20, 'heating', tpiConfig, false, 0)).to.equal(true);
+      expect(computeSwitchActive(19, 20, 'heating', tpiConfig, false, 4 * 60000)).to.equal(true);
+      expect(computeSwitchActive(19, 20, 'heating', tpiConfig, false, 5 * 60000)).to.equal(false);
+      expect(computeSwitchActive(19, 20, 'heating', tpiConfig, false, 9 * 60000)).to.equal(false);
+    });
+
+    it('should modulate in cooling mode with the inverted error', () => {
+      // cooling error = 25 - 24 = 1, band = 2 → 50% duty cycle
+      expect(computeSwitchActive(25, 24, 'cooling', tpiConfig, false, 0)).to.equal(true);
+      expect(computeSwitchActive(25, 24, 'cooling', tpiConfig, false, 5 * 60000)).to.equal(false);
+    });
   });
 });

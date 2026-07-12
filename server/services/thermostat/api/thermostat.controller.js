@@ -45,7 +45,7 @@ module.exports = function ThermostatController(thermostatHandler) {
   }
 
   /**
-   * @api {put} /api/v1/service/thermostat/schedule/:selector Update a schedule
+   * @api {patch} /api/v1/service/thermostat/schedule/:selector Update a schedule
    * @apiName updateSchedule
    * @apiGroup Thermostat
    */
@@ -64,16 +64,42 @@ module.exports = function ThermostatController(thermostatHandler) {
     res.json({ success: true });
   }
 
+  /**
+   * @api {post} /api/v1/service/thermostat/setpoint/:feature_selector Set thermostat setpoint
+   * @apiName setSetpoint
+   * @apiGroup Thermostat
+   */
   async function setSetpoint(req, res) {
     const featureSelector = req.params.feature_selector;
     const value = Number(req.body.value);
+    if (!Number.isFinite(value)) {
+      res.status(400).json({ error: 'INVALID_VALUE' });
+      return;
+    }
     const deviceFeature = thermostatHandler.gladys.stateManager.get('deviceFeature', featureSelector);
     if (!deviceFeature) {
       res.status(404).json({ error: 'FEATURE_NOT_FOUND' });
       return;
     }
     await thermostatHandler.gladys.device.saveState(deviceFeature, value);
+    thermostatHandler.triggerApplySchedules();
     res.json({ success: true, value });
+  }
+
+  /**
+   * @api {post} /api/v1/service/thermostat/variable/:variable_key Set a thermostat variable
+   * @apiName setVariable
+   * @apiGroup Thermostat
+   * @apiDescription Sets a THERMOSTAT_* variable, broadcasts the matching websocket
+   * message and schedules an immediate regulation pass.
+   */
+  async function setVariable(req, res) {
+    if (!req.params.variable_key || !req.params.variable_key.startsWith('THERMOSTAT_')) {
+      res.status(400).json({ error: 'INVALID_VARIABLE_KEY' });
+      return;
+    }
+    const variable = await thermostatHandler.setVariable(req.params.variable_key, req.body.value);
+    res.json(variable);
   }
 
   return {
@@ -93,7 +119,7 @@ module.exports = function ThermostatController(thermostatHandler) {
       authenticated: true,
       controller: asyncMiddleware(createSchedule),
     },
-    'put /api/v1/service/thermostat/schedule/:selector': {
+    'patch /api/v1/service/thermostat/schedule/:selector': {
       authenticated: true,
       controller: asyncMiddleware(updateSchedule),
     },
@@ -104,6 +130,10 @@ module.exports = function ThermostatController(thermostatHandler) {
     'post /api/v1/service/thermostat/setpoint/:feature_selector': {
       authenticated: true,
       controller: asyncMiddleware(setSetpoint),
+    },
+    'post /api/v1/service/thermostat/variable/:variable_key': {
+      authenticated: true,
+      controller: asyncMiddleware(setVariable),
     },
   };
 };

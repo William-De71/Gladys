@@ -17,18 +17,20 @@ function createActions(store) {
         }
         const allDevices = await state.httpClient.get('/api/v1/service/thermostat/device', options);
         const filtered = Array.isArray(allDevices) ? allDevices : [];
-        const enriched = await Promise.all(filtered.map(async device => {
-          if (device.features && device.features[0]) {
-            const featureKey = device.features[0].selector.toUpperCase().replace(/-/g, '_');
-            try {
-              const varResp = await state.httpClient.get(`/api/v1/variable/THERMOSTAT_ACTIVE_SCHEDULE_${featureKey}`);
-              return { ...device, active_schedule: (varResp && varResp.value) || '' };
-            } catch (e) {
-              return { ...device, active_schedule: '' };
+        const enriched = await Promise.all(
+          filtered.map(async device => {
+            if (device.features && device.features[0]) {
+              const featureKey = device.features[0].selector.toUpperCase().replace(/-/g, '_');
+              try {
+                const varResp = await state.httpClient.get(`/api/v1/variable/THERMOSTAT_ACTIVE_SCHEDULE_${featureKey}`);
+                return { ...device, active_schedule: (varResp && varResp.value) || '' };
+              } catch (e) {
+                return { ...device, active_schedule: '' };
+              }
             }
-          }
-          return { ...device, active_schedule: '' };
-        }));
+            return { ...device, active_schedule: '' };
+          })
+        );
         store.setState({
           thermostatDevices: enriched,
           getThermostatDevicesStatus: RequestStatus.Success
@@ -45,7 +47,7 @@ function createActions(store) {
       const savedDevice = await state.httpClient.post('/api/v1/device', deviceToSave);
       if (savedDevice && savedDevice.features && savedDevice.features[0]) {
         const featureKey = savedDevice.features[0].selector.toUpperCase().replace(/-/g, '_');
-        await state.httpClient.post(`/api/v1/variable/THERMOSTAT_ACTIVE_SCHEDULE_${featureKey}`, {
+        await state.httpClient.post(`/api/v1/service/thermostat/variable/THERMOSTAT_ACTIVE_SCHEDULE_${featureKey}`, {
           value: active_schedule || ''
         });
       }

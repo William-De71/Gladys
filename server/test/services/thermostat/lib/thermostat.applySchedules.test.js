@@ -182,7 +182,7 @@ describe('thermostat.applySchedules (integration)', () => {
     expect(value).to.equal(0);
   });
 
-  it('should do nothing when no active schedule is configured', async () => {
+  it('should do nothing when there is no schedule and no preset selected', async () => {
     const device = buildThermostatDevice(baseParams());
     const mod = loadModule(buildSchedule('comfort'));
     const gladys = makeGladys({
@@ -194,6 +194,48 @@ describe('thermostat.applySchedules (integration)', () => {
     const ctx = { gladys, serviceId: 'svc' };
     await mod.applySchedules.call(ctx);
     expect(gladysDeviceSetValue.called).to.equal(false);
+  });
+
+  it('should regulate on the current preset when no schedule is configured', async () => {
+    const device = buildThermostatDevice(baseParams({ THERMOSTAT_PRESET_COMFORT: '21' }));
+    const mod = loadModule(null);
+    const gladys = makeGladys({
+      devices: [device],
+      variables: { THERMOSTAT_THERMOSTAT_LIVING_ROOM_PRESET: 'comfort' },
+      switchOn: false,
+      currentTemp: 18, // cold → heating must turn ON even without a schedule
+    });
+    const ctx = { gladys, serviceId: 'svc' };
+    await mod.applySchedules.call(ctx);
+    expect(gladysDeviceSetValue.calledOnce).to.equal(true);
+    const [, , value] = gladysDeviceSetValue.firstCall.args;
+    expect(value).to.equal(1);
+  });
+
+  it('should not write the setpoint state when it did not change', async () => {
+    const device = {
+      features: [{ selector: 'thermostat-living-room', last_value: 21 }],
+      params: baseParams({ THERMOSTAT_PRESET_COMFORT: '21' }),
+    };
+    const mod = loadModule(buildSchedule('comfort'));
+    const gladys = makeGladys({
+      devices: [device],
+      variables: {
+        THERMOSTAT_ACTIVE_SCHEDULE_THERMOSTAT_LIVING_ROOM: 'my-schedule',
+        THERMOSTAT_THERMOSTAT_LIVING_ROOM_PRESET: 'comfort',
+      },
+      switchOn: true,
+      currentTemp: 18, // already ON, stays ON
+    });
+    const ctx = { gladys, serviceId: 'svc' };
+    await mod.applySchedules.call(ctx);
+    // Setpoint unchanged (21) and preset unchanged → no state write, no preset write, no emit
+    expect(gladys.device.saveState.called).to.equal(false);
+    const presetWrites = gladysVariableSetValue.getCalls().filter(
+      (c) => c.args[0] === 'THERMOSTAT_THERMOSTAT_LIVING_ROOM_PRESET',
+    );
+    expect(presetWrites).to.have.lengthOf(0);
+    expect(eventEmit.called).to.equal(false);
   });
 
   it('should cut heating when the window is open', async () => {
