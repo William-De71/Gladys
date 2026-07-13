@@ -288,6 +288,7 @@ const SYSTEM_VARIABLE_NAMES = {
   DUCKDB_MIGRATED: 'DUCKDB_MIGRATED',
   DUCKDB_ORPHANED_STATES_PURGED: 'DUCKDB_ORPHANED_STATES_PURGED',
   GLADYS_VERSION: 'GLADYS_VERSION',
+  MDNS_HOSTNAME: 'MDNS_HOSTNAME',
 };
 
 const EVENTS = {
@@ -405,6 +406,7 @@ const EVENTS = {
     UPGRADE_CONTAINERS: 'system.upgrade-containers',
     CHECK_UPGRADE: 'system.check-upgrade',
     TIMEZONE_CHANGED: 'system.timezone-changed',
+    MDNS_HOSTNAME_CHANGED: 'system.mdns-hostname-changed',
     VACUUM: 'system.vacuum',
     START: 'system.start',
     WATCHTOWER_LOG: 'system.watchtower-log',
