@@ -17,6 +17,13 @@ const {
   MAX_SCENE_DECLARATION_FIELDS,
 } = require('../lib/external-integration/constants');
 const { addSelectorBeforeValidateHook } = require('../utils/addSelector');
+const {
+  SCRIPT_LANGUAGES,
+  SCRIPT_MAX_CODE_LENGTH,
+  EDITOR_MODES,
+  EDITOR_GRAPH_MAX_POSITIONS,
+  EDITOR_GRAPH_MAX_SIGNATURE_LENGTH,
+} = require('../lib/scene/script/constants');
 
 const MUSIC_MEDIA_TYPES_LIST = Object.values(MUSIC_MEDIA_TYPES);
 const MUSIC_PLAY_MODES_LIST = Object.values(MUSIC_PLAY_MODES);
@@ -180,6 +187,12 @@ const actionSchema = Joi.object()
     // "condition.in-time-range" condition: true checks we are inside one of the time ranges of
     // the scene, false checks we are outside of them.
     in_range: Joi.boolean(),
+    // "script.run": the JavaScript of a scene in code mode (docs/specs/scene-editor-modes.md B.2).
+    // Empty is allowed so a scene can be saved while its script is being written.
+    code: Joi.string()
+      .allow('')
+      .max(SCRIPT_MAX_CODE_LENGTH),
+    language: Joi.string().valid(...SCRIPT_LANGUAGES),
   })
   // A "variable.set" action holds either a text or a formula, never both: the runtime
   // would only evaluate the formula and silently drop the text.
@@ -328,6 +341,80 @@ const triggerSchema = Joi.object()
 
 const triggersSchema = Joi.array().items(triggerSchema);
 
+// How the scene is edited, and the layout of its graph (docs/specs/scene-editor-modes.md B.1).
+// Display only, except for the code mode, which is checked against the actions below.
+const editorSchema = Joi.object()
+  .keys({
+    mode: Joi.string()
+      .valid(...EDITOR_MODES)
+      .required(),
+    graph: Joi.object().keys({
+      signature: Joi.string()
+        .allow('')
+        .max(EDITOR_GRAPH_MAX_SIGNATURE_LENGTH)
+        .required(),
+      positions: Joi.object()
+        .pattern(
+          /^[a-z0-9.]+$/,
+          Joi.object()
+            .keys({
+              x: Joi.number().required(),
+              y: Joi.number().required(),
+            })
+            .required(),
+        )
+        .max(EDITOR_GRAPH_MAX_POSITIONS)
+        .required(),
+    }),
+  })
+  .allow(null);
+
+/**
+ * @description Tell whether scene actions are those of a scene in code mode: a single
+ * "script.run" action, alone in a single step.
+ * @param {Array} actions - The actions of the scene.
+ * @returns {boolean} True when the actions are a script.
+ * @example
+ * isScriptActions([[{ type: 'script.run', code: '' }]]); // true
+ */
+function isScriptActions(actions) {
+  return (
+    Array.isArray(actions) &&
+    actions.length === 1 &&
+    Array.isArray(actions[0]) &&
+    actions[0].length === 1 &&
+    actions[0][0] !== null &&
+    typeof actions[0][0] === 'object' &&
+    actions[0][0].type === ACTIONS.SCRIPT.RUN
+  );
+}
+
+/**
+ * @description Tell whether some actions, at any depth, contain a "script.run" action.
+ * @param {Array} actions - An array of steps.
+ * @returns {boolean} True when a "script.run" action is found.
+ * @example
+ * containsScriptAction([[{ type: 'light.turn-on' }]]); // false
+ */
+function containsScriptAction(actions) {
+  if (!Array.isArray(actions)) {
+    return false;
+  }
+  return actions.some(
+    (step) =>
+      Array.isArray(step) &&
+      step.some(
+        (action) =>
+          action !== null &&
+          typeof action === 'object' &&
+          (action.type === ACTIONS.SCRIPT.RUN ||
+            containsScriptAction(action.then) ||
+            containsScriptAction(action.else) ||
+            containsScriptAction([action.if])),
+      ),
+  );
+}
+
 /**
  * @description Build a flat validation message from Joi details.
  * @param {object} error - Joi validation error.
@@ -410,8 +497,34 @@ module.exports = (sequelize, DataTypes) => {
       last_executed: {
         type: DataTypes.DATE,
       },
+      editor: {
+        allowNull: true,
+        type: DataTypes.JSON,
+        validate: {
+          isEven(value) {
+            const result = editorSchema.validate(value, { abortEarly: false });
+            if (result.error) {
+              throw new Error(formatJoiValidationError(result.error));
+            }
+          },
+        },
+      },
     },
-    {},
+    {
+      validate: {
+        // A scene in code mode is a script and nothing else, and a script is only found in a
+        // scene in code mode (docs/specs/scene-editor-modes.md B.3).
+        codeModeMatchesActions() {
+          const codeMode = Boolean(this.editor && this.editor.mode === 'code');
+          if (codeMode && !isScriptActions(this.actions)) {
+            throw new Error('A scene in code mode must have a single "script.run" action');
+          }
+          if (!codeMode && containsScriptAction(this.actions)) {
+            throw new Error('A "script.run" action is only allowed in a scene in code mode');
+          }
+        },
+      },
+    },
   );
 
   // add slug if needed
@@ -429,3 +542,5 @@ module.exports = (sequelize, DataTypes) => {
 };
 
 module.exports.formatJoiValidationError = formatJoiValidationError;
+module.exports.actionSchema = actionSchema;
+module.exports.isScriptActions = isScriptActions;

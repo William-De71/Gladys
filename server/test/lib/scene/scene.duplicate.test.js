@@ -55,4 +55,14 @@ describe('scene.duplicate', () => {
     const promise = sceneManager.duplicate('not-found-scene', 'new-name', 'new-icon');
     return assert.isRejected(promise);
   });
+
+  it('should duplicate the editor of a scene', async () => {
+    await sceneManager.update('to-duplicate-scene', {
+      editor: { mode: 'code' },
+      actions: [[{ type: ACTIONS.SCRIPT.RUN, code: 'await sleep(1);' }]],
+    });
+    const duplicatedScene = await sceneManager.duplicate('to-duplicate-scene', 'Code copy', 'bell');
+    expect(duplicatedScene.editor).to.deep.equal({ mode: 'code' });
+    expect(duplicatedScene.actions).to.deep.equal([[{ type: ACTIONS.SCRIPT.RUN, code: 'await sleep(1);' }]]);
+  });
 });

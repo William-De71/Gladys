@@ -1099,6 +1099,12 @@ function getRoutes(gladys) {
       authenticated: true,
       controller: sceneController.get,
     },
+    // literal route, before /api/v1/scene/:scene_selector
+    'post /api/v1/scene/script/generate': {
+      authenticated: true,
+      admin: true,
+      controller: sceneController.generateScript,
+    },
     'get /api/v1/scene/running': {
       authenticated: true,
       controller: sceneController.getRunning,

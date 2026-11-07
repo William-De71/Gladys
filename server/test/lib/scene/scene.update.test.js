@@ -63,4 +63,25 @@ describe('scene.update', () => {
     });
     return assert.isRejected(promise, 'Scene not found');
   });
+
+  it('should switch a scene to the code mode, and back', async () => {
+    const scene = await sceneManager.update('test-scene', {
+      editor: { mode: 'code' },
+      actions: [[{ type: 'script.run', code: "console.log('hello');" }]],
+    });
+    expect(scene.editor).to.deep.equal({ mode: 'code' });
+    expect(scene.actions).to.deep.equal([[{ type: 'script.run', code: "console.log('hello');" }]]);
+    const classicScene = await sceneManager.update('test-scene', {
+      editor: { mode: 'graph', graph: { signature: 't0|', positions: {} } },
+      actions: [[]],
+    });
+    expect(classicScene.editor.mode).to.equal('graph');
+  });
+  it('should refuse a script which does not compile', async () => {
+    const promise = sceneManager.update('test-scene', {
+      editor: { mode: 'code' },
+      actions: [[{ type: 'script.run', code: 'if (' }]],
+    });
+    await assert.isRejected(promise, 'Script syntax error at line');
+  });
 });

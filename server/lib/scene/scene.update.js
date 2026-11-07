@@ -1,5 +1,6 @@
 const Promise = require('bluebird');
 const db = require('../../models');
+const { assertScriptCompiles } = require('./script/script.assertCompiles');
 const { NotFoundError } = require('../../utils/coreErrors');
 
 /**
@@ -30,6 +31,7 @@ async function update(selector, scene) {
     throw new NotFoundError('Scene not found');
   }
 
+  await assertScriptCompiles(scene.actions);
   // "last_executed" is written by the scene manager when the scene runs: an editor saving the
   // scene it loaded before a run must never put the previous value back
   const { last_executed: ignoredLastExecuted, ...sceneToUpdate } = scene;

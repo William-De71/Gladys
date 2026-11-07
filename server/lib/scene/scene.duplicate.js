@@ -43,6 +43,7 @@ async function duplicate(selector, name, icon) {
     active: plainExistingScene.active,
     actions: plainExistingScene.actions,
     triggers: plainExistingScene.triggers,
+    editor: plainExistingScene.editor,
   };
 
   return this.create(newScene);

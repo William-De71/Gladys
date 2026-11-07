@@ -1,4 +1,5 @@
 const db = require('../../models');
+const { assertScriptCompiles } = require('./script/script.assertCompiles');
 const { slugify } = require('../../utils/slugify');
 
 /**
@@ -19,6 +20,7 @@ async function create(scene) {
       selector: slugify(scene.name, true),
     };
   }
+  await assertScriptCompiles(scene.actions);
   // create scene in DB
   const createdScene = await db.Scene.create(sceneWithSelector, {
     include: [

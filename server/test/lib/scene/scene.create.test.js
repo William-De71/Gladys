@@ -3,6 +3,7 @@ const sinon = require('sinon').createSandbox();
 
 const { fake } = sinon;
 const EventEmitter = require('events');
+const proxyquire = require('proxyquire').noCallThru();
 const { ACTIONS, ANY_CHANGE_OPERATOR, EVENTS } = require('../../../utils/constants');
 const SceneManager = require('../../../lib/scene');
 const sceneModel = require('../../../models/scene');
@@ -405,5 +406,34 @@ describe('SceneManager', () => {
   it('should format joi error fallback when details are absent', () => {
     expect(sceneModel.formatJoiValidationError()).to.equal('Invalid schema');
     expect(sceneModel.formatJoiValidationError({ message: 'Validation failed' })).to.equal('Validation failed');
+  });
+
+  it('should create a scene in code mode', async () => {
+    const scene = await sceneManager.create({
+      name: 'My code scene',
+      icon: 'bell',
+      triggers: [],
+      editor: { mode: 'code' },
+      actions: [[{ type: ACTIONS.SCRIPT.RUN, code: 'await sleep(1);' }]],
+    });
+    expect(scene.editor).to.deep.equal({ mode: 'code' });
+  });
+  it('should refuse a scene in code mode whose script does not compile', async () => {
+    const promise = sceneManager.create({
+      name: 'My broken code scene',
+      icon: 'bell',
+      triggers: [],
+      editor: { mode: 'code' },
+      actions: [[{ type: ACTIONS.SCRIPT.RUN, code: 'const a = 1;\nlet b = ;' }]],
+    });
+    await assert.isRejected(promise, "Script syntax error at line 2, column 9: unexpected token in expression: ';'");
+  });
+  it('should refuse a script whose syntax error has no position', async () => {
+    const { assertScriptCompiles } = proxyquire('../../../lib/scene/script/script.assertCompiles', {
+      './script.sandbox': {
+        compileScript: fake.resolves({ valid: false, message: 'broken', line: null, column: null }),
+      },
+    });
+    await assert.isRejected(assertScriptCompiles([[{ type: ACTIONS.SCRIPT.RUN }]]), 'Script syntax error: broken');
   });
 });

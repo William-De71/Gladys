@@ -1,4 +1,6 @@
 const asyncMiddleware = require('../middlewares/asyncMiddleware');
+const { generateScript } = require('../../lib/scene/script/script.generate');
+const { BadParameters } = require('../../utils/coreErrors');
 const { EVENTS, ACTIONS, ACTIONS_STATUS } = require('../../utils/constants');
 
 /**
@@ -133,8 +135,26 @@ module.exports = function SceneController(gladys) {
     res.json(tags);
   }
 
+  /**
+   * @api {post} /api/v1/scene/script/generate generate a script
+   * @apiName generateScript
+   * @apiGroup Scene
+   * @apiDescription Convert the steps of a scene to a script with the same behavior
+   * (docs/specs/scene-editor-modes.md D.4).
+   * @apiBody {Array} actions The steps of the scene.
+   * @apiSuccessExample {json} Success-Response:
+   * { "code": "await gladys.action('light.turn-on', { devices: ['lamp'] });\n" }
+   */
+  async function generateSceneScript(req, res) {
+    if (!req.body || !Array.isArray(req.body.actions)) {
+      throw new BadParameters('"actions" must be an array of steps');
+    }
+    res.json({ code: generateScript(req.body.actions) });
+  }
+
   return Object.freeze({
     create: asyncMiddleware(create),
+    generateScript: asyncMiddleware(generateSceneScript),
     destroy: asyncMiddleware(destroy),
     get: asyncMiddleware(get),
     getRunning: asyncMiddleware(getRunning),

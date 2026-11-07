@@ -5,6 +5,7 @@ import { route } from 'preact-router';
 import get from 'get-value'; // Import get-value package
 
 import { RequestStatus } from '../../../utils/consts';
+import withIntlAsProp from '../../../utils/withIntlAsProp';
 import EditScenePage from './EditScenePage';
 import MobileEditScenePage from './mobile/MobileEditScenePage';
 import LeaveConfirmSheet from './LeaveConfirmSheet';
@@ -60,6 +61,56 @@ const isNotAnEdit = event => {
     return false;
   }
   return Boolean(target.closest('[data-not-an-edit]') || target.hasAttribute('data-sheet-backdrop'));
+};
+
+import {
+  sceneToGraph,
+  applyGraph,
+  sceneSignature,
+  layoutPositions,
+  remapPath,
+  makeEdge,
+  newActionNode,
+  insertAfter,
+  addParallel,
+  appendToMainFlow,
+  removeNode,
+  syncTriggerNodes,
+  relayout,
+  triggerNodeId,
+  HANDLES
+} from './graph/sceneGraph';
+
+// The three ways of editing a scene (docs/specs/scene-editor-modes.md)
+export const EDITOR_MODES = {
+  CLASSIC: 'classic',
+  GRAPH: 'graph',
+  CODE: 'code'
+};
+const MAX_GRAPH_HISTORY = 50;
+const MAX_SCRIPT_LOGS = 200;
+const EXECUTING_HIGHLIGHT_DELAY_MS = 500;
+
+const getEditorMode = scene => (scene.editor && scene.editor.mode) || EDITOR_MODES.CLASSIC;
+
+// The editor of a scene in graph mode: the layout is saved with the shape it was drawn for
+const graphEditor = (scene, graph) => ({
+  mode: EDITOR_MODES.GRAPH,
+  graph: { signature: sceneSignature(scene), positions: layoutPositions(graph.nodes) }
+});
+
+const countUnwired = graph => (graph ? graph.nodes.filter(node => node.data && node.data.path === null).length : 0);
+
+// The variables declared by each action are keyed by its path: they follow their action
+const remapVariables = (variables, mapping) => {
+  if (Object.keys(mapping).length === 0) {
+    return variables;
+  }
+  const remapped = {};
+  Object.keys(variables).forEach(path => {
+    remapped[remapPath(path, mapping)] = variables[path];
+  });
+  return remapped;
 };
 
 const VARIABLES_ATTRIBUTES_IN_ACTION = {
@@ -391,11 +442,20 @@ class EditScene extends Component {
       scene.triggers.forEach(() => {
         triggersVariables.push([]);
       });
+      let graph = null;
+      if (getEditorMode(scene) === EDITOR_MODES.GRAPH) {
+        graph = this.buildGraph(scene);
+        // the layout as drawn: the saved one, or the automatic one when the scene changed since
+        scene.editor = graphEditor(scene, graph);
+      }
       this.setState({
         scene,
         savedSceneSnapshot: JSON.stringify(scene),
         variables,
         triggersVariables,
+        graph,
+        graphHistory: [],
+        graphFuture: [],
         SceneGetStatus: RequestStatus.Success
       });
       this.scheduleDraftCheck();
@@ -628,6 +688,21 @@ class EditScene extends Component {
     timeRangeTriggers.forEach(trigger => {
       trigger.time_ranges = sortRanges(trigger.time_ranges);
     });
+    // In the graph mode, a block wired to nothing is not part of the scene: saving would drop it
+    // without a word (docs/specs/scene-editor-modes.md C.3)
+    if (this.state.graph && getEditorMode(sceneToSave) === EDITOR_MODES.GRAPH) {
+      const unwiredCount = countUnwired(this.state.graph);
+      if (unwiredCount > 0) {
+        this.setState({
+          error: true,
+          errorMessage: null,
+          errorMessageId: 'editScene.graph.unwiredError',
+          errorMessageFields: { count: unwiredCount }
+        });
+        return;
+      }
+      sceneToSave.editor = graphEditor(sceneToSave, this.state.graph);
+    }
     // the declaration catalog is still unknown (request pending or failed):
     // an integration card cannot be validated, so the save retries the
     // request once and refuses rather than persisting an unchecked required
@@ -1315,6 +1390,9 @@ class EditScene extends Component {
           $push: [[]]
         }
       });
+      if (newState.graph) {
+        newState.graph = syncTriggerNodes(newState.graph, newState.scene.triggers.length);
+      }
       return newState;
     });
   };
@@ -1330,6 +1408,9 @@ class EditScene extends Component {
           $splice: [[index, 1]]
         }
       });
+      if (newState.graph) {
+        newState.graph = syncTriggerNodes(newState.graph, newState.scene.triggers.length);
+      }
       return newState;
     });
   };
@@ -2148,9 +2229,261 @@ class EditScene extends Component {
     this.setState({ isMobile });
   };
 
+  // --- editor modes (docs/specs/scene-editor-modes.md E)
+
+  newNodeId = () => {
+    this.nodeCounter = (this.nodeCounter || 0) + 1;
+    return `node-${this.nodeCounter}`;
+  };
+
+  buildGraph = scene => {
+    const saved = scene.editor && scene.editor.graph;
+    const positions = saved && saved.signature === sceneSignature(scene) ? saved.positions : null;
+    return sceneToGraph(scene, { newId: this.newNodeId, positions });
+  };
+
+  getDictionaryText = (key, fallback) => get(this.props, `intl.dictionary.${key}`, { default: fallback });
+
+  switchEditorMode = async mode => {
+    const { scene, graph } = this.state;
+    const currentMode = getEditorMode(scene);
+    if (mode === currentMode) {
+      return;
+    }
+    const confirm = key => window.confirm(this.getDictionaryText(`editScene.modes.${key}`, key));
+
+    if (mode === EDITOR_MODES.CODE) {
+      if (!confirm('toCodeConfirm')) {
+        return;
+      }
+      try {
+        const { code } = await this.props.httpClient.post('/api/v1/scene/script/generate', {
+          actions: scene.actions
+        });
+        this.setState(prevState => ({
+          scene: {
+            ...prevState.scene,
+            editor: { mode: EDITOR_MODES.CODE },
+            actions: [[{ type: ACTIONS.SCRIPT.RUN, code }]]
+          },
+          graph: null,
+          variables: {},
+          error: false
+        }));
+      } catch (e) {
+        console.error(e);
+        this.setState({ error: true, errorMessage: null, errorMessageId: 'editScene.modes.toCodeError' });
+      }
+      return;
+    }
+
+    if (currentMode === EDITOR_MODES.CODE) {
+      if (!confirm('leaveCodeConfirm')) {
+        return;
+      }
+      this.setState(prevState => {
+        const sceneWithBlocks = { ...prevState.scene, actions: [[]] };
+        const nextGraph = mode === EDITOR_MODES.GRAPH ? this.buildGraph(sceneWithBlocks) : null;
+        sceneWithBlocks.editor = nextGraph ? graphEditor(sceneWithBlocks, nextGraph) : { mode };
+        return { scene: sceneWithBlocks, graph: nextGraph, graphHistory: [], graphFuture: [], variables: {} };
+      });
+      return;
+    }
+
+    if (mode === EDITOR_MODES.GRAPH) {
+      this.setState(prevState => {
+        const nextGraph = this.buildGraph(prevState.scene);
+        return {
+          graph: nextGraph,
+          graphHistory: [],
+          graphFuture: [],
+          scene: { ...prevState.scene, editor: graphEditor(prevState.scene, nextGraph) }
+        };
+      });
+      return;
+    }
+
+    // graph -> classic: the scene is the same, only the unwired blocks are lost
+    if (countUnwired(graph) > 0 && !confirm('dropUnwiredConfirm')) {
+      return;
+    }
+    this.setState(prevState => ({
+      graph: null,
+      scene: { ...prevState.scene, editor: { mode: EDITOR_MODES.CLASSIC } }
+    }));
+  };
+
+  // --- graph mode (docs/specs/scene-editor-modes.md C)
+
+  graphSnapshot = state => ({
+    graph: state.graph,
+    actions: state.scene.actions,
+    triggers: state.scene.triggers,
+    variables: state.variables,
+    triggersVariables: state.triggersVariables
+  });
+
+  // Apply a change of the canvas. A structural change recomputes the steps from the graph, and
+  // redraws the graph from the steps.
+  changeGraph = (nextGraph, { structural = true, history = true } = {}) => {
+    this.setState(prevState => {
+      const pushHistory = history
+        ? {
+            graphHistory: [...prevState.graphHistory, this.graphSnapshot(prevState)].slice(-MAX_GRAPH_HISTORY),
+            graphFuture: []
+          }
+        : {};
+      if (!structural) {
+        return {
+          ...pushHistory,
+          graph: nextGraph,
+          scene: { ...prevState.scene, editor: graphEditor(prevState.scene, nextGraph) }
+        };
+      }
+      const result = applyGraph(prevState.scene, nextGraph.nodes, nextGraph.edges);
+      if (result.error) {
+        return { graphError: result.error };
+      }
+      const graph = { nodes: result.nodes, edges: result.edges };
+      const scene = { ...prevState.scene, actions: result.actions };
+      scene.editor = graphEditor(scene, graph);
+      return {
+        ...pushHistory,
+        scene,
+        graph,
+        graphError: null,
+        variables: remapVariables(prevState.variables, result.mapping)
+      };
+    });
+  };
+
+  connectNodes = connection => {
+    const { graph } = this.state;
+    this.changeGraph({
+      nodes: graph.nodes,
+      edges: [...graph.edges, makeEdge(connection.source, connection.sourceHandle || HANDLES.NEXT, connection.target)]
+    });
+  };
+
+  removeGraphEdge = edgeId => {
+    const { graph } = this.state;
+    this.changeGraph({ nodes: graph.nodes, edges: graph.edges.filter(edge => edge.id !== edgeId) });
+  };
+
+  removeGraphNode = nodeId => {
+    this.changeGraph(removeNode(this.state.graph, nodeId));
+  };
+
+  insertGraphNode = (nodeId, where, handle) => {
+    const node = newActionNode(this.newNodeId());
+    const { graph } = this.state;
+    this.changeGraph(
+      where === 'parallel' ? addParallel(graph, nodeId, node) : insertAfter(graph, nodeId, node, handle)
+    );
+    return node.id;
+  };
+
+  appendGraphNode = () => {
+    const node = newActionNode(this.newNodeId());
+    this.changeGraph(appendToMainFlow(this.state.graph, node));
+    return node.id;
+  };
+
+  addGraphTrigger = () => {
+    const index = this.state.scene.triggers.length;
+    this.addTrigger();
+    return triggerNodeId(index);
+  };
+
+  relayoutGraph = () => {
+    this.changeGraph(relayout(this.state.scene, this.state.graph), { structural: false });
+  };
+
+  // An unwired node is not in the scene: its form edits the node itself
+  updateUnwiredAction = (nodeId, property, value) => {
+    this.setState(prevState => ({
+      graph: {
+        ...prevState.graph,
+        nodes: prevState.graph.nodes.map(node =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, action: { ...node.data.action, [property]: value } } }
+            : node
+        )
+      }
+    }));
+  };
+
+  restoreGraphSnapshot = (from, to) => {
+    this.setState(prevState => {
+      if (prevState[from].length === 0) {
+        return null;
+      }
+      const snapshot = prevState[from][prevState[from].length - 1];
+      const scene = { ...prevState.scene, actions: snapshot.actions, triggers: snapshot.triggers };
+      scene.editor = graphEditor(scene, snapshot.graph);
+      return {
+        [from]: prevState[from].slice(0, -1),
+        [to]: [...prevState[to], this.graphSnapshot(prevState)],
+        graph: snapshot.graph,
+        scene,
+        variables: snapshot.variables,
+        triggersVariables: snapshot.triggersVariables,
+        graphError: null
+      };
+    });
+  };
+
+  undoGraph = () => this.restoreGraphSnapshot('graphHistory', 'graphFuture');
+
+  redoGraph = () => this.restoreGraphSnapshot('graphFuture', 'graphHistory');
+
+  onExecutingAction = payload => {
+    if (payload && payload.path !== undefined) {
+      this.setState(prevState => ({ executingPaths: { ...prevState.executingPaths, [payload.path]: true } }));
+    }
+  };
+
+  onFinishedExecutingAction = payload => {
+    if (payload && payload.path !== undefined) {
+      setTimeout(() => {
+        this.setState(prevState => {
+          const executingPaths = { ...prevState.executingPaths };
+          delete executingPaths[payload.path];
+          return { executingPaths };
+        });
+      }, EXECUTING_HIGHLIGHT_DELAY_MS);
+    }
+  };
+
+  // --- code mode (docs/specs/scene-editor-modes.md D)
+
+  updateScriptCode = code => this.updateActionProperty('0.0', 'code', code);
+
+  onScriptLog = payload => {
+    if (!payload || payload.sceneSelector !== this.props.scene_selector) {
+      return;
+    }
+    this.scriptLogCounter = (this.scriptLogCounter || 0) + 1;
+    const log = {
+      id: this.scriptLogCounter,
+      time: new Date().toLocaleTimeString(),
+      level: payload.level,
+      message: payload.message
+    };
+    this.setState(prevState => ({ scriptLogs: [...prevState.scriptLogs, log].slice(-MAX_SCRIPT_LOGS) }));
+  };
+
+  clearScriptLogs = () => this.setState({ scriptLogs: [] });
+
   constructor(props) {
     super(props);
     this.state = {
+      graph: null,
+      graphHistory: [],
+      graphFuture: [],
+      graphError: null,
+      executingPaths: {},
+      scriptLogs: [],
       scene: null,
       variables: {},
       triggersVariables: [],
@@ -2191,6 +2524,12 @@ class EditScene extends Component {
     );
     this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.SCENE.STARTED, this.onSceneStarted);
     this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.SCENE.STOPPED, this.onSceneStopped);
+    this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.SCENE.EXECUTING_ACTION, this.onExecutingAction);
+    this.props.session.dispatcher.addListener(
+      WEBSOCKET_MESSAGE_TYPES.SCENE.FINISHED_EXECUTING_ACTION,
+      this.onFinishedExecutingAction
+    );
+    this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.SCENE.SCRIPT_LOG, this.onScriptLog);
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -2227,6 +2566,15 @@ class EditScene extends Component {
     );
     this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.SCENE.STARTED, this.onSceneStarted);
     this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.SCENE.STOPPED, this.onSceneStopped);
+    this.props.session.dispatcher.removeListener(
+      WEBSOCKET_MESSAGE_TYPES.SCENE.EXECUTING_ACTION,
+      this.onExecutingAction
+    );
+    this.props.session.dispatcher.removeListener(
+      WEBSOCKET_MESSAGE_TYPES.SCENE.FINISHED_EXECUTING_ACTION,
+      this.onFinishedExecutingAction
+    );
+    this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.SCENE.SCRIPT_LOG, this.onScriptLog);
     if (this.ticker) {
       clearInterval(this.ticker);
       this.ticker = null;
@@ -2260,7 +2608,13 @@ class EditScene extends Component {
       structureVersion,
       toast,
       leaveConfirmOpen,
-      draftToRestore
+      draftToRestore,
+      graph,
+      graphHistory,
+      graphFuture,
+      graphError,
+      executingPaths,
+      scriptLogs
     }
   ) {
     if (!scene) {
@@ -2319,11 +2673,35 @@ class EditScene extends Component {
       dismissError: this.dismissError,
       draftToRestore,
       restoreDraft: this.restoreDraft,
-      discardDraft: this.discardDraft
+      discardDraft: this.discardDraft,
+      // the editor modes (docs/specs/scene-editor-modes.md)
+      editorMode: getEditorMode(scene),
+      switchEditorMode: this.switchEditorMode,
+      graph,
+      graphError,
+      canUndo: graphHistory.length > 0,
+      canRedo: graphFuture.length > 0,
+      executingPaths,
+      changeGraph: this.changeGraph,
+      connectNodes: this.connectNodes,
+      removeEdge: this.removeGraphEdge,
+      removeNode: this.removeGraphNode,
+      insertNode: this.insertGraphNode,
+      appendNode: this.appendGraphNode,
+      addGraphTrigger: this.addGraphTrigger,
+      relayoutGraph: this.relayoutGraph,
+      updateUnwiredAction: this.updateUnwiredAction,
+      undoGraph: this.undoGraph,
+      redoGraph: this.redoGraph,
+      updateScriptCode: this.updateScriptCode,
+      scriptLogs,
+      clearScriptLogs: this.clearScriptLogs
     };
     return (
       <div key={editorKey}>
-        {isMobile ? (
+        {/* the mobile editor edits the steps of a classic scene: a scene in graph or code mode
+            keeps the page of its mode, laid out for a phone */}
+        {isMobile && getEditorMode(scene) === EDITOR_MODES.CLASSIC ? (
           <MobileEditScenePage
             {...pageProps}
             isNewScene={new URLSearchParams(window.location.search).get('new') === '1'}
@@ -2361,4 +2739,4 @@ class EditScene extends Component {
   }
 }
 
-export default connect('session,httpClient,user', {})(EditScene);
+export default connect('session,httpClient,user', {})(withIntlAsProp(EditScene));

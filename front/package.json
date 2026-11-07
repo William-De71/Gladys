@@ -16,6 +16,7 @@
     "start-demo": "cross-env DEMO_MODE=true vite --port 1445",
     "eslint": "eslint src cypress --ext .json --ext .js --ext .jsx",
     "compare-translations": "comparejson -e ./src/config/i18n/*.json && comparejson -e ./src/config/i18n/icon-keywords/*.json && node ./cli/check_translations.js",
+    "test-unit": "node --test \"src/**/*.test.js\"",
     "prettier-check": "prettier --check '**/*.js' '**/*.jsx' '**/*.json'",
     "prettier": "prettier --write '**/*.js' '**/*.jsx' '**/*.json'",
     "start:cypress": "cross-env DEMO_MODE=false WEBSOCKET_URL=ws://localhost:1443 LOCAL_API_URL=http://localhost:1443 vite build --minify false --sourcemap false && node cypress/serve-build.js",
@@ -50,6 +51,7 @@
     "vite-plugin-static-copy": "^4.1.1"
   },
   "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.5",
     "@gladysassistant/gladys-gateway-js": "^4.23.0",
     "@gladysassistant/theme-optimized": "^2.1.0",
     "@jaames/iro": "^5.5.2",
@@ -58,6 +60,7 @@
     "apexcharts": "^3.41.1",
     "axios": "^1.16.1",
     "classnames": "^2.3.1",
+    "codemirror": "^6.0.2",
     "cropperjs": "^1.5.12",
     "date-fns": "^2.22.1",
     "dayjs": "^1.10.6",
@@ -87,6 +90,7 @@
     "react-dnd-touch-backend": "^16.0.1",
     "react-select": "^4.3.1",
     "react-slider": "^2.0.6",
+    "reactflow": "^11.11.4",
     "unistore": "^3.5.2",
     "useragent-parser-js": "^1.0.3",
     "uuid": "^3.4.0"

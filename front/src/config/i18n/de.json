@@ -4459,7 +4459,8 @@
       },
       "energy-contract": {
         "current-price": "Bedingung zum Strompreis"
-      }
+      },
+      "script.run": "Skript ausführen"
     },
     "actionsDescriptions": {
       "light": {
@@ -5001,6 +5002,67 @@
       "deleteSceneTitle": "Szene löschen?",
       "deleteSceneText": "„{{name}}“ und ihre Auslöser werden gelöscht. Dies kann nicht rückgängig gemacht werden.",
       "deleteForever": "Endgültig löschen"
+    },
+    "modes": {
+      "classic": "Klassisch",
+      "graph": "Grafisch",
+      "code": "Code",
+      "toCodeConfirm": "Diese Szene in Code umwandeln? Die Blöcke werden durch ein JavaScript-Skript mit gleichem Verhalten ersetzt. Das ist endgültig: Ein Skript kann nicht wieder in Blöcke umgewandelt werden.",
+      "leaveCodeConfirm": "Zurück zu Blöcken? Das Skript dieser Szene wird gelöscht und die Szene beginnt mit einem leeren Schritt.",
+      "dropUnwiredConfirm": "Einige Blöcke der Grafik sind mit nichts verbunden: Sie gehören nicht zur Szene und gehen verloren. Fortfahren?",
+      "toCodeError": "Die Szene konnte nicht in Code umgewandelt werden."
+    },
+    "graph": {
+      "start": "Start",
+      "thenOutput": "Dann",
+      "elseOutput": "Sonst",
+      "doOutput": "Wiederholen",
+      "addAction": "Aktion",
+      "addAfter": "Danach hinzufügen",
+      "addInThen": "In „Dann“ hinzufügen",
+      "addInElse": "In „Sonst“ hinzufügen",
+      "addInDo": "In die Schleife hinzufügen",
+      "closePanel": "Schließen",
+      "deleteBlock": "Block und seine Zweige löschen",
+      "deleteBlockConfirm": "Diesen Block mit allen Aktionen seiner Zweige löschen?",
+      "relayout": "Blöcke anordnen",
+      "undo": "Rückgängig (Strg+Z)",
+      "redo": "Wiederholen (Strg+Y)",
+      "unwiredNodeHint": "Dieser Block ist mit nichts verbunden: Er gehört nicht zur Szene. Verbinde ihn mit dem Ausgang eines anderen Blocks.",
+      "unwiredBlockHint": "Verbinde diesen Block, um seine Bedingungen zu bearbeiten.",
+      "unwiredCount": {
+        "one": "1 Block ohne Verbindung",
+        "other": "{{count}} Blöcke ohne Verbindung"
+      },
+      "unwiredError": "{{count}} Block/Blöcke der Grafik sind mit nichts verbunden. Verbinde oder lösche sie vor dem Speichern.",
+      "errors": {
+        "cycle": "Diese Verbindung würde eine Schleife erzeugen: Verwende stattdessen einen „Solange“-Block.",
+        "multiple-flows": "Ein Block kann nicht zu zwei Zweigen gehören."
+      },
+      "loadError": "Der grafische Editor konnte nicht geladen werden."
+    },
+    "code": {
+      "thenSectionSubtitle": "das Skript der Szene, in JavaScript",
+      "insertFeature": "Gerät einfügen…",
+      "insertExample": "Beispiel",
+      "reference": "API-Referenz",
+      "referenceIntro": "Das Skript läuft in einer Sandbox als Körper einer async-Funktion: Verwende await, return beendet die Szene. Es hat 32 MB Speicher und wird gestoppt, wenn es länger als eine Sekunde läuft, ohne auf Gladys zu warten.",
+      "console": "Konsole",
+      "clearConsole": "Leeren",
+      "emptyConsole": "Was das Skript mit console.log ausgibt, erscheint hier, während die Szene läuft.",
+      "api": {
+        "event": "Das Ereignis, das die Szene ausgelöst hat (undefined bei manuellem Start)",
+        "getValue": "Letzter Wert einer Gerätefunktion",
+        "getFeature": "Die vollständige Gerätefunktion",
+        "setValue": "Setzt den Wert einer Gerätefunktion",
+        "startScene": "Startet eine andere Szene",
+        "sendMessage": "Sendet eine Nachricht an einen Benutzer",
+        "action": "Führt einen beliebigen Block des Szeneneditors mit denselben Parametern aus; saveAs speichert sein Ergebnis für {{saveAs.…}}-Vorlagen",
+        "check": "Prüft einen Bedingungsblock: true oder false, die Szene läuft weiter",
+        "sleep": "Wartet, unterbrochen, wenn die Szene gestoppt wird",
+        "stop": "Beendet die Szene ohne Fehler",
+        "console": "Schreibt in die Konsole unten und in die Gladys-Logs"
+      }
     }
   },
   "profile": {

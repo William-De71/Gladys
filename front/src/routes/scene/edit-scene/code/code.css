@@ -1,0 +1,96 @@
+/* Code mode of the scene editor (docs/specs/scene-editor-modes.md D). Light colors only: the dark
+   mode of Gladys inverts the whole page. */
+
+.codeEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.toolbar select {
+  width: auto;
+  max-width: 320px;
+}
+
+.reference {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 40, 100, 0.12);
+  font-size: 13px;
+}
+
+.reference code {
+  white-space: nowrap;
+}
+
+.editor {
+  min-height: 320px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(0, 40, 100, 0.16);
+}
+
+.editor :global(.cm-editor) {
+  min-height: 320px;
+  max-height: 60vh;
+  font-size: 13px;
+}
+
+.editor :global(.cm-scroller) {
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+}
+
+.fallback {
+  min-height: 320px;
+  border: 0;
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+}
+
+.console {
+  border-radius: 8px;
+  background: #f5f7fb;
+  border: 1px solid rgba(0, 40, 100, 0.12);
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.consoleHeader {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(0, 40, 100, 0.08);
+  font-family: inherit;
+}
+
+.consoleLines {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 6px 10px;
+}
+
+.consoleLine {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.consoleTime {
+  color: #9aa0ac;
+}
+
+.level-warn {
+  color: #b7791f;
+}
+
+.level-error {
+  color: #cd201f;
+}

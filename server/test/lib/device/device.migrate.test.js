@@ -689,6 +689,46 @@ describe('Device.migrate', function Describe() {
     expect(migrationJob.data.states_migrated).to.equal(0);
   });
 
+  it('should rewrite the selectors written in the script of a scene in code mode', async () => {
+    const code = [
+      "const temperature = await gladys.device.getValue('migration-source-temp');",
+      'await gladys.device.setValue("migration-source-binary", 1);',
+      "await gladys.action('light.turn-on', { devices: [`migration-source`] });",
+      "console.log('migration-source-temperature', 'migration-source-temp-' + 1);",
+    ].join('\n');
+    await db.Scene.create({
+      name: 'Migration scene',
+      selector: 'migration-scene',
+      icon: 'fe fe-bell',
+      editor: { mode: 'code' },
+      actions: [[{ type: 'script.run', code }]],
+      triggers: [],
+    });
+
+    await deviceManager.migrate('migration-source', {
+      destination_device_selector: 'migration-destination',
+      features_mapping: { 'migration-source-temp': 'migration-destination-temp' },
+    });
+
+    sinonAssert.calledOnceWithExactly(sceneManagerFake.update, 'migration-scene', {
+      actions: [
+        [
+          {
+            type: 'script.run',
+            code: [
+              "const temperature = await gladys.device.getValue('migration-destination-temp');",
+              // an unmapped feature keeps its selector
+              'await gladys.device.setValue("migration-source-binary", 1);',
+              "await gladys.action('light.turn-on', { devices: [`migration-destination`] });",
+              // only whole literals are selectors
+              "console.log('migration-source-temperature', 'migration-source-temp-' + 1);",
+            ].join('\n'),
+          },
+        ],
+      ],
+    });
+  });
+
   it('should re-point the thermostat params naming a migrated feature', async () => {
     // A thermostat regulating on the source sensor, and switching a feature the
     // mapping leaves out.

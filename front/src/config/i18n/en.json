@@ -4459,7 +4459,8 @@
       },
       "energy-contract": {
         "current-price": "Condition on electricity price"
-      }
+      },
+      "script.run": "Run a script"
     },
     "actionsDescriptions": {
       "light": {
@@ -5001,6 +5002,67 @@
       "deleteSceneTitle": "Delete the scene?",
       "deleteSceneText": "“{{name}}” and its triggers will be deleted. This cannot be undone.",
       "deleteForever": "Delete for good"
+    },
+    "modes": {
+      "classic": "Classic",
+      "graph": "Graph",
+      "code": "Code",
+      "toCodeConfirm": "Convert this scene to code? The blocks are replaced by a JavaScript script with the same behavior. This cannot be undone: a script cannot be turned back into blocks.",
+      "leaveCodeConfirm": "Go back to blocks? The script of this scene will be deleted, and the scene will start from an empty step.",
+      "dropUnwiredConfirm": "Some blocks of the graph are wired to nothing: they are not part of the scene and will be lost. Continue?",
+      "toCodeError": "The scene could not be converted to code."
+    },
+    "graph": {
+      "start": "Start",
+      "thenOutput": "Then",
+      "elseOutput": "Else",
+      "doOutput": "Repeat",
+      "addAction": "Action",
+      "addAfter": "Add after",
+      "addInThen": "Add in \"Then\"",
+      "addInElse": "Add in \"Else\"",
+      "addInDo": "Add in the loop",
+      "closePanel": "Close",
+      "deleteBlock": "Delete the block and its branches",
+      "deleteBlockConfirm": "Delete this block with all the actions of its branches?",
+      "relayout": "Arrange the blocks",
+      "undo": "Undo (Ctrl+Z)",
+      "redo": "Redo (Ctrl+Y)",
+      "unwiredNodeHint": "This block is wired to nothing: it is not part of the scene. Wire it from the output of another block.",
+      "unwiredBlockHint": "Wire this block to edit its conditions.",
+      "unwiredCount": {
+        "one": "1 block wired to nothing",
+        "other": "{{count}} blocks wired to nothing"
+      },
+      "unwiredError": "{{count}} block(s) of the graph are wired to nothing. Wire them or delete them before saving.",
+      "errors": {
+        "cycle": "This link would make a loop: use a \"while\" block instead.",
+        "multiple-flows": "A block cannot belong to two branches."
+      },
+      "loadError": "The graph editor could not be loaded."
+    },
+    "code": {
+      "thenSectionSubtitle": "the script of the scene, in JavaScript",
+      "insertFeature": "Insert a device…",
+      "insertExample": "Example",
+      "reference": "API reference",
+      "referenceIntro": "The script runs in a sandbox, as the body of an async function: use await, return ends the scene. It has 32 MB of memory and is stopped if it runs more than one second without awaiting Gladys.",
+      "console": "Console",
+      "clearConsole": "Clear",
+      "emptyConsole": "What the script logs with console.log appears here while the scene runs.",
+      "api": {
+        "event": "The event that started the scene (undefined when started by hand)",
+        "getValue": "Last value of a device feature",
+        "getFeature": "The whole device feature",
+        "setValue": "Set the value of a device feature",
+        "startScene": "Start another scene",
+        "sendMessage": "Send a message to a user",
+        "action": "Run any block of the scene editor, with the same parameters; saveAs keeps its result for {{saveAs.…}} templates",
+        "check": "Check a condition block: true or false, the scene goes on",
+        "sleep": "Wait, interrupted if the scene is stopped",
+        "stop": "End the scene quietly",
+        "console": "Write to the console below and to the Gladys logs"
+      }
     }
   },
   "profile": {

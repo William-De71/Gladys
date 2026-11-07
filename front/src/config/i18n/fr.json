@@ -4459,7 +4459,8 @@
       },
       "energy-contract": {
         "current-price": "Condition sur le prix de l'électricité"
-      }
+      },
+      "script.run": "Exécuter un script"
     },
     "actionsDescriptions": {
       "light": {
@@ -5001,6 +5002,67 @@
       "deleteSceneTitle": "Supprimer la scène ?",
       "deleteSceneText": "« {{name}} » et ses déclencheurs seront supprimés. Cette action est définitive.",
       "deleteForever": "Supprimer définitivement"
+    },
+    "modes": {
+      "classic": "Classique",
+      "graph": "Graphique",
+      "code": "Code",
+      "toCodeConfirm": "Convertir cette scène en code ? Les blocs sont remplacés par un script JavaScript au comportement identique. Ce choix est définitif : un script ne peut pas redevenir des blocs.",
+      "leaveCodeConfirm": "Revenir aux blocs ? Le script de cette scène sera supprimé et la scène repartira d’une étape vide.",
+      "dropUnwiredConfirm": "Certains blocs du graphique ne sont reliés à rien : ils ne font pas partie de la scène et seront perdus. Continuer ?",
+      "toCodeError": "La scène n’a pas pu être convertie en code."
+    },
+    "graph": {
+      "start": "Départ",
+      "thenOutput": "Alors",
+      "elseOutput": "Sinon",
+      "doOutput": "Répéter",
+      "addAction": "Action",
+      "addAfter": "Ajouter après",
+      "addInThen": "Ajouter dans « Alors »",
+      "addInElse": "Ajouter dans « Sinon »",
+      "addInDo": "Ajouter dans la boucle",
+      "closePanel": "Fermer",
+      "deleteBlock": "Supprimer le bloc et ses branches",
+      "deleteBlockConfirm": "Supprimer ce bloc avec toutes les actions de ses branches ?",
+      "relayout": "Réorganiser les blocs",
+      "undo": "Annuler (Ctrl+Z)",
+      "redo": "Rétablir (Ctrl+Y)",
+      "unwiredNodeHint": "Ce bloc n’est relié à rien : il ne fait pas partie de la scène. Relie-le depuis la sortie d’un autre bloc.",
+      "unwiredBlockHint": "Relie ce bloc pour modifier ses conditions.",
+      "unwiredCount": {
+        "one": "1 bloc relié à rien",
+        "other": "{{count}} blocs reliés à rien"
+      },
+      "unwiredError": "{{count}} bloc(s) du graphique ne sont reliés à rien. Relie-les ou supprime-les avant d’enregistrer.",
+      "errors": {
+        "cycle": "Ce lien créerait une boucle : utilise plutôt un bloc « Tant que ».",
+        "multiple-flows": "Un bloc ne peut pas appartenir à deux branches."
+      },
+      "loadError": "L’éditeur graphique n’a pas pu être chargé."
+    },
+    "code": {
+      "thenSectionSubtitle": "le script de la scène, en JavaScript",
+      "insertFeature": "Insérer un appareil…",
+      "insertExample": "Exemple",
+      "reference": "Référence de l’API",
+      "referenceIntro": "Le script s’exécute dans un bac à sable, comme le corps d’une fonction async : utilise await, return termine la scène. Il dispose de 32 Mo de mémoire et est arrêté s’il tourne plus d’une seconde sans attendre Gladys.",
+      "console": "Console",
+      "clearConsole": "Effacer",
+      "emptyConsole": "Ce que le script affiche avec console.log apparaît ici pendant l’exécution de la scène.",
+      "api": {
+        "event": "L’événement qui a déclenché la scène (undefined si lancée à la main)",
+        "getValue": "Dernière valeur d’une fonctionnalité d’appareil",
+        "getFeature": "La fonctionnalité d’appareil complète",
+        "setValue": "Change la valeur d’une fonctionnalité d’appareil",
+        "startScene": "Lance une autre scène",
+        "sendMessage": "Envoie un message à un utilisateur",
+        "action": "Exécute n’importe quel bloc de l’éditeur de scènes, avec les mêmes paramètres ; saveAs garde son résultat pour les modèles {{saveAs.…}}",
+        "check": "Vérifie un bloc condition : true ou false, la scène continue",
+        "sleep": "Attend, interrompu si la scène est arrêtée",
+        "stop": "Termine la scène sans erreur",
+        "console": "Écrit dans la console ci-dessous et dans les logs de Gladys"
+      }
     }
   },
   "profile": {

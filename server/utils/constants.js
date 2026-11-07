@@ -955,6 +955,10 @@ const ACTIONS = {
   VARIABLE: {
     SET: 'variable.set',
   },
+  SCRIPT: {
+    // the actions of a scene in code mode (docs/specs/scene-editor-modes.md B.2)
+    RUN: 'script.run',
+  },
 };
 
 // List of actions that can be used as conditions
@@ -2239,6 +2243,7 @@ const WEBSOCKET_MESSAGE_TYPES = {
     FINISHED_EXECUTING_ACTION: 'scene.finished-executing-action',
     STARTED: 'scene.started',
     STOPPED: 'scene.stopped',
+    SCRIPT_LOG: 'scene.script-log',
   },
   THERMOSTAT: {
     CONFIG_UPDATED: 'thermostat.config-updated',

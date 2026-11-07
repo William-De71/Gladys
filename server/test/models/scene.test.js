@@ -275,4 +275,111 @@ describe('models/scene', () => {
       await assert.isRejected(promise, '"[0].time_ranges[0].start"');
     });
   });
+
+  describe('editor and code mode', () => {
+    const buildSceneWithEditor = (editor, actions) =>
+      db.Scene.build({ name: 'Editor scene', icon: 'bell', triggers: [], actions, editor });
+    const scriptActions = [[{ type: ACTIONS.SCRIPT.RUN, code: 'await sleep(1);', language: 'javascript' }]];
+
+    it('should validate a scene without editor, in the classic mode', async () => {
+      await buildSceneWithEditor(undefined, [[{ type: ACTIONS.LIGHT.TURN_ON }]]).validate();
+      await buildSceneWithEditor(null, [[{ type: ACTIONS.LIGHT.TURN_ON }]]).validate();
+      await buildSceneWithEditor({ mode: 'classic' }, [[{ type: ACTIONS.LIGHT.TURN_ON }]]).validate();
+    });
+
+    it('should validate a scene in graph mode with its layout', async () => {
+      await buildSceneWithEditor(
+        {
+          mode: 'graph',
+          graph: {
+            signature: 't1|a[light.turn-on]',
+            positions: { start: { x: 0, y: 0 }, 'trigger.0': { x: -200, y: 0 }, '0.0': { x: 200.5, y: -3 } },
+          },
+        },
+        [[{ type: ACTIONS.LIGHT.TURN_ON }]],
+      ).validate();
+    });
+
+    it('should reject an unknown mode, a position without coordinates or a bad node key', async () => {
+      const actions = [[{ type: ACTIONS.LIGHT.TURN_ON }]];
+      await assert.isRejected(buildSceneWithEditor({ mode: 'blocks' }, actions).validate(), '"mode" must be one of');
+      await assert.isRejected(
+        buildSceneWithEditor(
+          { mode: 'graph', graph: { signature: '', positions: { '0.0': { x: 1 } } } },
+          actions,
+        ).validate(),
+        '"graph.positions.0.0.y" is required',
+      );
+      await assert.isRejected(
+        buildSceneWithEditor(
+          { mode: 'graph', graph: { signature: '', positions: { 'Bad Key': { x: 1, y: 1 } } } },
+          actions,
+        ).validate(),
+        'is not allowed',
+      );
+    });
+
+    it('should validate a scene in code mode holding a script', async () => {
+      await buildSceneWithEditor({ mode: 'code' }, scriptActions).validate();
+      await buildSceneWithEditor({ mode: 'code' }, [[{ type: ACTIONS.SCRIPT.RUN, code: '' }]]).validate();
+    });
+
+    it('should reject a scene in code mode without a single script', async () => {
+      const message = 'A scene in code mode must have a single "script.run" action';
+      await assert.isRejected(
+        buildSceneWithEditor({ mode: 'code' }, [[{ type: ACTIONS.LIGHT.TURN_ON }]]).validate(),
+        message,
+      );
+      await assert.isRejected(
+        buildSceneWithEditor({ mode: 'code' }, [...scriptActions, [{ type: ACTIONS.LIGHT.TURN_ON }]]).validate(),
+        message,
+      );
+      await assert.isRejected(
+        buildSceneWithEditor({ mode: 'code' }, [[...scriptActions[0], { type: ACTIONS.LIGHT.TURN_ON }]]).validate(),
+        message,
+      );
+      await assert.isRejected(buildSceneWithEditor({ mode: 'code' }, []).validate(), message);
+    });
+
+    it('should reject a script outside of the code mode, even nested in a block', async () => {
+      const message = 'A "script.run" action is only allowed in a scene in code mode';
+      await assert.isRejected(buildSceneWithEditor(null, scriptActions).validate(), message);
+      await assert.isRejected(buildSceneWithEditor({ mode: 'graph' }, scriptActions).validate(), message);
+      await assert.isRejected(
+        buildSceneWithEditor(null, [
+          [{ type: ACTIONS.CONDITION.IF_THEN_ELSE, if: [], then: [[]], else: scriptActions }],
+        ]).validate(),
+        message,
+      );
+      await assert.isRejected(
+        buildSceneWithEditor(null, [
+          [{ type: ACTIONS.CONDITION.WHILE, if: [scriptActions[0][0]], then: [[]] }],
+        ]).validate(),
+        message,
+      );
+    });
+
+    it('should refuse a script in another language or too long', async () => {
+      await assert.isRejected(
+        buildSceneWithEditor({ mode: 'code' }, [[{ type: ACTIONS.SCRIPT.RUN, code: '', language: 'lua' }]]).validate(),
+        '"[0][0].language" must be [javascript]',
+      );
+      await assert.isRejected(
+        buildSceneWithEditor({ mode: 'code' }, [[{ type: ACTIONS.SCRIPT.RUN, code: 'x'.repeat(100001) }]]).validate(),
+        'length must be less than or equal to 100000',
+      );
+    });
+  });
+
+  describe('isScriptActions', () => {
+    const { isScriptActions } = require('../../models/scene'); // eslint-disable-line global-require
+
+    it('should only accept a single script.run action', () => {
+      assert.equal(isScriptActions([[{ type: ACTIONS.SCRIPT.RUN }]]), true);
+      assert.equal(isScriptActions(null), false);
+      assert.equal(isScriptActions(['not a step']), false);
+      assert.equal(isScriptActions([[null]]), false);
+      assert.equal(isScriptActions([['not an action']]), false);
+    });
+  });
 });

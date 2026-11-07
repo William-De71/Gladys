@@ -20,6 +20,7 @@ const TIME_RANGE_TRUST_MS = 60 * 1000;
 const logger = require('../../utils/logger');
 const executeActionsFactory = require('./scene.executeActions');
 const { evaluate } = require('./scene.formula');
+const { runSceneScript } = require('./script/script.run');
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -1188,6 +1189,8 @@ const actionsFunc = {
       throw new AbortScene('TIME_RANGE_CONDITION_NOT_VERIFIED');
     }
   },
+  // The actions of a scene in code mode (docs/specs/scene-editor-modes.md D)
+  [ACTIONS.SCRIPT.RUN]: (self, action, scope, path) => runSceneScript(self, action, scope, path, actionsFunc),
   [ACTIONS.CONDITION.IF_THEN_ELSE]: async (self, action, scope, path) => {
     const { if: ifActions, then: thenActions, else: elseActions } = action;
     const { executeAction, executeActions } = executeActionsFactory(actionsFunc);

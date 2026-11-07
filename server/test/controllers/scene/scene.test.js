@@ -208,3 +208,36 @@ describe('GET /api/v1/tag_scene', () => {
       });
   });
 });
+
+describe('POST /api/v1/scene/script/generate', () => {
+  it('should convert the steps of a scene to a script', async () => {
+    await authenticatedRequest
+      .post('/api/v1/scene/script/generate')
+      .send({ actions: [[{ type: ACTIONS.LIGHT.TURN_ON, devices: ['lamp'] }]] })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .then((res) => {
+        expect(res.body.code).to.contain("await gladys.action('light.turn-on', { devices: ['lamp'] });");
+      });
+  });
+  it('should refuse a body without actions', async () => {
+    await authenticatedRequest
+      .post('/api/v1/scene/script/generate')
+      .send({})
+      .expect(400);
+  });
+});
+
+describe('PATCH /api/v1/scene/:scene_selector in code mode', () => {
+  it('should refuse a script which does not compile', async () => {
+    await authenticatedRequest
+      .patch('/api/v1/scene/test-scene')
+      .send({ editor: { mode: 'code' }, actions: [[{ type: 'script.run', code: 'let x = ;' }]] })
+      .expect(400)
+      .then((res) => {
+        expect(res.body.message).to.equal(
+          "Script syntax error at line 1, column 9: unexpected token in expression: ';'",
+        );
+      });
+  });
+});

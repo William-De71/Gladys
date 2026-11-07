@@ -3,7 +3,7 @@ const cloneDeep = require('lodash.clonedeep');
 const db = require('../../models');
 const logger = require('../../utils/logger');
 const { NotFoundError, BadParameters, ConflictError } = require('../../utils/coreErrors');
-const { EVENTS } = require('../../utils/constants');
+const { EVENTS, ACTIONS } = require('../../utils/constants');
 const { getStandardDeviceIncludes } = require('../../utils/deviceQueryIncludes');
 const { parseSelectorList, serializeSelectorList } = require('../../utils/thermostatSelectorList');
 
@@ -43,6 +43,31 @@ const MOVE_PROGRESS_END = 40;
 
 const uuidParam = () => 'CAST(? AS UUID)';
 
+// A string literal of a script, without escapes or line breaks: a selector is written as is.
+const SCRIPT_STRING_LITERAL_REGEX = /(['"`])([^'"`\\\n]+)\1/g;
+
+/**
+ * @description Replace the selectors written as string literals in the code of a scene in code
+ * mode (docs/specs/scene-editor-modes.md B.4). A selector built at runtime cannot be found.
+ * @param {string} code - The script.
+ * @param {object} featureReplacements - Map of source feature selector to destination feature selector.
+ * @param {object} deviceReplacements - Map of source device selector to destination device selector.
+ * @returns {string} The script with the selectors replaced.
+ * @example
+ * rewriteScriptReferences("gladys.device.getValue('old')", { old: 'new' }, {});
+ */
+function rewriteScriptReferences(code, featureReplacements, deviceReplacements) {
+  return code.replace(SCRIPT_STRING_LITERAL_REGEX, (literal, quote, content) => {
+    if (featureReplacements[content] !== undefined) {
+      return `${quote}${featureReplacements[content]}${quote}`;
+    }
+    if (deviceReplacements[content] !== undefined) {
+      return `${quote}${deviceReplacements[content]}${quote}`;
+    }
+    return literal;
+  });
+}
+
 /**
  * @description Replace device/feature selectors in one scene action, scene trigger or dashboard box.
  * @param {object} item - The action/trigger/box object, mutated in place.
@@ -71,6 +96,13 @@ function rewriteReferences(item, featureReplacements, deviceReplacements) {
       });
     }
   };
+  if (item.type === ACTIONS.SCRIPT.RUN && typeof item.code === 'string') {
+    const code = rewriteScriptReferences(item.code, featureReplacements, deviceReplacements);
+    if (code !== item.code) {
+      item.code = code;
+      changed = true;
+    }
+  }
   FEATURE_STRING_FIELDS.forEach((field) => replaceString(field, featureReplacements));
   FEATURE_ARRAY_FIELDS.forEach((field) => replaceArray(field, featureReplacements));
   DEVICE_STRING_FIELDS.forEach((field) => replaceString(field, deviceReplacements));

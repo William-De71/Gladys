@@ -801,3 +801,22 @@
 :global(body.gladys-scene-condition-dragging) .conditionAndSeparator {
   opacity: 0.15;
 }
+
+/* Header actions: the editor mode switch next to the settings button
+   (docs/specs/scene-editor-modes.md E) */
+.headerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.editorModeSwitch {
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .editorModeLabel {
+    display: none;
+  }
+}

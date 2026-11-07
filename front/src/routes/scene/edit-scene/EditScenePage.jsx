@@ -8,10 +8,15 @@ import style from './style.css';
 import Settings from './Settings';
 import EditActions from './EditActions';
 import DraftBanner from './DraftBanner';
+import EditorModeSwitch from './EditorModeSwitch';
+import SceneCanvas from './graph/LazySceneCanvas';
+import SceneCodeEditor from './code/SceneCodeEditor';
 import dashboardStyle from '../../dashboard/style.css';
 import { Localizer, Text } from 'preact-i18n';
 
 const EditScenePage = ({ children, ...props }) => {
+  const isGraph = props.editorMode === 'graph' && props.graph;
+  const isCode = props.editorMode === 'code';
   // The scene settings (name, description, icon, tags) are hidden by default
   // and open on demand from the header, to keep the scene visible right away
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -42,7 +47,7 @@ const EditScenePage = ({ children, ...props }) => {
         {/* padding, not margin: a top margin collapses through the glass
             page-main and shifts the scene down */}
         <div class="py-3 py-md-5">
-          <div class={cx('container', style.pageContainer)}>
+          <div class={cx(isGraph ? 'container-fluid' : 'container', style.pageContainer)}>
             <div class="mb-4">
               <div class="row justify-content-between">
                 <div class={cx('col', style.pageTitleColumn)}>
@@ -81,7 +86,12 @@ const EditScenePage = ({ children, ...props }) => {
                 </div>
 
                 <div class="col-auto">
-                  <div class="text-right">
+                  <div class={cx('text-right', style.headerActions)}>
+                    <EditorModeSwitch
+                      editorMode={props.editorMode}
+                      switchEditorMode={props.switchEditorMode}
+                      disabled={props.saving}
+                    />
                     <Localizer>
                       <button
                         onClick={settingsOpen ? closeSettings : openSettings}
@@ -138,101 +148,119 @@ const EditScenePage = ({ children, ...props }) => {
                 </div>
               )}
 
-              <div class="row">
-                <div class="col-lg-12">
-                  <div class={style.sectionHeader}>
-                    <span class={cx(style.sectionTitle, style.sectionTitleWhen)}>
-                      <Text id="editScene.whenSectionTitle" />
-                    </span>
-                    <span class={style.sectionSubtitle}>
-                      <Text id="editScene.whenSectionSubtitle" />
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div class="row">
-                <TriggerGroup
-                  triggers={props.scene.triggers}
-                  addTrigger={props.addTrigger}
-                  deleteTrigger={props.deleteTrigger}
-                  updateTriggerProperty={props.updateTriggerProperty}
-                  saving={props.saving}
-                  variables={props.variables}
-                  setVariablesTrigger={props.setVariablesTrigger}
-                  sceneIntegrations={props.sceneIntegrations}
-                  deviceFeatures={props.deviceFeatures}
-                  names={props.names}
-                />
-              </div>
-              <div class="row">
-                <div class="col-lg-12">
-                  <div class={style.sectionHeader}>
-                    <span class={cx(style.sectionTitle, style.sectionTitleThen)}>
-                      <Text id="editScene.thenSectionTitle" />
-                    </span>
-                    <span class={style.sectionSubtitle}>
-                      <Text id="editScene.thenSectionSubtitle" />
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* The root step flow: the droppable surface of the whole "then"
-                sequence (stepDrag.js computes the insertion point inside it) */}
-            <div data-step-flow data-flow-path="" data-flow-level="1">
-              {props.scene.actions.map((parallelActions, index) => (
-                <div>
+              {!isGraph && (
+                <>
                   <div class="row">
-                    <ActionGroup
-                      moveCard={props.moveCard}
-                      moveCardGroup={props.moveCardGroup}
-                      addAction={props.addAction}
-                      deleteActionGroup={props.deleteActionGroup}
-                      actions={parallelActions}
-                      allActions={props.scene.actions}
-                      deleteAction={props.deleteAction}
-                      updateSelectedNewAction={props.updateSelectedNewAction}
-                      updateActionProperty={props.updateActionProperty}
-                      highLightedActions={props.highLightedActions}
-                      sceneParamsData={props.sceneParamsData}
-                      scene={props.scene}
-                      index={index}
-                      path={`${index}`}
+                    <div class="col-lg-12">
+                      <div class={style.sectionHeader}>
+                        <span class={cx(style.sectionTitle, style.sectionTitleWhen)}>
+                          <Text id="editScene.whenSectionTitle" />
+                        </span>
+                        <span class={style.sectionSubtitle}>
+                          <Text id="editScene.whenSectionSubtitle" />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <TriggerGroup
+                      triggers={props.scene.triggers}
+                      addTrigger={props.addTrigger}
+                      deleteTrigger={props.deleteTrigger}
+                      updateTriggerProperty={props.updateTriggerProperty}
                       saving={props.saving}
-                      actionsGroupsBefore={update(props.scene.actions, {
-                        $splice: [[index, props.scene.actions.length - index]]
-                      })}
-                      lastActionGroup={index === props.scene.actions.length - 1}
                       variables={props.variables}
-                      triggersVariables={props.triggersVariables}
-                      setVariables={props.setVariables}
+                      setVariablesTrigger={props.setVariablesTrigger}
                       sceneIntegrations={props.sceneIntegrations}
                       deviceFeatures={props.deviceFeatures}
-                      thermostatSchedules={props.thermostatSchedules}
                       names={props.names}
                     />
                   </div>
-
-                  {parallelActions.length > 0 &&
-                    index + 1 < props.scene.actions.length &&
-                    props.scene.actions[index + 1].length > 0 && (
-                      <div class={style.stepConnector}>
-                        <Localizer>
-                          <button
-                            onClick={() => insertStepAfter(index)}
-                            class={style.stepInsertButton}
-                            disabled={props.saving}
-                            aria-label={<Text id="editScene.insertStepButton" />}
-                          >
-                            <i class="fe fe-plus" />
-                          </button>
-                        </Localizer>
+                  <div class="row">
+                    <div class="col-lg-12">
+                      <div class={style.sectionHeader}>
+                        <span class={cx(style.sectionTitle, style.sectionTitleThen)}>
+                          <Text id="editScene.thenSectionTitle" />
+                        </span>
+                        <span class={style.sectionSubtitle}>
+                          <Text id={isCode ? 'editScene.code.thenSectionSubtitle' : 'editScene.thenSectionSubtitle'} />
+                        </span>
                       </div>
-                    )}
-                </div>
-              ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
+
+            {isGraph && <SceneCanvas {...props} addTrigger={props.addGraphTrigger} />}
+
+            {isCode && (
+              <SceneCodeEditor
+                code={(props.scene.actions[0] && props.scene.actions[0][0] && props.scene.actions[0][0].code) || ''}
+                onChange={props.updateScriptCode}
+                deviceFeatures={props.deviceFeatures}
+                scriptLogs={props.scriptLogs}
+                clearScriptLogs={props.clearScriptLogs}
+              />
+            )}
+
+            {/* The root step flow: the droppable surface of the whole "then"
+                sequence (stepDrag.js computes the insertion point inside it) */}
+            {!isGraph && !isCode && (
+              <div data-step-flow data-flow-path="" data-flow-level="1">
+                {props.scene.actions.map((parallelActions, index) => (
+                  <div>
+                    <div class="row">
+                      <ActionGroup
+                        moveCard={props.moveCard}
+                        moveCardGroup={props.moveCardGroup}
+                        addAction={props.addAction}
+                        deleteActionGroup={props.deleteActionGroup}
+                        actions={parallelActions}
+                        allActions={props.scene.actions}
+                        deleteAction={props.deleteAction}
+                        updateSelectedNewAction={props.updateSelectedNewAction}
+                        updateActionProperty={props.updateActionProperty}
+                        highLightedActions={props.highLightedActions}
+                        sceneParamsData={props.sceneParamsData}
+                        scene={props.scene}
+                        index={index}
+                        path={`${index}`}
+                        saving={props.saving}
+                        actionsGroupsBefore={update(props.scene.actions, {
+                          $splice: [[index, props.scene.actions.length - index]]
+                        })}
+                        lastActionGroup={index === props.scene.actions.length - 1}
+                        variables={props.variables}
+                        triggersVariables={props.triggersVariables}
+                        setVariables={props.setVariables}
+                        sceneIntegrations={props.sceneIntegrations}
+                        deviceFeatures={props.deviceFeatures}
+                        thermostatSchedules={props.thermostatSchedules}
+                        names={props.names}
+                      />
+                    </div>
+
+                    {parallelActions.length > 0 &&
+                      index + 1 < props.scene.actions.length &&
+                      props.scene.actions[index + 1].length > 0 && (
+                        <div class={style.stepConnector}>
+                          <Localizer>
+                            <button
+                              onClick={() => insertStepAfter(index)}
+                              class={style.stepInsertButton}
+                              disabled={props.saving}
+                              aria-label={<Text id="editScene.insertStepButton" />}
+                            >
+                              <i class="fe fe-plus" />
+                            </button>
+                          </Localizer>
+                        </div>
+                      )}
+                  </div>
+                ))}
+              </div>
+            )}
             <EditActions {...props} />
           </div>
         </div>
