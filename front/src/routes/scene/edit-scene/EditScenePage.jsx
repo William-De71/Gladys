@@ -47,7 +47,7 @@ const EditScenePage = ({ children, ...props }) => {
         {/* padding, not margin: a top margin collapses through the glass
             page-main and shifts the scene down */}
         <div class="py-3 py-md-5">
-          <div class={cx(isGraph ? 'container-fluid' : 'container', style.pageContainer)}>
+          <div class={cx('container', style.pageContainer)}>
             <div class="mb-4">
               <div class="row justify-content-between">
                 <div class={cx('col', style.pageTitleColumn)}>
@@ -87,11 +87,14 @@ const EditScenePage = ({ children, ...props }) => {
 
                 <div class="col-auto">
                   <div class={cx('text-right', style.headerActions)}>
-                    <EditorModeSwitch
-                      editorMode={props.editorMode}
-                      switchEditorMode={props.switchEditorMode}
-                      disabled={props.saving}
-                    />
+                    {/* on a phone, the switch takes its own row below the title (see below) */}
+                    <div class="d-none d-sm-block">
+                      <EditorModeSwitch
+                        editorMode={props.editorMode}
+                        switchEditorMode={props.switchEditorMode}
+                        disabled={props.saving}
+                      />
+                    </div>
                     <Localizer>
                       <button
                         onClick={settingsOpen ? closeSettings : openSettings}
@@ -112,6 +115,14 @@ const EditScenePage = ({ children, ...props }) => {
                   </div>
                 </div>
                 <div class="col-12 text-muted">{props.scene.description && <span>{props.scene.description}</span>}</div>
+                <div class="col-12 d-sm-none mt-3">
+                  <EditorModeSwitch
+                    editorMode={props.editorMode}
+                    switchEditorMode={props.switchEditorMode}
+                    disabled={props.saving}
+                    fullWidth
+                  />
+                </div>
               </div>
             </div>
             <div>

@@ -5006,7 +5006,7 @@
     "modes": {
       "classic": "Classic",
       "graph": "Graph",
-      "code": "Code",
+      "code": "Advanced",
       "toCodeConfirm": "Convert this scene to code? The blocks are replaced by a JavaScript script with the same behavior. This cannot be undone: a script cannot be turned back into blocks.",
       "leaveCodeConfirm": "Go back to blocks? The script of this scene will be deleted, and the scene will start from an empty step.",
       "dropUnwiredConfirm": "Some blocks of the graph are wired to nothing: they are not part of the scene and will be lost. Continue?",

@@ -11,8 +11,12 @@ const MODES = [
   { mode: 'code', icon: 'code' }
 ];
 
-const EditorModeSwitch = ({ editorMode, switchEditorMode, disabled }) => (
-  <div class={style.editorModeSwitch} role="group" data-cy="editor-mode-switch">
+const EditorModeSwitch = ({ editorMode, switchEditorMode, disabled, fullWidth }) => (
+  <div
+    class={cx(style.editorModeSwitch, { [style.editorModeSwitchFull]: fullWidth })}
+    role="group"
+    data-cy={fullWidth ? 'editor-mode-switch-mobile' : 'editor-mode-switch'}
+  >
     {MODES.map(({ mode, icon }) => (
       <Localizer key={mode}>
         <button
@@ -22,7 +26,7 @@ const EditorModeSwitch = ({ editorMode, switchEditorMode, disabled }) => (
           disabled={disabled}
           aria-pressed={editorMode === mode}
           aria-label={<Text id={`editScene.modes.${mode}`} />}
-          data-cy={`editor-mode-${mode}`}
+          data-cy={fullWidth ? `editor-mode-mobile-${mode}` : `editor-mode-${mode}`}
         >
           <i class={`fe fe-${icon}`} />
           <span class={style.editorModeLabel}>

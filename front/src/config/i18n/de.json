@@ -5006,7 +5006,7 @@
     "modes": {
       "classic": "Klassisch",
       "graph": "Grafisch",
-      "code": "Code",
+      "code": "Erweitert",
       "toCodeConfirm": "Diese Szene in Code umwandeln? Die Blöcke werden durch ein JavaScript-Skript mit gleichem Verhalten ersetzt. Das ist endgültig: Ein Skript kann nicht wieder in Blöcke umgewandelt werden.",
       "leaveCodeConfirm": "Zurück zu Blöcken? Das Skript dieser Szene wird gelöscht und die Szene beginnt mit einem leeren Schritt.",
       "dropUnwiredConfirm": "Einige Blöcke der Grafik sind mit nichts verbunden: Sie gehören nicht zur Szene und gehen verloren. Fortfahren?",

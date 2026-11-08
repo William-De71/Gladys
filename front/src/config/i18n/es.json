@@ -5006,7 +5006,7 @@
     "modes": {
       "classic": "Clásico",
       "graph": "Gráfico",
-      "code": "Código",
+      "code": "Avanzado",
       "toCodeConfirm": "¿Convertir esta escena en código? Los bloques se sustituyen por un script JavaScript con el mismo comportamiento. Es definitivo: un script no puede volver a ser bloques.",
       "leaveCodeConfirm": "¿Volver a los bloques? El script de esta escena se eliminará y la escena empezará con un paso vacío.",
       "dropUnwiredConfirm": "Algunos bloques del gráfico no están conectados a nada: no forman parte de la escena y se perderán. ¿Continuar?",

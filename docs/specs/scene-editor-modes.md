@@ -279,8 +279,9 @@ script is logged there too, with its line and column.
 
 ## E. Mode switch
 
-A segmented control in the editor header: **Classic · Graph · Code**, always visible, styled as
-the other header controls (a frosted pill). The confirmations open in the editor's own dialog
+A segmented control in the editor header: **Classic · Graph · Advanced** (the code mode is
+labelled "Advanced" for the user), always visible, styled as the other header controls (a frosted
+pill). On a phone it takes its own full-width row below the scene name. The confirmations open in the editor's own dialog
 (Horizon glass, Escape cancels, Enter confirms), never the browser's.
 
 | From → to            | Effect                                                                                                                                                      |

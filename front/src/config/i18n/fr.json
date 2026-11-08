@@ -5006,7 +5006,7 @@
     "modes": {
       "classic": "Classique",
       "graph": "Graphique",
-      "code": "Code",
+      "code": "Avancé",
       "toCodeConfirm": "Convertir cette scène en code ? Les blocs sont remplacés par un script JavaScript au comportement identique. Ce choix est définitif : un script ne peut pas redevenir des blocs.",
       "leaveCodeConfirm": "Revenir aux blocs ? Le script de cette scène sera supprimé et la scène repartira d’une étape vide.",
       "dropUnwiredConfirm": "Certains blocs du graphique ne sont reliés à rien : ils ne font pas partie de la scène et seront perdus. Continuer ?",

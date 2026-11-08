@@ -865,7 +865,18 @@
   cursor: default;
 }
 
-@media (max-width: 767px) {
+/* On a phone, the switch takes the whole width below the title, labels included */
+.editorModeSwitchFull {
+  display: flex;
+  width: 100%;
+}
+
+.editorModeSwitchFull .editorModeButton {
+  flex: 1;
+  justify-content: center;
+}
+
+@media (min-width: 576px) and (max-width: 767px) {
   .editorModeLabel {
     display: none;
   }

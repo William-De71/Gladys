@@ -26,6 +26,13 @@ const EDGE_CLASS = {
   [HANDLES.DO]: 'edgeThen'
 };
 
+// A phone shows the whole scene, smaller; a larger screen keeps the blocks readable
+const FIT_VIEW_OPTIONS = {
+  padding: 0.2,
+  minZoom: typeof window !== 'undefined' && window.innerWidth < 576 ? 0.3 : 0.6,
+  maxZoom: 1
+};
+
 class SceneCanvas extends Component {
   state = { selectedNodeId: null, selectedEdgeId: null };
 
@@ -245,7 +252,10 @@ class SceneCanvas extends Component {
             onClick={this.appendNode}
             data-cy="graph-add-action"
           >
-            <i class="fe fe-plus" /> <Text id="editScene.graph.addAction" />
+            <i class="fe fe-plus" />
+            <span class={style.toolbarLabel}>
+              <Text id="editScene.graph.addAction" />
+            </span>
           </button>
           <button
             type="button"
@@ -253,7 +263,10 @@ class SceneCanvas extends Component {
             onClick={this.addTrigger}
             data-cy="graph-add-trigger"
           >
-            <i class="fe fe-zap" /> <Text id="editScene.addNewTriggerButton" />
+            <i class="fe fe-zap" />
+            <span class={style.toolbarLabel}>
+              <Text id="editScene.addNewTriggerButton" />
+            </span>
           </button>
           <Localizer>
             <button
@@ -319,7 +332,7 @@ class SceneCanvas extends Component {
             snapToGrid
             snapGrid={[GRID_SIZE, GRID_SIZE]}
             fitView
-            fitViewOptions={{ padding: 0.2, minZoom: 0.6, maxZoom: 1 }}
+            fitViewOptions={FIT_VIEW_OPTIONS}
             minZoom={0.2}
             proOptions={{ hideAttribution: true }}
           >
