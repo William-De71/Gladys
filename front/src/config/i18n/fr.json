@@ -5010,7 +5010,13 @@
       "toCodeConfirm": "Convertir cette scène en code ? Les blocs sont remplacés par un script JavaScript au comportement identique. Ce choix est définitif : un script ne peut pas redevenir des blocs.",
       "leaveCodeConfirm": "Revenir aux blocs ? Le script de cette scène sera supprimé et la scène repartira d’une étape vide.",
       "dropUnwiredConfirm": "Certains blocs du graphique ne sont reliés à rien : ils ne font pas partie de la scène et seront perdus. Continuer ?",
-      "toCodeError": "La scène n’a pas pu être convertie en code."
+      "toCodeError": "La scène n’a pas pu être convertie en code.",
+      "toCodeTitle": "Convertir en code ?",
+      "toCodeButton": "Convertir en code",
+      "leaveCodeTitle": "Revenir aux blocs ?",
+      "leaveCodeButton": "Supprimer le script",
+      "dropUnwiredTitle": "Blocs reliés à rien",
+      "dropUnwiredButton": "Les perdre et continuer"
     },
     "graph": {
       "start": "Départ",
@@ -5039,7 +5045,8 @@
         "cycle": "Ce lien créerait une boucle : utilise plutôt un bloc « Tant que ».",
         "multiple-flows": "Un bloc ne peut pas appartenir à deux branches."
       },
-      "loadError": "L’éditeur graphique n’a pas pu être chargé."
+      "loadError": "L’éditeur graphique n’a pas pu être chargé.",
+      "deleteBlockTitle": "Supprimer ce bloc ?"
     },
     "code": {
       "thenSectionSubtitle": "le script de la scène, en JavaScript",

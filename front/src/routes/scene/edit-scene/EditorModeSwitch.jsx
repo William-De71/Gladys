@@ -3,7 +3,8 @@ import cx from 'classnames';
 
 import style from './style.css';
 
-// Classic · Graph · Code (docs/specs/scene-editor-modes.md E)
+// Classic · Graph · Code (docs/specs/scene-editor-modes.md E): a frosted segmented pill, like the
+// other header controls of the editor
 const MODES = [
   { mode: 'classic', icon: 'list' },
   { mode: 'graph', icon: 'share-2' },
@@ -11,12 +12,12 @@ const MODES = [
 ];
 
 const EditorModeSwitch = ({ editorMode, switchEditorMode, disabled }) => (
-  <div class={cx('btn-group', style.editorModeSwitch)} role="group" data-cy="editor-mode-switch">
+  <div class={style.editorModeSwitch} role="group" data-cy="editor-mode-switch">
     {MODES.map(({ mode, icon }) => (
       <Localizer key={mode}>
         <button
           type="button"
-          class={cx('btn btn-sm', editorMode === mode ? 'btn-primary' : 'btn-outline-primary')}
+          class={cx(style.editorModeButton, { [style.editorModeButtonActive]: editorMode === mode })}
           onClick={() => switchEditorMode(mode)}
           disabled={disabled}
           aria-pressed={editorMode === mode}
@@ -25,7 +26,6 @@ const EditorModeSwitch = ({ editorMode, switchEditorMode, disabled }) => (
         >
           <i class={`fe fe-${icon}`} />
           <span class={style.editorModeLabel}>
-            {' '}
             <Text id={`editScene.modes.${mode}`} />
           </span>
         </button>

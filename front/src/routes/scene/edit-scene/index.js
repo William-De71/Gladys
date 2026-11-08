@@ -9,6 +9,7 @@ import withIntlAsProp from '../../../utils/withIntlAsProp';
 import EditScenePage from './EditScenePage';
 import MobileEditScenePage from './mobile/MobileEditScenePage';
 import LeaveConfirmSheet from './LeaveConfirmSheet';
+import ConfirmDialog from './ConfirmDialog';
 import { computeRunningInfo, mergeRunningScenes } from '../runningInfo';
 
 import { ACTIONS, WEBSOCKET_MESSAGE_TYPES } from '../../../../../server/utils/constants';
@@ -90,6 +91,34 @@ export const EDITOR_MODES = {
 const MAX_GRAPH_HISTORY = 50;
 const MAX_SCRIPT_LOGS = 200;
 const EXECUTING_HIGHLIGHT_DELAY_MS = 500;
+
+// The confirmations of the mode switch (docs/specs/scene-editor-modes.md E)
+const CONFIRMATIONS = {
+  toCode: {
+    titleId: 'editScene.modes.toCodeTitle',
+    messageId: 'editScene.modes.toCodeConfirm',
+    confirmLabelId: 'editScene.modes.toCodeButton',
+    danger: false
+  },
+  leaveCode: {
+    titleId: 'editScene.modes.leaveCodeTitle',
+    messageId: 'editScene.modes.leaveCodeConfirm',
+    confirmLabelId: 'editScene.modes.leaveCodeButton',
+    danger: true
+  },
+  dropUnwired: {
+    titleId: 'editScene.modes.dropUnwiredTitle',
+    messageId: 'editScene.modes.dropUnwiredConfirm',
+    confirmLabelId: 'editScene.modes.dropUnwiredButton',
+    danger: true
+  },
+  deleteBlock: {
+    titleId: 'editScene.graph.deleteBlockTitle',
+    messageId: 'editScene.graph.deleteBlockConfirm',
+    confirmLabelId: 'editScene.graph.deleteBlock',
+    danger: true
+  }
+};
 
 const getEditorMode = scene => (scene.editor && scene.editor.mode) || EDITOR_MODES.CLASSIC;
 
@@ -2242,23 +2271,37 @@ class EditScene extends Component {
     return sceneToGraph(scene, { newId: this.newNodeId, positions });
   };
 
-  getDictionaryText = (key, fallback) => get(this.props, `intl.dictionary.${key}`, { default: fallback });
+  // Ask for a confirmation in the editor's own dialog; resolves with true or false
+  askConfirmation = key =>
+    new Promise(resolve => {
+      this.setState({ confirmation: { ...CONFIRMATIONS[key], resolve } });
+    });
+
+  answerConfirmation = answer => {
+    const { confirmation } = this.state;
+    this.setState({ confirmation: null });
+    if (confirmation) {
+      confirmation.resolve(answer);
+    }
+  };
+
+  confirmDialog = () => this.answerConfirmation(true);
+
+  cancelDialog = () => this.answerConfirmation(false);
 
   switchEditorMode = async mode => {
-    const { scene, graph } = this.state;
-    const currentMode = getEditorMode(scene);
+    const currentMode = getEditorMode(this.state.scene);
     if (mode === currentMode) {
       return;
     }
-    const confirm = key => window.confirm(this.getDictionaryText(`editScene.modes.${key}`, key));
 
     if (mode === EDITOR_MODES.CODE) {
-      if (!confirm('toCodeConfirm')) {
+      if (!(await this.askConfirmation('toCode'))) {
         return;
       }
       try {
         const { code } = await this.props.httpClient.post('/api/v1/scene/script/generate', {
-          actions: scene.actions
+          actions: this.state.scene.actions
         });
         this.setState(prevState => ({
           scene: {
@@ -2278,7 +2321,7 @@ class EditScene extends Component {
     }
 
     if (currentMode === EDITOR_MODES.CODE) {
-      if (!confirm('leaveCodeConfirm')) {
+      if (!(await this.askConfirmation('leaveCode'))) {
         return;
       }
       this.setState(prevState => {
@@ -2304,7 +2347,7 @@ class EditScene extends Component {
     }
 
     // graph -> classic: the scene is the same, only the unwired blocks are lost
-    if (countUnwired(graph) > 0 && !confirm('dropUnwiredConfirm')) {
+    if (countUnwired(this.state.graph) > 0 && !(await this.askConfirmation('dropUnwired'))) {
       return;
     }
     this.setState(prevState => ({
@@ -2325,11 +2368,17 @@ class EditScene extends Component {
 
   // Apply a change of the canvas. A structural change recomputes the steps from the graph, and
   // redraws the graph from the steps.
-  changeGraph = (nextGraph, { structural = true, history = true } = {}) => {
+  // `historyFrom`: the graph the undo goes back to, when it is not the current one (a drag has
+  // already moved the node it drops)
+  changeGraph = (nextGraph, { structural = true, history = true, historyFrom = null } = {}) => {
     this.setState(prevState => {
+      const snapshot = this.graphSnapshot(prevState);
+      if (historyFrom) {
+        snapshot.graph = historyFrom;
+      }
       const pushHistory = history
         ? {
-            graphHistory: [...prevState.graphHistory, this.graphSnapshot(prevState)].slice(-MAX_GRAPH_HISTORY),
+            graphHistory: [...prevState.graphHistory, snapshot].slice(-MAX_GRAPH_HISTORY),
             graphFuture: []
           }
         : {};
@@ -2484,6 +2533,7 @@ class EditScene extends Component {
       graphError: null,
       executingPaths: {},
       scriptLogs: [],
+      confirmation: null,
       scene: null,
       variables: {},
       triggersVariables: [],
@@ -2614,7 +2664,8 @@ class EditScene extends Component {
       graphFuture,
       graphError,
       executingPaths,
-      scriptLogs
+      scriptLogs,
+      confirmation
     }
   ) {
     if (!scene) {
@@ -2695,7 +2746,8 @@ class EditScene extends Component {
       redoGraph: this.redoGraph,
       updateScriptCode: this.updateScriptCode,
       scriptLogs,
-      clearScriptLogs: this.clearScriptLogs
+      clearScriptLogs: this.clearScriptLogs,
+      askConfirmation: this.askConfirmation
     };
     return (
       <div key={editorKey}>
@@ -2725,6 +2777,17 @@ class EditScene extends Component {
           />
         ) : (
           <EditScenePage {...pageProps} />
+        )}
+        {/* dialogs of the editor modes */}
+        {confirmation && (
+          <ConfirmDialog
+            titleId={confirmation.titleId}
+            messageId={confirmation.messageId}
+            confirmLabelId={confirmation.confirmLabelId}
+            danger={confirmation.danger}
+            onConfirm={this.confirmDialog}
+            onCancel={this.cancelDialog}
+          />
         )}
         <LeaveConfirmSheet
           open={leaveConfirmOpen}

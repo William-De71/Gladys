@@ -25,7 +25,8 @@ import {
   removeNode,
   syncTriggerNodes,
   relayout,
-  layoutPositions
+  layoutPositions,
+  freePosition
 } from './sceneGraph.js';
 
 const idGenerator = () => {
@@ -88,6 +89,12 @@ describe('sceneToGraph', () => {
     const graph = build(scene);
     const join = graph.nodes.find(node => node.type === NODE_TYPES.JOIN);
     assert.deepEqual(join.data, { flowKey: 'main', stepIndex: 1 });
+    // in the gap before its column, centered on the row, on the 15 px grid
+    assert.deepEqual(join.position, { x: 555, y: 15 });
+    graph.nodes.forEach(node => {
+      assert.equal(node.position.x % 15, 0);
+      assert.equal(node.position.y % 15, 0);
+    });
     assert.deepEqual(edgePairs(graph), [
       `${join.id}:next->n3`,
       `${join.id}:next->n4`,
@@ -148,7 +155,8 @@ describe('sceneToGraph', () => {
     const position = path => nodeAt(graph, path).position;
     assert.deepEqual(graph.nodes[0].position, { x: -300, y: 0 });
     assert.deepEqual(position('0.0'), { x: 300, y: 0 });
-    assert.deepEqual(position('0.1'), { x: 300, y: 120 });
+    // a block is centered on its row, like the other nodes
+    assert.deepEqual(position('0.1'), { x: 300, y: 105 });
     assert.deepEqual(position('0.1.then.0.0'), { x: 600, y: 240 });
     assert.deepEqual(position('0.1.else.0.0'), { x: 600, y: 360 });
     // the next step comes after the branches
@@ -364,7 +372,8 @@ describe('applyGraph', () => {
     ];
     const result = applyGraph(sequential, nodes, edges);
     const newJoin = result.nodes.find(node => node.type === NODE_TYPES.JOIN);
-    assert.deepEqual(newJoin.position, { x: 450, y: 60 });
+    // between the two columns, centered on the rows it joins, on the grid
+    assert.deepEqual(newJoin.position, { x: 450, y: 75 });
     assert.deepEqual(result.actions, [
       [light('a'), light('b')],
       [light('c'), light('d')]
@@ -533,6 +542,28 @@ describe('canvas edits', () => {
       [['light.turn-on'], [null], ['condition.if-then-else'], ['light.turn-on']]
     );
     assert.deepEqual(result.nodes.find(node => node.id === 'new').position, { x: 600, y: 0 });
+  });
+
+  it('should move what follows an inserted node one column right', () => {
+    const graph = build(scene);
+    const before = id => graph.nodes.find(node => node.id === id).position;
+    const inserted = insertAfter(graph, 'n1', placeholder);
+    const after = id => inserted.nodes.find(node => node.id === id).position;
+    // the block, its branch and the last action make room; the first action stays
+    assert.deepEqual(after('n1'), before('n1'));
+    ['n2', 'n3', 'n4'].forEach(id => assert.deepEqual(after(id), { x: before(id).x + 300, y: before(id).y }));
+    assert.deepEqual(after('new'), { x: 600, y: 0 });
+  });
+
+  it('should place a new node where no other node is', () => {
+    const nodes = [
+      { id: 'a', type: NODE_TYPES.ACTION, position: { x: 0, y: 0 } },
+      { id: 'b', type: NODE_TYPES.ACTION, position: { x: 0, y: 120 } },
+      { id: 'join', type: NODE_TYPES.JOIN, position: { x: 0, y: 240 } },
+      { id: 'no-position', type: NODE_TYPES.ACTION }
+    ];
+    assert.deepEqual(freePosition(nodes, { x: 0, y: 0 }), { x: 0, y: 240 });
+    assert.deepEqual(freePosition(nodes, { x: 300, y: 0 }), { x: 300, y: 0 });
   });
 
   it('should insert into a branch of a block, the else one a row lower', () => {

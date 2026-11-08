@@ -157,9 +157,17 @@ the layout is stored apart (C.4).
 
 ### C.5 Editing
 
+- **Grid.** The canvas snaps to a 15 px grid. Every node size is a multiple of twice the grid —
+  actions and triggers 240 × 60, if / while blocks 240 × 90, the start 120 × 60, joins 30 × 30 — so
+  the center of a node, where its handles are, always lies on a grid line: two nodes dropped on a
+  row are aligned. The automatic layout centers the taller blocks on their row.
+- **Look.** The canvas, its toolbar, the panel and the code editor follow the Horizon glass
+  grammar of the editor: glass surfaces, pill buttons (accent, neutral, danger).
+
 - **Adding.** The toolbar's "Action" button adds a block at the end of the scene; the panel of a
   block adds one right after it, at the same time as it, or at the start of one of its branches
-  (`then`, `else`, the loop of a while). A new block has no type yet: its panel opens on the type
+  (`then`, `else`, the loop of a while). An insertion moves what follows one column right, as in a
+  list; any other new node takes the first free place, never on top of another node. A new block has no type yet: its panel opens on the type
   picker of the classic editor (same catalog, same search, integration actions included). The
   toolbar also adds a trigger.
 - **Wiring.** Dragging from an output to a block draws an edge; C.3 decides what it means, and
@@ -174,6 +182,8 @@ the layout is stored apart (C.4).
   unwired (C.3.4). `Delete` / `Backspace` remove the selected node or edge.
 - **History.** `Ctrl+Z` / `Ctrl+Y` (and the toolbar) undo / redo the changes of the canvas, up to
   50; a snapshot holds the graph, the actions, the triggers and their variables.
+- **Selecting.** A click selects a node and opens its panel; it never counts as a change of the
+  scene (a drag without a move is ignored).
 - **Running.** The block being run is highlighted, from the `scene.executing-action` events.
 - **Loading.** The canvas and its library (`reactflow` 11) are loaded only when a scene is opened in
   the graph mode.
@@ -269,8 +279,9 @@ script is logged there too, with its line and column.
 
 ## E. Mode switch
 
-A segmented control in the editor header: **Classic · Graph · Code**, always visible. The
-confirmations are the browser's (`window.confirm`).
+A segmented control in the editor header: **Classic · Graph · Code**, always visible, styled as
+the other header controls (a frosted pill). The confirmations open in the editor's own dialog
+(Horizon glass, Escape cancels, Enter confirms), never the browser's.
 
 | From → to            | Effect                                                                                                                                                      |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |

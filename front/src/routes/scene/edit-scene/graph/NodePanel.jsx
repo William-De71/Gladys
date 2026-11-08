@@ -7,6 +7,7 @@ import TriggerCard from '../TriggerCard';
 import ConditionIfElseThen from '../actions/ConditionIfElseThen';
 import ConditionWhile from '../actions/ConditionWhile';
 import { HANDLES, NODE_TYPES, isBlockType, getAtPath } from './sceneGraph';
+import editStyle from '../style.css';
 import style from './graph.css';
 
 // The panel of the selected node (docs/specs/scene-editor-modes.md C.5): the same forms as the
@@ -21,7 +22,7 @@ const PanelButton = ({ onClick, icon, labelId, cy, danger }) => (
   <Localizer>
     <button
       type="button"
-      class={cx('btn btn-sm', danger ? 'btn-outline-danger' : 'btn-outline-secondary', style.panelButton)}
+      class={cx(editStyle.pill, editStyle.pillSmall, { [editStyle.pillDanger]: danger })}
       onClick={onClick}
       data-cy={cy}
       title={<Text id={labelId} />}
@@ -124,7 +125,7 @@ const NodePanel = props => {
         <Localizer>
           <button
             type="button"
-            class={cx('btn btn-sm btn-link', style.panelClose)}
+            class={cx(editStyle.pill, editStyle.pillIcon)}
             onClick={props.closePanel}
             aria-label={<Text id="editScene.graph.closePanel" />}
           >
@@ -133,7 +134,7 @@ const NodePanel = props => {
         </Localizer>
       </div>
       {unwired && (
-        <div class="alert alert-warning py-2">
+        <div class={cx(style.statusBanner, style.statusWarning)}>
           <i class="fe fe-alert-triangle" /> <Text id="editScene.graph.unwiredNodeHint" />
         </div>
       )}

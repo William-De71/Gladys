@@ -2,6 +2,7 @@ import { Component, createRef } from 'preact';
 import { Localizer, Text } from 'preact-i18n';
 import cx from 'classnames';
 
+import editStyle from '../style.css';
 import style from './code.css';
 
 // The code mode of the scene editor (docs/specs/scene-editor-modes.md D): the actions of the scene
@@ -121,7 +122,7 @@ class SceneCodeEditor extends Component {
       <div class={style.codeEditor} data-cy="scene-code-editor">
         <div class={style.toolbar}>
           <select
-            class="form-control form-control-sm custom-select"
+            class="custom-select"
             value={featureToInsert}
             onChange={this.selectFeature}
             data-cy="code-insert-feature"
@@ -135,12 +136,12 @@ class SceneCodeEditor extends Component {
               </option>
             ))}
           </select>
-          <button type="button" class="btn btn-sm btn-outline-secondary" onClick={this.insertExample}>
+          <button type="button" class={editStyle.pill} onClick={this.insertExample}>
             <i class="fe fe-file-text" /> <Text id="editScene.code.insertExample" />
           </button>
           <button
             type="button"
-            class={cx('btn btn-sm', showReference ? 'btn-secondary' : 'btn-outline-secondary')}
+            class={cx(editStyle.pill, { [editStyle.pillAccent]: showReference })}
             onClick={this.toggleReference}
             data-cy="code-toggle-reference"
           >
@@ -191,7 +192,7 @@ class SceneCodeEditor extends Component {
             <span>
               <i class="fe fe-terminal" /> <Text id="editScene.code.console" />
             </span>
-            <button type="button" class="btn btn-sm btn-link p-0" onClick={props.clearScriptLogs}>
+            <button type="button" class={cx(editStyle.pill, editStyle.pillSmall)} onClick={props.clearScriptLogs}>
               <Text id="editScene.code.clearConsole" />
             </button>
           </div>

@@ -3,7 +3,7 @@ import { Localizer, Text } from 'preact-i18n';
 import { connect } from 'unistore/preact';
 import get from 'get-value';
 import cx from 'classnames';
-import ReactFlow, { Background, Controls, MiniMap, MarkerType, applyNodeChanges } from 'reactflow';
+import ReactFlow, { Background, Controls, MarkerType, applyNodeChanges } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { ACTIONS } from '../../../../../../server/utils/constants';
@@ -12,7 +12,8 @@ import { getActionSummary, getTriggerSummary } from '../summary';
 import { SCENE_DECLARATION_KINDS, getSceneDeclarationTitle } from '../sceneIntegrations';
 import { NODE_COMPONENTS } from './GraphNodes';
 import NodePanel from './NodePanel';
-import { NODE_TYPES, HANDLES, START_NODE_ID, canConnect, getNodeAction, isBlockType } from './sceneGraph';
+import { NODE_TYPES, HANDLES, START_NODE_ID, GRID_SIZE, canConnect, getNodeAction, isBlockType } from './sceneGraph';
+import editStyle from '../style.css';
 import style from './graph.css';
 
 // The canvas of the graph mode (docs/specs/scene-editor-modes.md C). The graph itself lives in
@@ -88,16 +89,36 @@ class SceneCanvas extends Component {
 
   // --- gestures
 
+  // Moving a node only redraws it; dropping it somewhere else is a structural change (the order of
+  // parallel actions follows their vertical order). A click also reports a drag, without a move.
   onNodesChange = changes => {
     const { graph } = this.props;
-    const moves = changes.filter(change => change.type === 'position' || change.type === 'dimensions');
+    const moves = changes.filter(
+      change => (change.type === 'position' && change.position) || change.type === 'dimensions'
+    );
     if (moves.length === 0) {
       return;
     }
-    const nodes = applyNodeChanges(moves, graph.nodes);
-    // The order of parallel actions follows their vertical order: a drop is a structural change
-    const dropped = moves.some(change => change.type === 'position' && change.dragging === false);
-    this.props.changeGraph({ nodes, edges: graph.edges }, { structural: dropped, history: dropped });
+    this.props.changeGraph(
+      { nodes: applyNodeChanges(moves, graph.nodes), edges: graph.edges },
+      { structural: false, history: false }
+    );
+  };
+
+  onNodeDragStart = (event, node) => {
+    const current = this.getNode(node.id);
+    this.dragOrigin = current && current.position ? { id: node.id, ...current.position } : null;
+    this.dragSnapshot = this.props.graph;
+  };
+
+  onNodeDragStop = (event, node) => {
+    const origin = this.dragOrigin;
+    this.dragOrigin = null;
+    const current = this.getNode(node.id);
+    if (!origin || !current || (current.position.x === origin.x && current.position.y === origin.y)) {
+      return;
+    }
+    this.props.changeGraph(this.props.graph, { structural: true, history: true, historyFrom: this.dragSnapshot });
   };
 
   onNodeClick = (event, node) => {
@@ -150,7 +171,7 @@ class SceneCanvas extends Component {
     }
   };
 
-  removeNode = nodeId => {
+  removeNode = async nodeId => {
     const node = this.getNode(nodeId);
     if (!node) {
       return;
@@ -165,8 +186,7 @@ class SceneCanvas extends Component {
         this.props.graph.nodes.some(
           other => other.data && other.data.path && other.data.path.startsWith(`${node.data.path}.`)
         );
-      const confirmMessage = get(this.props.intl, 'dictionary.editScene.graph.deleteBlockConfirm', { default: '' });
-      if (action && isBlockType(action.type) && hasBranches && !window.confirm(confirmMessage)) {
+      if (action && isBlockType(action.type) && hasBranches && !(await this.props.askConfirmation('deleteBlock'))) {
         return;
       }
       this.props.removeNode(nodeId);
@@ -219,12 +239,17 @@ class SceneCanvas extends Component {
     return (
       <div class={style.canvasWrapper} onKeyDown={this.onKeyDown} tabIndex={0} data-cy="graph-canvas">
         <div class={style.toolbar}>
-          <button type="button" class="btn btn-sm btn-primary" onClick={this.appendNode} data-cy="graph-add-action">
+          <button
+            type="button"
+            class={cx(editStyle.pill, editStyle.pillAccent)}
+            onClick={this.appendNode}
+            data-cy="graph-add-action"
+          >
             <i class="fe fe-plus" /> <Text id="editScene.graph.addAction" />
           </button>
           <button
             type="button"
-            class="btn btn-sm btn-outline-primary"
+            class={cx(editStyle.pill, editStyle.pillAccent)}
             onClick={this.addTrigger}
             data-cy="graph-add-trigger"
           >
@@ -233,7 +258,7 @@ class SceneCanvas extends Component {
           <Localizer>
             <button
               type="button"
-              class="btn btn-sm btn-outline-secondary"
+              class={cx(editStyle.pill, editStyle.pillIcon)}
               onClick={props.relayoutGraph}
               title={<Text id="editScene.graph.relayout" />}
               data-cy="graph-relayout"
@@ -244,7 +269,7 @@ class SceneCanvas extends Component {
           <Localizer>
             <button
               type="button"
-              class="btn btn-sm btn-outline-secondary"
+              class={cx(editStyle.pill, editStyle.pillIcon)}
               onClick={props.undoGraph}
               disabled={!props.canUndo}
               title={<Text id="editScene.graph.undo" />}
@@ -256,7 +281,7 @@ class SceneCanvas extends Component {
           <Localizer>
             <button
               type="button"
-              class="btn btn-sm btn-outline-secondary"
+              class={cx(editStyle.pill, editStyle.pillIcon)}
               onClick={props.redoGraph}
               disabled={!props.canRedo}
               title={<Text id="editScene.graph.redo" />}
@@ -266,13 +291,13 @@ class SceneCanvas extends Component {
             </button>
           </Localizer>
           {unwiredCount > 0 && (
-            <span class={cx('badge badge-warning', style.unwiredBadge)} data-cy="graph-unwired-count">
+            <span class={cx(style.statusBadge, style.statusWarning)} data-cy="graph-unwired-count">
               <i class="fe fe-alert-triangle" />{' '}
               <Text id="editScene.graph.unwiredCount" plural={unwiredCount} fields={{ count: unwiredCount }} />
             </span>
           )}
           {props.graphError && (
-            <span class={cx('badge badge-danger', style.unwiredBadge)}>
+            <span class={cx(style.statusBadge, style.statusDanger)}>
               <Text id={`editScene.graph.errors.${props.graphError}`} />
             </span>
           )}
@@ -283,6 +308,8 @@ class SceneCanvas extends Component {
             edges={this.displayEdges()}
             nodeTypes={NODE_COMPONENTS}
             onNodesChange={this.onNodesChange}
+            onNodeDragStart={this.onNodeDragStart}
+            onNodeDragStop={this.onNodeDragStop}
             onNodeClick={this.onNodeClick}
             onEdgeClick={this.onEdgeClick}
             onPaneClick={this.onPaneClick}
@@ -290,15 +317,14 @@ class SceneCanvas extends Component {
             isValidConnection={this.isValidConnection}
             deleteKeyCode={null}
             snapToGrid
-            snapGrid={[20, 20]}
+            snapGrid={[GRID_SIZE, GRID_SIZE]}
             fitView
             fitViewOptions={{ padding: 0.2, minZoom: 0.6, maxZoom: 1 }}
             minZoom={0.2}
             proOptions={{ hideAttribution: true }}
           >
-            <Background gap={20} size={1} />
+            <Background gap={GRID_SIZE} size={1} />
             <Controls showInteractive={false} />
-            <MiniMap pannable zoomable class={style.minimap} />
           </ReactFlow>
           {panelNode && (
             <NodePanel

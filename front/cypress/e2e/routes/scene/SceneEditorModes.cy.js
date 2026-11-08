@@ -91,6 +91,10 @@ describe('Scene editor modes', () => {
     cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
     cy.get('[data-cy="graph-canvas"]').should('exist');
     cy.get('[data-cy="editor-mode-graph"]').should('have.attr', 'aria-pressed', 'true');
+    // selecting a node changes nothing
+    cy.get('[data-cy="graph-action-node"][data-path="1.0"]').click();
+    cy.get('[data-cy="graph-panel"]').should('exist');
+    cy.contains('editScene.savedLabel').should('exist');
 
     cy.get('[data-cy="editor-mode-classic"]').click();
     cy.get('[data-cy="graph-canvas"]').should('not.exist');
@@ -120,8 +124,11 @@ describe('Scene editor modes', () => {
 
   it('Should convert the scene to code, refuse a script that does not compile, and run the console', () => {
     cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
-    cy.on('window:confirm', () => true);
     cy.get('[data-cy="editor-mode-code"]').click();
+    // the conversion asks first, in the editor's own dialog
+    cy.get('[data-cy="confirm-dialog"]').should('contain', Cypress.env('i18n').editScene.modes.toCodeTitle);
+    cy.get('[data-cy="confirm-dialog-confirm"]').click();
+    cy.get('[data-cy="confirm-dialog"]').should('not.exist');
 
     cy.get('[data-cy="scene-code-editor"] .cm-content').should(
       'contain',
@@ -169,8 +176,8 @@ describe('Scene editor modes', () => {
   it('Should go back to blocks, starting from an empty step', () => {
     cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
     cy.get('[data-cy="scene-code-editor"]').should('exist');
-    cy.on('window:confirm', () => true);
     cy.get('[data-cy="editor-mode-classic"]').click();
+    cy.get('[data-cy="confirm-dialog-confirm"]').click();
     cy.get('[data-cy="scene-code-editor"]').should('not.exist');
     save();
     getSavedScene().then(scene => {
@@ -186,8 +193,9 @@ describe('Scene editor modes', () => {
       body: { editor: { mode: 'code' }, actions: [[{ type: 'script.run', code: 'await sleep(1);' }]] }
     });
     cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
-    cy.on('window:confirm', () => false);
     cy.get('[data-cy="editor-mode-graph"]').click();
+    cy.get('[data-cy="confirm-dialog-cancel"]').click();
+    cy.get('[data-cy="confirm-dialog"]').should('not.exist');
     cy.get('[data-cy="scene-code-editor"]').should('exist');
     cy.get('[data-cy="scene-code-editor"] .cm-content').should('contain', 'await sleep(1);');
   });
@@ -222,8 +230,10 @@ describe('Scene editor modes', () => {
     cy.get('[data-cy="graph-action-node"][data-path="0.0.else.0.0"]').should('exist');
     save();
     getSavedScene().then(scene => {
-      expect(scene.actions[0][0].then).to.deep.equal([[delay(1)], [delay(2)]]);
-      expect(scene.actions[0][0].else).to.deep.equal([[delay(3)]]);
+      // as in the classic editor, the form of the block may keep an empty step at the end of a branch
+      const nonEmpty = steps => steps.filter(step => step.length > 0);
+      expect(nonEmpty(scene.actions[0][0].then)).to.deep.equal([[delay(1)], [delay(2)]]);
+      expect(nonEmpty(scene.actions[0][0].else)).to.deep.equal([[delay(3)]]);
     });
   });
 });

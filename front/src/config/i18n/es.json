@@ -5010,7 +5010,13 @@
       "toCodeConfirm": "¿Convertir esta escena en código? Los bloques se sustituyen por un script JavaScript con el mismo comportamiento. Es definitivo: un script no puede volver a ser bloques.",
       "leaveCodeConfirm": "¿Volver a los bloques? El script de esta escena se eliminará y la escena empezará con un paso vacío.",
       "dropUnwiredConfirm": "Algunos bloques del gráfico no están conectados a nada: no forman parte de la escena y se perderán. ¿Continuar?",
-      "toCodeError": "No se pudo convertir la escena en código."
+      "toCodeError": "No se pudo convertir la escena en código.",
+      "toCodeTitle": "¿Convertir en código?",
+      "toCodeButton": "Convertir en código",
+      "leaveCodeTitle": "¿Volver a los bloques?",
+      "leaveCodeButton": "Eliminar el script",
+      "dropUnwiredTitle": "Bloques sin conexión",
+      "dropUnwiredButton": "Perderlos y continuar"
     },
     "graph": {
       "start": "Inicio",
@@ -5039,7 +5045,8 @@
         "cycle": "Este enlace crearía un bucle: usa un bloque «Mientras» en su lugar.",
         "multiple-flows": "Un bloque no puede pertenecer a dos ramas."
       },
-      "loadError": "No se pudo cargar el editor gráfico."
+      "loadError": "No se pudo cargar el editor gráfico.",
+      "deleteBlockTitle": "¿Eliminar este bloque?"
     },
     "code": {
       "thenSectionSubtitle": "el script de la escena, en JavaScript",

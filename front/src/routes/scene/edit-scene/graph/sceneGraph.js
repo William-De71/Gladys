@@ -28,11 +28,30 @@ export const GRAPH_ERRORS = {
   MULTIPLE_FLOWS: 'multiple-flows'
 };
 
-// Layout grid of the automatic layout, in pixels
+// The grid the canvas snaps to, in pixels. Every node size is a multiple of twice the grid, so
+// the center of a node, where its handles are, always lies on a grid line: two nodes dropped on
+// the same row are aligned (graph.css holds the sizes).
+export const GRID_SIZE = 15;
+export const NODE_SIZE = {
+  WIDTH: 240,
+  HEIGHT: 60,
+  BLOCK_HEIGHT: 90,
+  JOIN: 30
+};
+
+// Layout grid of the automatic layout, in pixels (multiples of the grid)
 export const LAYOUT = {
   COLUMN_WIDTH: 300,
   ROW_HEIGHT: 120
 };
+
+const snapToGrid = value => Math.round(value / GRID_SIZE) * GRID_SIZE;
+
+// A join node sits in the gap before its column, centered on the row of the nodes it joins
+const joinLayoutPosition = (column, row) => ({
+  x: column * LAYOUT.COLUMN_WIDTH - (LAYOUT.COLUMN_WIDTH - NODE_SIZE.WIDTH + NODE_SIZE.JOIN) / 2,
+  y: row * LAYOUT.ROW_HEIGHT + (NODE_SIZE.HEIGHT - NODE_SIZE.JOIN) / 2
+});
 
 const isBlockType = type => type === ACTIONS.CONDITION.IF_THEN_ELSE || type === ACTIONS.CONDITION.WHILE;
 
@@ -284,12 +303,16 @@ export const autoLayout = (nodes, edges, scene) => {
       }
       const joinId = joinNodeId(flowKey, stepIndex);
       if (previousSize > 1 && placed.length > 1 && nodes.some(node => node.id === joinId)) {
-        place(joinId, column - 0.5, startRow);
+        positions[joinId] = joinLayoutPosition(column, startRow);
       }
       let row = startRow;
       let width = 1;
       placed.forEach(({ action, path }) => {
         place(nodeByPath[path].id, column, row);
+        // a block is taller: centered on its row, its handles line up with the other nodes
+        if (action && isBlockType(action.type)) {
+          positions[nodeByPath[path].id].y -= (NODE_SIZE.BLOCK_HEIGHT - NODE_SIZE.HEIGHT) / 2;
+        }
         let rows = 1;
         if (action && isBlockType(action.type)) {
           branchesOf(action.type).forEach(({ property }) => {
@@ -623,8 +646,8 @@ const joinPosition = (join, edges, nodes) => {
   const all = [...sources, ...targets];
   const average = values => values.reduce((sum, value) => sum + value, 0) / values.length;
   return {
-    x: (Math.max(...sources.map(p => p.x)) + Math.min(...targets.map(p => p.x))) / 2,
-    y: average(all.map(p => p.y))
+    x: snapToGrid((Math.max(...sources.map(p => p.x)) + Math.min(...targets.map(p => p.x))) / 2),
+    y: snapToGrid(average(all.map(p => p.y)) + (NODE_SIZE.HEIGHT - NODE_SIZE.JOIN) / 2)
   };
 };
 
@@ -670,10 +693,42 @@ export const newActionNode = (id, position) => ({
   data: { path: null, action: { type: null } }
 });
 
+// Two nodes overlap when their boxes would cover each other
+const overlaps = (position, other) =>
+  Math.abs(position.x - other.x) < NODE_SIZE.WIDTH && Math.abs(position.y - other.y) < NODE_SIZE.HEIGHT;
+
+/** The first free position at or below the given one, so a new node never covers another one. */
+export const freePosition = (nodes, position) => {
+  let candidate = position;
+  while (nodes.some(node => node.position && node.type !== NODE_TYPES.JOIN && overlaps(candidate, node.position))) {
+    candidate = { x: candidate.x, y: candidate.y + LAYOUT.ROW_HEIGHT };
+  }
+  return candidate;
+};
+
+// The nodes reached from some nodes, through any output
+const downstream = (edges, startIds) => {
+  const reached = new Set();
+  const queue = [...startIds];
+  while (queue.length > 0) {
+    const id = queue.shift();
+    if (!reached.has(id)) {
+      reached.add(id);
+      edges.filter(edge => edge.source === id).forEach(edge => queue.push(edge.target));
+    }
+  }
+  return reached;
+};
+
 const nextPosition = (nodes, nodeId, rowOffset = 0) => {
   const node = nodes.find(candidate => candidate.id === nodeId);
   const position = (node && node.position) || { x: 0, y: 0 };
-  return { x: position.x + LAYOUT.COLUMN_WIDTH, y: position.y + rowOffset * LAYOUT.ROW_HEIGHT };
+  // next to a block, a node lines up with the block's center, not its top
+  const centering = node && node.type === NODE_TYPES.BLOCK ? (NODE_SIZE.BLOCK_HEIGHT - NODE_SIZE.HEIGHT) / 2 : 0;
+  return {
+    x: position.x + LAYOUT.COLUMN_WIDTH,
+    y: position.y + centering + rowOffset * LAYOUT.ROW_HEIGHT
+  };
 };
 
 /**
@@ -684,8 +739,20 @@ export const insertAfter = ({ nodes, edges }, nodeId, newNode, handle = HANDLES.
   const following = edges.filter(edge => edge.source === nodeId && (edge.sourceHandle || HANDLES.NEXT) === handle);
   const rowOffset = handle === HANDLES.ELSE ? 1 : 0;
   const placed = { ...newNode, position: newNode.position || nextPosition(nodes, nodeId, rowOffset) };
+  // what follows moves one column right, to make room, as in a list
+  const shifted = downstream(
+    edges,
+    following.map(edge => edge.target)
+  );
   return {
-    nodes: [...nodes, placed],
+    nodes: [
+      ...nodes.map(node =>
+        shifted.has(node.id) && node.position
+          ? { ...node, position: { x: node.position.x + LAYOUT.COLUMN_WIDTH, y: node.position.y } }
+          : node
+      ),
+      placed
+    ],
     edges: [
       ...edges.filter(edge => !following.includes(edge)),
       makeEdge(nodeId, handle, placed.id),
@@ -698,7 +765,10 @@ export const insertAfter = ({ nodes, edges }, nodeId, newNode, handle = HANDLES.
 export const addParallel = ({ nodes, edges }, nodeId, newNode) => {
   const node = nodes.find(candidate => candidate.id === nodeId);
   const position = (node && node.position) || { x: 0, y: 0 };
-  const placed = { ...newNode, position: newNode.position || { x: position.x, y: position.y + LAYOUT.ROW_HEIGHT } };
+  const placed = {
+    ...newNode,
+    position: newNode.position || freePosition(nodes, { x: position.x, y: position.y + LAYOUT.ROW_HEIGHT })
+  };
   return {
     nodes: [...nodes, placed],
     edges: [
@@ -736,7 +806,9 @@ export const appendToMainFlow = ({ nodes, edges }, newNode) => {
   );
   const placed = {
     ...newNode,
-    position: newNode.position || { x: rightmost + LAYOUT.COLUMN_WIDTH, y: (sources[0].position || { y: 0 }).y }
+    position:
+      newNode.position ||
+      freePosition(nodes, { x: rightmost + LAYOUT.COLUMN_WIDTH, y: (sources[0].position || { y: 0 }).y })
   };
   return {
     nodes: [...nodes, placed],

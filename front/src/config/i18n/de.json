@@ -5010,7 +5010,13 @@
       "toCodeConfirm": "Diese Szene in Code umwandeln? Die Blöcke werden durch ein JavaScript-Skript mit gleichem Verhalten ersetzt. Das ist endgültig: Ein Skript kann nicht wieder in Blöcke umgewandelt werden.",
       "leaveCodeConfirm": "Zurück zu Blöcken? Das Skript dieser Szene wird gelöscht und die Szene beginnt mit einem leeren Schritt.",
       "dropUnwiredConfirm": "Einige Blöcke der Grafik sind mit nichts verbunden: Sie gehören nicht zur Szene und gehen verloren. Fortfahren?",
-      "toCodeError": "Die Szene konnte nicht in Code umgewandelt werden."
+      "toCodeError": "Die Szene konnte nicht in Code umgewandelt werden.",
+      "toCodeTitle": "In Code umwandeln?",
+      "toCodeButton": "In Code umwandeln",
+      "leaveCodeTitle": "Zurück zu Blöcken?",
+      "leaveCodeButton": "Skript löschen",
+      "dropUnwiredTitle": "Blöcke ohne Verbindung",
+      "dropUnwiredButton": "Verwerfen und fortfahren"
     },
     "graph": {
       "start": "Start",
@@ -5039,7 +5045,8 @@
         "cycle": "Diese Verbindung würde eine Schleife erzeugen: Verwende stattdessen einen „Solange“-Block.",
         "multiple-flows": "Ein Block kann nicht zu zwei Zweigen gehören."
       },
-      "loadError": "Der grafische Editor konnte nicht geladen werden."
+      "loadError": "Der grafische Editor konnte nicht geladen werden.",
+      "deleteBlockTitle": "Diesen Block löschen?"
     },
     "code": {
       "thenSectionSubtitle": "das Skript der Szene, in JavaScript",

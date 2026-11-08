@@ -1,5 +1,8 @@
-/* Graph mode of the scene editor (docs/specs/scene-editor-modes.md C). Light colors only: the
-   dark mode of Gladys inverts the whole page. */
+/* Graph mode of the scene editor (docs/specs/scene-editor-modes.md C), in the Horizon glass
+   grammar of the editor. Light colors only: the dark mode of Gladys inverts the whole page.
+
+   Node sizes are multiples of twice the grid (GRID_SIZE = 15 in sceneGraph.js): the center of a
+   node, where its handles are, always lies on a grid line, so two nodes on a row are aligned. */
 
 .canvasWrapper {
   position: relative;
@@ -7,10 +10,13 @@
   flex-direction: column;
   height: calc(100vh - 260px);
   min-height: 420px;
-  border-radius: 12px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(0, 40, 100, 0.12);
+  border-radius: var(--gl-radius-lg, 26px);
+  border: 1px solid var(--gl-border, rgba(255, 255, 255, 0.85));
+  background: var(--gl-card-bg, rgba(255, 255, 255, 0.52));
+  backdrop-filter: blur(26px) saturate(1.4);
+  -webkit-backdrop-filter: blur(26px) saturate(1.4);
+  box-shadow: var(--gl-shadow, 0 18px 50px rgba(44, 62, 118, 0.13));
   outline: none;
 }
 
@@ -18,15 +24,40 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(0, 40, 100, 0.1);
-  background: rgba(255, 255, 255, 0.85);
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--gl-row-border, rgba(44, 62, 118, 0.07));
 }
 
-.unwiredBadge {
-  font-size: 12px;
-  padding: 6px 8px;
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.statusWarning {
+  background-color: #fdf1d6;
+  color: #a86b0c;
+}
+
+.statusDanger {
+  background-color: #fbe3de;
+  color: #d4593f;
+}
+
+.statusBanner {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--gl-radius-md, 18px);
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
 .canvas {
@@ -35,29 +66,40 @@
   min-height: 0;
 }
 
-.minimap {
-  border-radius: 8px;
+.canvas :global(.react-flow__controls) {
+  overflow: hidden;
+  border-radius: 14px;
+  box-shadow: var(--gl-shadow-soft, 0 4px 16px rgba(44, 62, 118, 0.09));
 }
 
-@media (max-width: 767px) {
-  .minimap {
-    display: none;
-  }
+.canvas :global(.react-flow__controls-button) {
+  border-bottom-color: var(--gl-row-border, rgba(44, 62, 118, 0.07));
+  background: var(--gl-popover-bg, rgba(255, 255, 255, 0.94));
+}
+
+.canvas :global(.react-flow__background) {
+  color: rgba(44, 62, 118, 0.25);
+}
+
+.loading {
+  min-height: 300px;
 }
 
 /* Nodes */
 
 .node {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 230px;
-  min-height: 56px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: #fff;
-  border: 1px solid rgba(0, 40, 100, 0.16);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  width: 240px;
+  height: 60px;
+  padding: 0 12px;
+  border-radius: 16px;
+  border: 1px solid var(--gl-border, rgba(255, 255, 255, 0.85));
+  background: var(--gl-popover-bg, rgba(255, 255, 255, 0.94));
+  box-shadow: var(--gl-shadow-soft, 0 4px 16px rgba(44, 62, 118, 0.09));
+  color: var(--gl-ink, #1c2334);
   font-size: 13px;
   cursor: pointer;
 }
@@ -67,27 +109,27 @@
 }
 
 .actionNode {
-  border-left: 4px solid #467fcf;
+  border-left: 4px solid var(--gl-accent, #3d6df0);
 }
 
 .blockNode {
-  min-height: 76px;
+  height: 90px;
   padding-right: 64px;
   border-left-color: #a55eea;
 }
 
 .unwiredNode {
-  border-style: dashed;
-  border-color: #f1c40f;
+  border: 1px dashed #e0a526;
+  border-left-width: 4px;
   opacity: 0.85;
 }
 
 .executingNode {
-  box-shadow: 0 0 0 3px rgba(70, 127, 207, 0.6);
+  box-shadow: 0 0 0 3px rgba(61, 109, 240, 0.45);
 }
 
 .selectedNode {
-  box-shadow: 0 0 0 2px #467fcf;
+  box-shadow: 0 0 0 2px var(--gl-accent, #3d6df0), var(--gl-shadow-soft, 0 4px 16px rgba(44, 62, 118, 0.09));
 }
 
 .nodeIcon {
@@ -101,36 +143,52 @@
 }
 
 .nodeTitle {
+  overflow: hidden;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .nodeSummary {
-  color: #6e7687;
+  overflow: hidden;
+  max-width: 160px;
+  color: var(--gl-muted, #7c8396);
   font-size: 12px;
   white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 150px;
 }
 
 .startNode {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 8px 14px;
-  border-radius: 20px;
-  background: #467fcf;
-  color: #fff;
+  width: 120px;
+  height: 60px;
+  border-radius: 999px;
+  background-color: var(--gl-icon-tint-bg, #e3ebfb);
+  color: var(--gl-accent, #3d6df0);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
+  box-shadow: var(--gl-shadow-soft, 0 4px 16px rgba(44, 62, 118, 0.09));
 }
 
 .joinNode {
-  width: 14px;
-  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+}
+
+.joinNode::before {
+  content: '';
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: #9aa0ac;
+  background: var(--gl-muted, #7c8396);
 }
 
 .joinHandle {
@@ -140,47 +198,59 @@
 .handle {
   width: 10px;
   height: 10px;
-  background: #467fcf;
+  background: var(--gl-accent, #3d6df0);
   border: 2px solid #fff;
 }
 
 .outputLabel {
   position: absolute;
-  right: 10px;
+  right: 14px;
   transform: translateY(-50%);
   font-size: 11px;
   font-weight: 600;
 }
 
+.outputTop {
+  top: 33.333%;
+}
+
+.outputMiddle {
+  top: 50%;
+}
+
+.outputBottom {
+  top: 66.667%;
+}
+
 .handleThen {
-  color: #5eba00;
+  color: #2e8f5b;
 }
 
 .handleThen.handle {
-  background: #5eba00;
+  background: #2e8f5b;
 }
 
 .handleElse {
-  color: #cd201f;
+  color: #d4593f;
 }
 
 .handleElse.handle {
-  background: #cd201f;
+  background: #d4593f;
 }
 
 /* Edges */
 
 .edge :global(.react-flow__edge-path) {
-  stroke: #9aa0ac;
+  stroke: #9aa3b8;
   stroke-width: 2;
 }
 
 .edgeThen :global(.react-flow__edge-path) {
-  stroke: #5eba00;
+  stroke: #2e8f5b;
 }
 
 .edgeElse :global(.react-flow__edge-path) {
-  stroke: #cd201f;
+  stroke: #d4593f;
 }
 
 .edgeUnwired :global(.react-flow__edge-path) {
@@ -188,10 +258,10 @@
 }
 
 .edgeTrigger :global(.react-flow__edge-path) {
-  stroke: #c8ccd4;
+  stroke: #c8cdd8;
 }
 
-/* Panel of the selected node */
+/* Panel of the selected node: a glass sheet over the canvas */
 
 .panel {
   position: absolute;
@@ -202,10 +272,12 @@
   width: 420px;
   max-width: 100%;
   overflow-y: auto;
-  padding: 12px 16px;
-  background: #fff;
-  border-left: 1px solid rgba(0, 40, 100, 0.12);
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.06);
+  padding: 1rem 1.25rem;
+  border-left: 1px solid var(--gl-row-border, rgba(44, 62, 118, 0.07));
+  background: var(--gl-popover-bg, rgba(255, 255, 255, 0.94));
+  backdrop-filter: blur(26px) saturate(1.5);
+  -webkit-backdrop-filter: blur(26px) saturate(1.5);
+  box-shadow: -8px 0 30px rgba(44, 62, 118, 0.08);
 }
 
 @media (max-width: 767px) {
@@ -214,7 +286,8 @@
     width: 100%;
     height: 65%;
     border-left: 0;
-    border-top: 1px solid rgba(0, 40, 100, 0.12);
+    border-top: 1px solid var(--gl-row-border, rgba(44, 62, 118, 0.07));
+    border-radius: var(--gl-radius-lg, 26px) var(--gl-radius-lg, 26px) 0 0;
   }
 }
 
@@ -222,50 +295,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .panelTitle {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
-}
-
-.panelClose {
-  padding: 0 4px;
 }
 
 .panelActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.panelButton {
-  font-size: 12px;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
 }
 
 .panelBody {
-  margin-bottom: 12px;
+  margin-bottom: 1rem;
 }
 
 .panelFooter {
-  padding-top: 8px;
-  border-top: 1px solid rgba(0, 40, 100, 0.08);
-}
-
-.outputTop {
-  top: 33%;
-}
-
-.outputMiddle {
-  top: 50%;
-}
-
-.outputBottom {
-  top: 67%;
-}
-
-.loading {
-  min-height: 300px;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--gl-row-border, rgba(44, 62, 118, 0.07));
 }

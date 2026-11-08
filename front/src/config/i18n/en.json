@@ -5010,7 +5010,13 @@
       "toCodeConfirm": "Convert this scene to code? The blocks are replaced by a JavaScript script with the same behavior. This cannot be undone: a script cannot be turned back into blocks.",
       "leaveCodeConfirm": "Go back to blocks? The script of this scene will be deleted, and the scene will start from an empty step.",
       "dropUnwiredConfirm": "Some blocks of the graph are wired to nothing: they are not part of the scene and will be lost. Continue?",
-      "toCodeError": "The scene could not be converted to code."
+      "toCodeError": "The scene could not be converted to code.",
+      "toCodeTitle": "Convert to code?",
+      "toCodeButton": "Convert to code",
+      "leaveCodeTitle": "Go back to blocks?",
+      "leaveCodeButton": "Delete the script",
+      "dropUnwiredTitle": "Blocks wired to nothing",
+      "dropUnwiredButton": "Lose them and continue"
     },
     "graph": {
       "start": "Start",
@@ -5039,7 +5045,8 @@
         "cycle": "This link would make a loop: use a \"while\" block instead.",
         "multiple-flows": "A block cannot belong to two branches."
       },
-      "loadError": "The graph editor could not be loaded."
+      "loadError": "The graph editor could not be loaded.",
+      "deleteBlockTitle": "Delete this block?"
     },
     "code": {
       "thenSectionSubtitle": "the script of the scene, in JavaScript",
