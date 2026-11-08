@@ -15,6 +15,7 @@ import { computeRunningInfo, mergeRunningScenes } from '../runningInfo';
 import { ACTIONS, WEBSOCKET_MESSAGE_TYPES } from '../../../../../server/utils/constants';
 import { findMissingRequiredField, hasIntegrationSteps } from './sceneIntegrations';
 import { sortRanges } from './triggers/TimeRangesTrigger';
+import { parseSaveError, rawSaveError } from './saveErrors';
 import { readSceneDraft, writeSceneDraft, removeSceneDraft } from './sceneDraft';
 import { isMobileViewport, watchMobileViewport } from '../../../utils/mobileViewport';
 import { isSheetEntryOnTop } from '../../../components/sheet/sheetHistory';
@@ -79,7 +80,8 @@ import {
   syncTriggerNodes,
   relayout,
   triggerNodeId,
-  HANDLES
+  HANDLES,
+  DIRECTIONS
 } from './graph/sceneGraph';
 
 // The three ways of editing a scene (docs/specs/scene-editor-modes.md)
@@ -123,10 +125,39 @@ const CONFIRMATIONS = {
 const getEditorMode = scene => (scene.editor && scene.editor.mode) || EDITOR_MODES.CLASSIC;
 
 // The editor of a scene in graph mode: the layout is saved with the shape it was drawn for
+const getGraphDirection = scene =>
+  (scene.editor && scene.editor.graph && scene.editor.graph.direction) || DIRECTIONS.HORIZONTAL;
+
 const graphEditor = (scene, graph) => ({
   mode: EDITOR_MODES.GRAPH,
-  graph: { signature: sceneSignature(scene), positions: layoutPositions(graph.nodes) }
+  graph: {
+    signature: sceneSignature(scene),
+    positions: layoutPositions(graph.nodes),
+    direction: getGraphDirection(scene)
+  }
 });
+
+// The actions whose type was never picked (a new block, a new condition), at any depth: the server
+// refuses them with a long schema error, the editor names them instead
+export const countUntypedActions = steps =>
+  (Array.isArray(steps) ? steps : []).reduce(
+    (count, step) =>
+      count +
+      (Array.isArray(step) ? step : []).reduce((stepCount, action) => {
+        if (!action || typeof action !== 'object') {
+          return stepCount;
+        }
+        const own = action.type ? 0 : 1;
+        return (
+          stepCount +
+          own +
+          countUntypedActions(action.then) +
+          countUntypedActions(action.else) +
+          countUntypedActions(Array.isArray(action.if) ? [action.if] : [])
+        );
+      }, 0),
+    0
+  );
 
 const countUnwired = graph => (graph ? graph.nodes.filter(node => node.data && node.data.path === null).length : 0);
 
@@ -717,6 +748,16 @@ class EditScene extends Component {
     timeRangeTriggers.forEach(trigger => {
       trigger.time_ranges = sortRanges(trigger.time_ranges);
     });
+    const untypedCount = countUntypedActions(sceneToSave.actions);
+    if (untypedCount > 0) {
+      this.setState({
+        error: true,
+        errorMessage: null,
+        errorMessageId: 'editScene.untypedActionsError',
+        errorMessageFields: { count: untypedCount }
+      });
+      return;
+    }
     // In the graph mode, a block wired to nothing is not part of the scene: saving would drop it
     // without a word (docs/specs/scene-editor-modes.md C.3)
     if (this.state.graph && getEditorMode(sceneToSave) === EDITOR_MODES.GRAPH) {
@@ -769,7 +810,7 @@ class EditScene extends Component {
       });
       return false;
     }
-    this.setState({ saving: true, error: false, errorMessage: null, errorMessageId: null });
+    this.setState({ saving: true, error: false, errorMessage: null, errorMessageId: null, errorProblems: [] });
     try {
       await this.props.httpClient.patch(`/api/v1/scene/${this.props.scene_selector}`, sceneToSave);
       this.acknowledgedScene = sceneToSave;
@@ -799,16 +840,15 @@ class EditScene extends Component {
       });
     } catch (e) {
       console.error(e);
-      let errorMessage = null;
-      if (e.response && e.response.data) {
-        if (e.response.data.properties && e.response.data.properties.length > 0) {
-          // Extract validation error messages from properties array
-          errorMessage = e.response.data.properties.map(prop => prop.message).join('\n');
-        } else if (e.response.data.message) {
-          errorMessage = e.response.data.message;
-        }
-      }
-      this.setState({ error: true, errorMessage, saving: false });
+      // The answer of the server, made readable (saveErrors.js): the places of the scene and the
+      // kinds of problem it names, its raw text kept for the detail
+      const data = e.response && e.response.data;
+      this.setState({
+        error: true,
+        errorMessage: rawSaveError(data),
+        errorProblems: parseSaveError(data),
+        saving: false
+      });
       return false;
     }
     this.setState({ saving: false });
@@ -1420,7 +1460,11 @@ class EditScene extends Component {
         }
       });
       if (newState.graph) {
-        newState.graph = syncTriggerNodes(newState.graph, newState.scene.triggers.length);
+        newState.graph = syncTriggerNodes(
+          newState.graph,
+          newState.scene.triggers.length,
+          getGraphDirection(newState.scene)
+        );
       }
       return newState;
     });
@@ -1438,7 +1482,11 @@ class EditScene extends Component {
         }
       });
       if (newState.graph) {
-        newState.graph = syncTriggerNodes(newState.graph, newState.scene.triggers.length);
+        newState.graph = syncTriggerNodes(
+          newState.graph,
+          newState.scene.triggers.length,
+          getGraphDirection(newState.scene)
+        );
       }
       return newState;
     });
@@ -2268,7 +2316,7 @@ class EditScene extends Component {
   buildGraph = scene => {
     const saved = scene.editor && scene.editor.graph;
     const positions = saved && saved.signature === sceneSignature(scene) ? saved.positions : null;
-    return sceneToGraph(scene, { newId: this.newNodeId, positions });
+    return sceneToGraph(scene, { newId: this.newNodeId, positions, direction: getGraphDirection(scene) });
   };
 
   // Ask for a confirmation in the editor's own dialog; resolves with true or false
@@ -2360,6 +2408,7 @@ class EditScene extends Component {
 
   graphSnapshot = state => ({
     graph: state.graph,
+    editor: state.scene.editor,
     actions: state.scene.actions,
     triggers: state.scene.triggers,
     variables: state.variables,
@@ -2389,7 +2438,7 @@ class EditScene extends Component {
           scene: { ...prevState.scene, editor: graphEditor(prevState.scene, nextGraph) }
         };
       }
-      const result = applyGraph(prevState.scene, nextGraph.nodes, nextGraph.edges);
+      const result = applyGraph(prevState.scene, nextGraph.nodes, nextGraph.edges, getGraphDirection(prevState.scene));
       if (result.error) {
         return { graphError: result.error };
       }
@@ -2427,14 +2476,16 @@ class EditScene extends Component {
     const node = newActionNode(this.newNodeId());
     const { graph } = this.state;
     this.changeGraph(
-      where === 'parallel' ? addParallel(graph, nodeId, node) : insertAfter(graph, nodeId, node, handle)
+      where === 'parallel'
+        ? addParallel(graph, nodeId, node, getGraphDirection(this.state.scene))
+        : insertAfter(graph, nodeId, node, handle, getGraphDirection(this.state.scene))
     );
     return node.id;
   };
 
   appendGraphNode = () => {
     const node = newActionNode(this.newNodeId());
-    this.changeGraph(appendToMainFlow(this.state.graph, node));
+    this.changeGraph(appendToMainFlow(this.state.graph, node, getGraphDirection(this.state.scene)));
     return node.id;
   };
 
@@ -2445,7 +2496,28 @@ class EditScene extends Component {
   };
 
   relayoutGraph = () => {
-    this.changeGraph(relayout(this.state.scene, this.state.graph), { structural: false });
+    this.changeGraph(relayout(this.state.scene, this.state.graph, getGraphDirection(this.state.scene)), {
+      structural: false
+    });
+  };
+
+  // Left to right or top to bottom (spec C.5): the canvas is laid out again in the new direction
+  setGraphDirection = direction => {
+    this.setState(prevState => {
+      const editor = prevState.scene.editor || { mode: EDITOR_MODES.GRAPH };
+      const scene = {
+        ...prevState.scene,
+        editor: { ...editor, graph: { ...(editor.graph || { signature: '', positions: {} }), direction } }
+      };
+      const graph = relayout(scene, prevState.graph, direction);
+      scene.editor = graphEditor(scene, graph);
+      return {
+        scene,
+        graph,
+        graphHistory: [...prevState.graphHistory, this.graphSnapshot(prevState)].slice(-MAX_GRAPH_HISTORY),
+        graphFuture: []
+      };
+    });
   };
 
   // An unwired node is not in the scene: its form edits the node itself
@@ -2468,7 +2540,12 @@ class EditScene extends Component {
         return null;
       }
       const snapshot = prevState[from][prevState[from].length - 1];
-      const scene = { ...prevState.scene, actions: snapshot.actions, triggers: snapshot.triggers };
+      const scene = {
+        ...prevState.scene,
+        actions: snapshot.actions,
+        triggers: snapshot.triggers,
+        editor: snapshot.editor
+      };
       scene.editor = graphEditor(scene, snapshot.graph);
       return {
         [from]: prevState[from].slice(0, -1),
@@ -2640,6 +2717,7 @@ class EditScene extends Component {
       errorMessageId,
       errorMessageFields,
       errorNonce,
+      errorProblems,
       variables,
       scene,
       triggersVariables,
@@ -2694,6 +2772,7 @@ class EditScene extends Component {
       errorMessage,
       errorMessageId,
       errorMessageFields,
+      errorProblems,
       errorNonce,
       variables,
       triggersVariables,
@@ -2741,6 +2820,8 @@ class EditScene extends Component {
       appendNode: this.appendGraphNode,
       addGraphTrigger: this.addGraphTrigger,
       relayoutGraph: this.relayoutGraph,
+      direction: getGraphDirection(scene),
+      setGraphDirection: this.setGraphDirection,
       updateUnwiredAction: this.updateUnwiredAction,
       undoGraph: this.undoGraph,
       redoGraph: this.redoGraph,

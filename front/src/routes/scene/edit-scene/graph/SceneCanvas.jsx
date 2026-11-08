@@ -12,7 +12,16 @@ import { getActionSummary, getTriggerSummary } from '../summary';
 import { SCENE_DECLARATION_KINDS, getSceneDeclarationTitle } from '../sceneIntegrations';
 import { NODE_COMPONENTS } from './GraphNodes';
 import NodePanel from './NodePanel';
-import { NODE_TYPES, HANDLES, START_NODE_ID, GRID_SIZE, canConnect, getNodeAction, isBlockType } from './sceneGraph';
+import {
+  NODE_TYPES,
+  HANDLES,
+  START_NODE_ID,
+  GRID_SIZE,
+  DIRECTIONS,
+  canConnect,
+  getNodeAction,
+  isBlockType
+} from './sceneGraph';
 import editStyle from '../style.css';
 import style from './graph.css';
 
@@ -44,9 +53,11 @@ class SceneCanvas extends Component {
     const { graph, scene, intl, deviceFeatures, thermostatSchedules, executingPaths, sceneIntegrations } = this.props;
     const dictionary = get(intl, 'dictionary', { default: {} });
     const language = get(this.props, 'user.language') || 'en';
+    const { direction } = this.props;
     return graph.nodes.map(node => {
       const display = {
         ...node,
+        data: { ...node.data, direction },
         selected: node.id === this.state.selectedNodeId,
         draggable: node.type !== NODE_TYPES.JOIN,
         selectable: node.type !== NODE_TYPES.JOIN && node.type !== NODE_TYPES.START,
@@ -54,7 +65,7 @@ class SceneCanvas extends Component {
       };
       if (node.type === NODE_TYPES.TRIGGER) {
         const trigger = scene.triggers[node.data.index] || { type: null };
-        return { ...display, data: { ...node.data, trigger, summary: getTriggerSummary(trigger, dictionary) } };
+        return { ...display, data: { ...display.data, trigger, summary: getTriggerSummary(trigger, dictionary) } };
       }
       if (node.type !== NODE_TYPES.ACTION && node.type !== NODE_TYPES.BLOCK) {
         return display;
@@ -68,7 +79,7 @@ class SceneCanvas extends Component {
         ...display,
         type: isBlockType(action.type) ? NODE_TYPES.BLOCK : NODE_TYPES.ACTION,
         data: {
-          ...node.data,
+          ...display.data,
           action,
           title,
           unwired: !node.data.path,
@@ -146,7 +157,7 @@ class SceneCanvas extends Component {
   onPaneClick = () => this.setState({ selectedNodeId: null, selectedEdgeId: null });
 
   isValidConnection = connection =>
-    canConnect(this.props.scene, this.props.graph.nodes, this.props.graph.edges, connection);
+    canConnect(this.props.scene, this.props.graph.nodes, this.props.graph.edges, connection, this.props.direction);
 
   onConnect = connection => {
     if (!this.isValidConnection(connection)) {
@@ -224,6 +235,11 @@ class SceneCanvas extends Component {
 
   closePanel = () => this.setState({ selectedNodeId: null });
 
+  toggleDirection = () =>
+    this.props.setGraphDirection(
+      this.props.direction === DIRECTIONS.VERTICAL ? DIRECTIONS.HORIZONTAL : DIRECTIONS.VERTICAL
+    );
+
   componentDidUpdate() {
     this.dropMissingSelection();
   }
@@ -283,6 +299,25 @@ class SceneCanvas extends Component {
             <button
               type="button"
               class={cx(editStyle.pill, editStyle.pillIcon)}
+              onClick={this.toggleDirection}
+              title={
+                <Text
+                  id={
+                    props.direction === DIRECTIONS.VERTICAL
+                      ? 'editScene.graph.directionToHorizontal'
+                      : 'editScene.graph.directionToVertical'
+                  }
+                />
+              }
+              data-cy="graph-direction"
+            >
+              <i class={props.direction === DIRECTIONS.VERTICAL ? 'fe fe-arrow-right' : 'fe fe-arrow-down'} />
+            </button>
+          </Localizer>
+          <Localizer>
+            <button
+              type="button"
+              class={cx(editStyle.pill, editStyle.pillIcon)}
               onClick={props.undoGraph}
               disabled={!props.canUndo}
               title={<Text id="editScene.graph.undo" />}
@@ -317,6 +352,8 @@ class SceneCanvas extends Component {
         </div>
         <div class={style.canvas}>
           <ReactFlow
+            // the handles move to other sides: the canvas measures them again
+            key={props.direction}
             nodes={this.displayNodes()}
             edges={this.displayEdges()}
             nodeTypes={NODE_COMPONENTS}

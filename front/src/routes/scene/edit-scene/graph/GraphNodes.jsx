@@ -4,13 +4,22 @@ import cx from 'classnames';
 
 import { ACTIONS } from '../../../../../../server/utils/constants';
 import { ACTION_ICON, ACTION_COLOR, TRIGGER_ICON, TRIGGER_COLOR, COLOR_CLASS } from '../typesCatalog';
-import { HANDLES } from './sceneGraph';
+import { HANDLES, DIRECTIONS } from './sceneGraph';
 import editStyle from '../style.css';
 import style from './graph.css';
 
 // The nodes of the canvas (docs/specs/scene-editor-modes.md C.1). Their content comes from
-// `data`, filled by SceneCanvas from the scene: the action, its title and summary, and whether it
-// is running, unwired or selected.
+// `data`, filled by SceneCanvas from the scene: the action, its title and summary, whether it is
+// running, unwired or selected, and the direction of the graph.
+
+// Where the handles are, by direction of the graph (spec C.5): the input faces where the flow
+// comes from, the output where it goes; the branches of a block leave on the flow side, the rest
+// of the scene on the other one
+const SIDES = {
+  [DIRECTIONS.HORIZONTAL]: { input: Position.Left, output: Position.Right, blockNext: Position.Bottom },
+  [DIRECTIONS.VERTICAL]: { input: Position.Top, output: Position.Bottom, blockNext: Position.Right }
+};
+const sidesOf = data => SIDES[(data && data.direction) || DIRECTIONS.HORIZONTAL] || SIDES[DIRECTIONS.HORIZONTAL];
 
 const NodeIcon = ({ icon, color }) => (
   <span class={cx(editStyle.stepIconTile, editStyle[COLOR_CLASS[color] || 'typePickerIconGray'], style.nodeIcon)}>
@@ -37,25 +46,37 @@ export const TriggerNode = ({ data }) => (
       }
       summary={data.summary}
     />
-    <Handle type="source" position={Position.Right} id={HANDLES.NEXT} class={style.handle} isConnectable={false} />
+    <Handle
+      type="source"
+      position={sidesOf(data).output}
+      id={HANDLES.NEXT}
+      class={style.handle}
+      isConnectable={false}
+    />
   </div>
 );
 
-export const StartNode = () => (
+export const StartNode = ({ data }) => (
   <div class={cx(style.startNode)} data-cy="graph-start-node">
     <i class="fe fe-play" />
     <span>
       <Text id="editScene.graph.start" />
     </span>
-    <Handle type="target" position={Position.Left} class={style.handle} isConnectable={false} />
-    <Handle type="source" position={Position.Right} id={HANDLES.NEXT} class={style.handle} />
+    <Handle type="target" position={sidesOf(data).input} class={style.handle} isConnectable={false} />
+    <Handle type="source" position={sidesOf(data).output} id={HANDLES.NEXT} class={style.handle} />
   </div>
 );
 
-export const JoinNode = () => (
+export const JoinNode = ({ data }) => (
   <div class={style.joinNode} title="">
-    <Handle type="target" position={Position.Left} class={style.joinHandle} isConnectable={false} />
-    <Handle type="source" position={Position.Right} id={HANDLES.NEXT} class={style.joinHandle} isConnectable={false} />
+    <Handle type="target" position={sidesOf(data).input} class={style.joinHandle} isConnectable={false} />
+    <Handle
+      type="source"
+      position={sidesOf(data).output}
+      id={HANDLES.NEXT}
+      class={style.joinHandle}
+      isConnectable={false}
+    />
   </div>
 );
 
@@ -68,28 +89,38 @@ const BLOCK_OUTPUTS = {
   [ACTIONS.CONDITION.WHILE]: [{ handle: HANDLES.DO, labelId: 'editScene.graph.doOutput', className: 'handleThen' }]
 };
 
-// Vertical position of each output label, by number of outputs
+// Where each output label sits on the flow side, by direction and number of outputs
 const OUTPUT_POSITIONS = {
-  1: ['outputMiddle'],
-  2: ['outputTop', 'outputBottom']
+  [DIRECTIONS.HORIZONTAL]: {
+    1: ['outputMiddle'],
+    2: ['outputTop', 'outputBottom']
+  },
+  [DIRECTIONS.VERTICAL]: {
+    1: ['outputVertical outputCenter'],
+    2: ['outputVertical outputLeft', 'outputVertical outputRight']
+  }
 };
 
 export const ActionNode = ({ data, selected }) => {
   const { action } = data;
   const type = action ? action.type : null;
   const outputs = BLOCK_OUTPUTS[type] || [];
+  const sides = sidesOf(data);
+  const outputPositions = OUTPUT_POSITIONS[data.direction] || OUTPUT_POSITIONS[DIRECTIONS.HORIZONTAL];
   return (
     <div
       class={cx(style.node, style.actionNode, {
         [style.blockNode]: outputs.length > 0,
+        [style.blockNodeVertical]: outputs.length > 0 && data.direction === DIRECTIONS.VERTICAL,
         [style.unwiredNode]: data.unwired,
+        [style.untypedNode]: !type,
         [style.executingNode]: data.executing,
         [style.selectedNode]: selected
       })}
       data-cy="graph-action-node"
       data-path={data.path || ''}
     >
-      <Handle type="target" position={Position.Left} class={style.handle} />
+      <Handle type="target" position={sides.input} class={style.handle} />
       <NodeIcon icon={type ? ACTION_ICON[type] : 'fe fe-plus-circle'} color={ACTION_COLOR[type]} />
       <NodeText
         title={data.title || (type ? <Text id={`editScene.actions.${type}`} /> : <Text id="editScene.newAction" />)}
@@ -98,12 +129,16 @@ export const ActionNode = ({ data, selected }) => {
       {outputs.map((output, index) => (
         <div
           key={output.handle}
-          class={cx(style.outputLabel, style[output.className], style[OUTPUT_POSITIONS[outputs.length][index]])}
+          class={cx(
+            style.outputLabel,
+            style[output.className],
+            ...outputPositions[outputs.length][index].split(' ').map(name => style[name])
+          )}
         >
           <Text id={output.labelId} />
           <Handle
             type="source"
-            position={Position.Right}
+            position={sides.output}
             id={output.handle}
             class={cx(style.handle, style[output.className])}
             data-cy={`graph-handle-${output.handle}`}
@@ -112,7 +147,7 @@ export const ActionNode = ({ data, selected }) => {
       ))}
       <Handle
         type="source"
-        position={outputs.length > 0 ? Position.Bottom : Position.Right}
+        position={outputs.length > 0 ? sides.blockNext : sides.output}
         id={HANDLES.NEXT}
         class={style.handle}
         data-cy="graph-handle-next"

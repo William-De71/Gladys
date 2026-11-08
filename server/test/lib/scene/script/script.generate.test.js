@@ -144,6 +144,36 @@ describe('scene script generation', () => {
       );
     });
 
+    it('should write a function block as it is, keeping its result only when it is read', () => {
+      const code = generateScript([
+        [{ type: ACTIONS.SCRIPT.RUN, code: 'const x = 2;\n\nreturn x;' }],
+        [{ type: ACTIONS.MESSAGE.SEND, user: 'john', text: 'Result {{0.0.result}}' }, { type: ACTIONS.SCRIPT.RUN }],
+      ]);
+      expect(body(code)).to.equal(
+        [
+          '// Function block',
+          "await gladys.store('0.0', {",
+          '  result: await (async () => {',
+          '    const x = 2;',
+          '',
+          '    return x;',
+          '  })(),',
+          '});',
+          '// At the same time',
+          'await Promise.all([',
+          "  gladys.action('message.send', { user: 'john', text: 'Result {{0.0.result}}' }),",
+          '  (async () => {',
+          '    // Function block',
+          '    await (async () => {',
+          '',
+          '    })();',
+          '  })(),',
+          ']);',
+          '',
+        ].join('\n'),
+      );
+    });
+
     it('should keep the default number of iterations of a while block', () => {
       const code = generateScript([
         [
@@ -299,6 +329,24 @@ describe('scene script generation', () => {
         ['jane', 'Done'],
       ]);
       expect(cold.script).to.deep.equal(cold.blocks);
+    });
+
+    it('should run a function block and give its result to the next actions', async () => {
+      const actions = [
+        [{ type: ACTIONS.DEVICE.GET_VALUE, device_feature: 'temperature' }],
+        [
+          {
+            type: ACTIONS.SCRIPT.RUN,
+            code: "const t = await gladys.device.getValue('temperature');\nreturn t > 20 ? 'hot' : 'cold';",
+          },
+        ],
+        [{ type: ACTIONS.MESSAGE.SEND, user: 'john', text: 'It is {{1.0.result}} ({{0.0.last_value}})' }],
+      ];
+      const { blocks, script } = await runBothWays(actions, (stateManager) =>
+        addFeature(stateManager, 'temperature', 25),
+      );
+      expect(blocks).to.deep.equal({ messages: [['john', 'It is hot (25)']], values: [], stoppedBy: null });
+      expect(script).to.deep.equal(blocks);
     });
 
     it('should stop the scene on an unmet condition of the main flow', async () => {

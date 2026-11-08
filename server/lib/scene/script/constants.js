@@ -11,6 +11,7 @@ const SCRIPT_MAX_STACK_SIZE_BYTES = 256 * 1024;
 const SCRIPT_MAX_SYNC_EXECUTION_MS = 1000;
 // Layout of the graph mode: display only, bounded so a scene row stays small.
 const EDITOR_MODES = ['classic', 'graph', 'code'];
+const EDITOR_GRAPH_DIRECTIONS = ['horizontal', 'vertical'];
 const EDITOR_GRAPH_MAX_POSITIONS = 2000;
 const EDITOR_GRAPH_MAX_SIGNATURE_LENGTH = 4096;
 
@@ -21,6 +22,7 @@ module.exports = {
   SCRIPT_MAX_STACK_SIZE_BYTES,
   SCRIPT_MAX_SYNC_EXECUTION_MS,
   EDITOR_MODES,
+  EDITOR_GRAPH_DIRECTIONS,
   EDITOR_GRAPH_MAX_POSITIONS,
   EDITOR_GRAPH_MAX_SIGNATURE_LENGTH,
 };

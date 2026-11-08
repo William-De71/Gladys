@@ -146,7 +146,14 @@ describe('Scene editor modes', () => {
     // a syntax error is refused, with its position
     typeInCodeEditor('const a = ;');
     save();
-    cy.get('.alert-danger').should('contain', 'Script syntax error at line 1');
+    cy.get('[data-cy="save-error-problems"]')
+      .should('contain', Cypress.env('i18n').editScene.saveErrors.places.scene)
+      .should(
+        'contain',
+        Cypress.env('i18n')
+          .editScene.saveErrors.problems.syntaxAt.replace('{{line}}', '1')
+          .split('{{column}}')[0]
+      );
 
     typeInCodeEditor("console.log('hello');");
     save();
@@ -235,5 +242,89 @@ describe('Scene editor modes', () => {
       expect(nonEmpty(scene.actions[0][0].then)).to.deep.equal([[delay(1)], [delay(2)]]);
       expect(nonEmpty(scene.actions[0][0].else)).to.deep.equal([[delay(3)]]);
     });
+  });
+
+  it('Should lay the graph out top to bottom, and add a function block', () => {
+    authenticatedRequest({
+      method: 'PATCH',
+      url: `/api/v1/scene/${SCENE_SELECTOR}`,
+      body: { editor: { mode: 'graph' }, actions: [[delay(1)]] }
+    });
+    cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
+    cy.get('[data-cy="graph-direction"]').click();
+    // the input of a block faces the top
+    cy.get('[data-cy="graph-action-node"][data-path="0.0"] .react-flow__handle-top').should('exist');
+
+    cy.get('[data-cy="graph-action-node"][data-path="0.0"]').click();
+    cy.get('[data-cy="graph-add-after"]').click();
+    cy.get('[data-cy="graph-panel"] [data-cy="type-picker-option"][data-value="script.run"]').click();
+    cy.get('[data-cy="function-block-editor"] .cm-content').click();
+    cy.get('[data-cy="function-block-editor"] .cm-content').type('return 42;', { delay: 0 });
+
+    save();
+    cy.contains('editScene.savedLabel').should('exist');
+    getSavedScene().then(scene => {
+      expect(scene.editor.graph.direction).to.equal('vertical');
+      expect(scene.actions[1]).to.deep.equal([{ type: 'script.run', code: 'return 42;' }]);
+    });
+  });
+
+  it('Should name the blocks without type instead of saving them', () => {
+    authenticatedRequest({
+      method: 'PATCH',
+      url: `/api/v1/scene/${SCENE_SELECTOR}`,
+      body: { editor: { mode: 'graph' }, actions: [[delay(1)]] }
+    });
+    cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
+    cy.get('[data-cy="graph-add-action"]').click();
+    cy.get('[data-cy="graph-add-action"]').click();
+    save();
+    cy.get('.alert-danger').should(
+      'contain',
+      Cypress.env('i18n').editScene.untypedActionsError.other.replace('{{count}}', '2')
+    );
+    cy.get('[data-cy="save-error-detail"]').should('not.exist');
+  });
+
+  it('Should explain a refused save in the language of the user, the raw answer on demand', () => {
+    const i18n = Cypress.env('i18n').editScene;
+    authenticatedRequest({
+      method: 'PATCH',
+      url: `/api/v1/scene/${SCENE_SELECTOR}`,
+      body: { editor: { mode: 'classic' }, actions: [[delay(1)], [{ type: 'script.run', code: 'return 1;' }]] }
+    });
+    cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
+
+    // a function block that does not compile: refused by the server, named by the editor
+    cy.get('[data-cy="editor-mode-graph"]').click();
+    cy.get('[data-cy="graph-action-node"][data-path="1.0"]').click();
+    cy.get('[data-cy="function-block-editor"] .cm-content').click();
+    cy.get('[data-cy="function-block-editor"] .cm-content').type('{selectall}{backspace}', { delay: 0 });
+    cy.get('[data-cy="function-block-editor"] .cm-content').type('return (', { delay: 0 });
+    save();
+    cy.get('[data-cy="save-error-problems"]')
+      .should('contain', i18n.saveErrors.places.step.replace('{{number}}', '2'))
+      .should('contain', i18n.actions.script.run)
+      .should('contain', i18n.saveErrors.problems.syntaxAt.split('{{line}}')[0]);
+
+    // a schema refusal: one readable line per block, the raw text folded
+    cy.intercept('PATCH', `**/api/v1/scene/${SCENE_SELECTOR}`, {
+      statusCode: 422,
+      body: {
+        status: 422,
+        properties: [
+          {
+            attribute: 'actions',
+            message: '"[0][0].type" must be one of [delay, script.run]; "[0][0].type" must be a string'
+          }
+        ]
+      }
+    });
+    save();
+    cy.get('[data-cy="save-error-problems"] li').should('have.length', 1);
+    cy.get('[data-cy="save-error-problems"]').should('contain', i18n.saveErrors.problems.missingType);
+    cy.get('[data-cy="save-error-detail"]').should('not.contain', 'must be one of');
+    cy.contains('button', i18n.showErrorDetail).click();
+    cy.get('[data-cy="save-error-detail"]').should('contain', 'must be one of');
   });
 });

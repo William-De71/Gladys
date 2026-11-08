@@ -21,6 +21,7 @@ const {
   SCRIPT_LANGUAGES,
   SCRIPT_MAX_CODE_LENGTH,
   EDITOR_MODES,
+  EDITOR_GRAPH_DIRECTIONS,
   EDITOR_GRAPH_MAX_POSITIONS,
   EDITOR_GRAPH_MAX_SIGNATURE_LENGTH,
 } = require('../lib/scene/script/constants');
@@ -365,6 +366,8 @@ const editorSchema = Joi.object()
         )
         .max(EDITOR_GRAPH_MAX_POSITIONS)
         .required(),
+      // left to right (default) or top to bottom
+      direction: Joi.string().valid(...EDITOR_GRAPH_DIRECTIONS),
     }),
   })
   .allow(null);
@@ -386,32 +389,6 @@ function isScriptActions(actions) {
     actions[0][0] !== null &&
     typeof actions[0][0] === 'object' &&
     actions[0][0].type === ACTIONS.SCRIPT.RUN
-  );
-}
-
-/**
- * @description Tell whether some actions, at any depth, contain a "script.run" action.
- * @param {Array} actions - An array of steps.
- * @returns {boolean} True when a "script.run" action is found.
- * @example
- * containsScriptAction([[{ type: 'light.turn-on' }]]); // false
- */
-function containsScriptAction(actions) {
-  if (!Array.isArray(actions)) {
-    return false;
-  }
-  return actions.some(
-    (step) =>
-      Array.isArray(step) &&
-      step.some(
-        (action) =>
-          action !== null &&
-          typeof action === 'object' &&
-          (action.type === ACTIONS.SCRIPT.RUN ||
-            containsScriptAction(action.then) ||
-            containsScriptAction(action.else) ||
-            containsScriptAction([action.if])),
-      ),
   );
 }
 
@@ -512,15 +489,12 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       validate: {
-        // A scene in code mode is a script and nothing else, and a script is only found in a
-        // scene in code mode (docs/specs/scene-editor-modes.md B.3).
+        // A scene in code mode is a script and nothing else (docs/specs/scene-editor-modes.md
+        // B.3). A block scene may hold "script.run" actions too: function blocks.
         codeModeMatchesActions() {
           const codeMode = Boolean(this.editor && this.editor.mode === 'code');
           if (codeMode && !isScriptActions(this.actions)) {
             throw new Error('A scene in code mode must have a single "script.run" action');
-          }
-          if (!codeMode && containsScriptAction(this.actions)) {
-            throw new Error('A "script.run" action is only allowed in a scene in code mode');
           }
         },
       },

@@ -17,7 +17,7 @@ const { SCRIPT_MEMORY_LIMIT_BYTES, SCRIPT_MAX_STACK_SIZE_BYTES, SCRIPT_MAX_SYNC_
 // ended. The host never holds a handle on the script's promise: a script left waiting forever
 // (stopped scene) is then plain garbage, which QuickJS frees with the runtime.
 const WRAPPER_START = "((__gladysDone, __gladysFail) => (async () => {'use strict';";
-const WRAPPER_END = '\n})().then(() => __gladysDone(), __gladysFail))';
+const WRAPPER_END = '\n})().then((value) => __gladysDone(value), __gladysFail))';
 const SCRIPT_FILE_NAME = 'scene.js';
 
 // Builds the API of D.3 inside the sandbox. Values cross the boundary as JSON strings.
@@ -67,6 +67,7 @@ const PRELUDE = `
     message: {
       send: (user, text) => call('message.send', [user, text]),
     },
+    store: (name, value) => call('store', [name, value]),
   });
   globalThis.sleep = (ms) => call('sleep', [ms]);
   globalThis.stop = () => {
@@ -183,8 +184,8 @@ async function compileScript(code) {
  * @param {Function} [options.isStopError] - Tells whether an error thrown by a host method stops
  * the scene quietly (an unmet condition) rather than being thrown into the script.
  * @param {number} [options.maxSyncExecutionMs] - Longest run without awaiting the API.
- * @returns {Promise<object>} `{ status: 'success' | 'stopped' | 'aborted' }`, or
- * `{ status: 'error', error: { name, message, line, column } }`.
+ * @returns {Promise<object>} `{ status: 'success', value }` (what the script returned),
+ * `{ status: 'stopped' | 'aborted' }`, or `{ status: 'error', error: { name, message, line, column } }`.
  * @example
  * await runScript({ code: 'console.log(1)', api: {} });
  */
@@ -305,8 +306,8 @@ async function runScript({
     const outcomePromise = new Promise((resolve) => {
       resolveOutcome = resolve;
     });
-    const doneFunction = context.newFunction('done', () => {
-      resolveOutcome({});
+    const doneFunction = context.newFunction('done', (valueHandle) => {
+      resolveOutcome({ value: context.dump(valueHandle) });
     });
     const failFunction = context.newFunction('fail', (errorHandle) => {
       resolveOutcome({ error: context.dump(errorHandle) });
@@ -339,7 +340,7 @@ async function runScript({
     if (outcome.error !== undefined) {
       return { status: 'error', error: describeError(outcome.error, maxSyncExecutionMs) };
     }
-    return { status: 'success' };
+    return { status: 'success', value: outcome.value };
   } finally {
     finished = true;
     if (abortSignal && abortListener) {

@@ -1032,3 +1032,20 @@
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+/* The detail of a refused save, folded when long */
+.errorDetail {
+  display: block;
+  word-break: break-word;
+}
+
+.errorDetailOpen {
+  white-space: pre-wrap;
+}
+
+.errorProblems {
+  margin: 0 0 0.25rem;
+  padding-left: 1.1rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}

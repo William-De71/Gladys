@@ -4366,6 +4366,9 @@
         "outOfRange": "We are outside the time ranges",
         "description": "This condition uses the time ranges of the scene's “Time ranges” trigger. Put it in an “If… Then… Else” block to turn a device on at the start of a range and off at its end, with a single scene.",
         "noTrigger": "This scene has no \"time ranges\" scheduled trigger: this condition will stop it every time."
+      },
+      "runScript": {
+        "description": "This code runs in a sandbox when the scene reaches this block. What it returns with return is available to the next blocks as a variable; stop() ends the scene."
       }
     },
     "actions": {
@@ -4460,7 +4463,9 @@
       "energy-contract": {
         "current-price": "Condition on electricity price"
       },
-      "script.run": "Run a script"
+      "script": {
+        "run": "Function (JavaScript)"
+      }
     },
     "actionsDescriptions": {
       "light": {
@@ -4549,6 +4554,9 @@
       },
       "energy-contract": {
         "current-price": "Continue only if the current price of an energy contract meets a threshold"
+      },
+      "script": {
+        "run": "Run your own JavaScript code, like a Node-RED function node"
       }
     },
     "actionCategories": {
@@ -4592,6 +4600,9 @@
         "date": "Current date",
         "time": "Current time",
         "timestamp": "Current timestamp (in seconds, usable in a calculation)"
+      },
+      "runScript": {
+        "result": "Function result"
       }
     },
     "triggers": {
@@ -5046,7 +5057,9 @@
         "multiple-flows": "A block cannot belong to two branches."
       },
       "loadError": "The graph editor could not be loaded.",
-      "deleteBlockTitle": "Delete this block?"
+      "deleteBlockTitle": "Delete this block?",
+      "directionToVertical": "Top to bottom",
+      "directionToHorizontal": "Left to right"
     },
     "code": {
       "thenSectionSubtitle": "the script of the scene, in JavaScript",
@@ -5068,7 +5081,34 @@
         "check": "Check a condition block: true or false, the scene goes on",
         "sleep": "Wait, interrupted if the scene is stopped",
         "stop": "End the scene quietly",
-        "console": "Write to the console below and to the Gladys logs"
+        "console": "Write to the console below and to the Gladys logs",
+        "store": "Keep a value under a name, for the templates of the next actions"
+      },
+      "functionIntro": "The function runs in a sandbox, as the body of an async function: use await, return gives its result to the next blocks. It has 32 MB of memory and is stopped if it runs more than one second without awaiting Gladys."
+    },
+    "untypedActionsError": {
+      "one": "A block has no type yet: pick its type in its card, or delete it.",
+      "other": "{{count}} blocks have no type yet: pick their type in their card, or delete them."
+    },
+    "showErrorDetail": "Show the technical detail",
+    "hideErrorDetail": "Hide the technical detail",
+    "saveErrors": {
+      "places": {
+        "step": "Step {{number}}",
+        "action": "Action {{number}}",
+        "then": "Then",
+        "else": "Else",
+        "condition": "Condition {{number}}",
+        "trigger": "Trigger {{number}}",
+        "scene": "The scene"
+      },
+      "problems": {
+        "missingType": "no type has been picked",
+        "required": "a required setting is missing ({{field}})",
+        "notAllowed": "a setting is not recognized ({{field}})",
+        "invalid": "a setting has an incorrect value ({{field}})",
+        "syntax": "the code has a syntax error: {{reason}}",
+        "syntaxAt": "the code has a syntax error at line {{line}}, column {{column}}: {{reason}}"
       }
     }
   },

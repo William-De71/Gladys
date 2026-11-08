@@ -120,6 +120,40 @@ describe('scene action script.run', () => {
     expect(scriptLogs().map((log) => log.message)).to.deep.equal(['21.5', '21.5', 'null']);
   });
 
+  it('should keep what a function block returns for the next actions', async () => {
+    const scope = { sceneSelector: 'my-scene' };
+    await executeAction(self, { type: ACTIONS.SCRIPT.RUN, code: 'return { ok: true };' }, scope, '1.0', {
+      throwUnknownError: true,
+    });
+    expect(scope[1][0]).to.deep.equal({ result: { ok: true } });
+    const silent = { sceneSelector: 'my-scene' };
+    await executeAction(self, { type: ACTIONS.SCRIPT.RUN, code: 'const a = 1;' }, silent, '1.0', {
+      throwUnknownError: true,
+    });
+    expect(silent).not.to.have.property('1');
+  });
+
+  it('should store a value for the templates, and refuse a bad name', async () => {
+    const scope = { sceneSelector: 'my-scene' };
+    await run(
+      `
+      await gladys.store('total', 21);
+      await gladys.store('nothing');
+      await gladys.action('message.send', { user: 'john', text: 'Total {{total}}' });
+      try { await gladys.store('../bad', 1); } catch (e) { console.log(e.message); }
+      try { await gladys.store(3, 1); } catch (e) { console.log(e.message); }
+    `,
+      scope,
+    );
+    expect(scope.total).to.equal(21);
+    expect(scope.nothing).to.equal(null);
+    sinon.assert.calledOnceWithExactly(self.message.sendToUser, 'john', 'Total 21', null, { service: undefined });
+    expect(scriptLogs().map((log) => log.message)).to.deep.equal([
+      'Invalid name "../bad": letters, digits, "_", "-", separated by dots',
+      'Invalid name "3": letters, digits, "_", "-", separated by dots',
+    ]);
+  });
+
   it('should give the trigger event to the script', async () => {
     await run(`console.log(event.type, event.device_feature);`, {
       sceneSelector: 'my-scene',

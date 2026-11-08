@@ -42,16 +42,59 @@ export const NODE_SIZE = {
 // Layout grid of the automatic layout, in pixels (multiples of the grid)
 export const LAYOUT = {
   COLUMN_WIDTH: 300,
-  ROW_HEIGHT: 120
+  ROW_HEIGHT: 120,
+  // vertical graphs: the distance between two steps, room for a block and its arrow
+  VERTICAL_STEP: 150
 };
+
+const START_WIDTH = 120;
+
+// How the graph flows (spec C.5): left to right like Node-RED, or top to bottom. Saved with the
+// scene (editor.graph.direction).
+export const DIRECTIONS = {
+  HORIZONTAL: 'horizontal',
+  VERTICAL: 'vertical'
+};
+
+/**
+ * The geometry of a direction. The "flow" axis is the one the steps follow, the "cross" axis the
+ * one parallel actions are stacked on; everything else is written once, in these two axes.
+ */
+export const geometry = direction =>
+  direction === DIRECTIONS.VERTICAL
+    ? {
+        flowStep: LAYOUT.VERTICAL_STEP,
+        crossStep: LAYOUT.COLUMN_WIDTH,
+        flowSize: NODE_SIZE.HEIGHT,
+        crossSize: NODE_SIZE.WIDTH,
+        // a block is taller, along the flow: nothing to center across it
+        blockCrossOffset: 0,
+        startCrossOffset: (NODE_SIZE.WIDTH - START_WIDTH) / 2,
+        toPosition: (flow, cross) => ({ x: cross, y: flow }),
+        flowOf: position => position.y,
+        crossOf: position => position.x
+      }
+    : {
+        flowStep: LAYOUT.COLUMN_WIDTH,
+        crossStep: LAYOUT.ROW_HEIGHT,
+        flowSize: NODE_SIZE.WIDTH,
+        crossSize: NODE_SIZE.HEIGHT,
+        // a block is taller, across the flow: centered on its row, its handles line up
+        blockCrossOffset: -(NODE_SIZE.BLOCK_HEIGHT - NODE_SIZE.HEIGHT) / 2,
+        startCrossOffset: 0,
+        toPosition: (flow, cross) => ({ x: flow, y: cross }),
+        flowOf: position => position.x,
+        crossOf: position => position.y
+      };
 
 const snapToGrid = value => Math.round(value / GRID_SIZE) * GRID_SIZE;
 
 // A join node sits in the gap before its column, centered on the row of the nodes it joins
-const joinLayoutPosition = (column, row) => ({
-  x: column * LAYOUT.COLUMN_WIDTH - (LAYOUT.COLUMN_WIDTH - NODE_SIZE.WIDTH + NODE_SIZE.JOIN) / 2,
-  y: row * LAYOUT.ROW_HEIGHT + (NODE_SIZE.HEIGHT - NODE_SIZE.JOIN) / 2
-});
+const joinLayoutPosition = (column, row, axes) =>
+  axes.toPosition(
+    column * axes.flowStep - (axes.flowStep - axes.flowSize + NODE_SIZE.JOIN) / 2,
+    row * axes.crossStep + (axes.crossSize - NODE_SIZE.JOIN) / 2
+  );
 
 const isBlockType = type => type === ACTIONS.CONDITION.IF_THEN_ELSE || type === ACTIONS.CONDITION.WHILE;
 
@@ -233,7 +276,7 @@ export const canonicalEdges = (scene, idByPath) => {
  * Build the canvas of a scene: trigger nodes, the start node, a node per action and the canonical
  * edges. Node ids come from `newId`, so they stay stable while the scene is edited.
  */
-export const sceneToGraph = (scene, { newId, positions } = {}) => {
+export const sceneToGraph = (scene, { newId, positions, direction } = {}) => {
   const nodes = [];
   const idByPath = {};
   (scene.triggers || []).forEach((trigger, index) =>
@@ -260,7 +303,7 @@ export const sceneToGraph = (scene, { newId, positions } = {}) => {
       data: { flowKey: join.flowKey, stepIndex: join.stepIndex }
     })
   );
-  const laidOut = autoLayout(nodes, edges, scene);
+  const laidOut = autoLayout(nodes, edges, scene, direction);
   return {
     nodes: laidOut.map(node => {
       const saved = positions && positions[layoutKey(node)];
@@ -275,7 +318,8 @@ export const sceneToGraph = (scene, { newId, positions } = {}) => {
 // of their block
 // ---------------------------------------------------------------------------------------------
 
-export const autoLayout = (nodes, edges, scene) => {
+export const autoLayout = (nodes, edges, scene, direction) => {
+  const axes = geometry(direction);
   const positions = {};
   const nodeByPath = {};
   nodes.forEach(node => {
@@ -283,8 +327,8 @@ export const autoLayout = (nodes, edges, scene) => {
       nodeByPath[node.data.path] = node;
     }
   });
-  const place = (id, column, row) => {
-    positions[id] = { x: column * LAYOUT.COLUMN_WIDTH, y: row * LAYOUT.ROW_HEIGHT };
+  const place = (id, column, row, crossOffset = 0) => {
+    positions[id] = axes.toPosition(column * axes.flowStep, row * axes.crossStep + crossOffset);
   };
   // Returns the number of columns and rows the steps take
   const layoutSteps = (steps, basePath, flowKey, startColumn, startRow) => {
@@ -303,16 +347,12 @@ export const autoLayout = (nodes, edges, scene) => {
       }
       const joinId = joinNodeId(flowKey, stepIndex);
       if (previousSize > 1 && placed.length > 1 && nodes.some(node => node.id === joinId)) {
-        positions[joinId] = joinLayoutPosition(column, startRow);
+        positions[joinId] = joinLayoutPosition(column, startRow, axes);
       }
       let row = startRow;
       let width = 1;
       placed.forEach(({ action, path }) => {
-        place(nodeByPath[path].id, column, row);
-        // a block is taller: centered on its row, its handles line up with the other nodes
-        if (action && isBlockType(action.type)) {
-          positions[nodeByPath[path].id].y -= (NODE_SIZE.BLOCK_HEIGHT - NODE_SIZE.HEIGHT) / 2;
-        }
+        place(nodeByPath[path].id, column, row, action && isBlockType(action.type) ? axes.blockCrossOffset : 0);
         let rows = 1;
         if (action && isBlockType(action.type)) {
           branchesOf(action.type).forEach(({ property }) => {
@@ -339,7 +379,7 @@ export const autoLayout = (nodes, edges, scene) => {
   for (let index = 0; index < triggerCount; index += 1) {
     place(triggerNodeId(index), -1, index);
   }
-  place(START_NODE_ID, 0, Math.max((triggerCount - 1) / 2, 0));
+  place(START_NODE_ID, 0, Math.max((triggerCount - 1) / 2, 0), axes.startCrossOffset);
   layoutSteps(scene.actions, '', 'main', 1, 0);
   return nodes.map(node => ({ ...node, position: positions[node.id] || node.position || { x: 0, y: 0 } }));
 };
@@ -348,10 +388,11 @@ export const autoLayout = (nodes, edges, scene) => {
 // Graph -> steps (spec C.3)
 // ---------------------------------------------------------------------------------------------
 
-const byVerticalOrder = nodeById => (a, b) => {
+// Parallel actions are ordered along the cross axis: top to bottom, or left to right
+const byCrossOrder = (nodeById, axes) => (a, b) => {
   const positionA = nodeById[a].position || { x: 0, y: 0 };
   const positionB = nodeById[b].position || { x: 0, y: 0 };
-  return positionA.y - positionB.y || positionA.x - positionB.x;
+  return axes.crossOf(positionA) - axes.crossOf(positionB) || axes.flowOf(positionA) - axes.flowOf(positionB);
 };
 
 /**
@@ -360,7 +401,8 @@ const byVerticalOrder = nodeById => (a, b) => {
  * steps (a cycle, or a node reached from two flows).
  * `getAction(node)` gives the action of a node, without its branches.
  */
-export const graphToActions = (nodes, edges, getAction) => {
+export const graphToActions = (nodes, edges, getAction, direction) => {
+  const axes = geometry(direction);
   const nodeById = {};
   nodes.forEach(node => {
     nodeById[node.id] = node;
@@ -446,7 +488,7 @@ export const graphToActions = (nodes, edges, getAction) => {
     const idSteps = Object.keys(stepsByLevel)
       .map(Number)
       .sort((a, b) => a - b)
-      .map(key => stepsByLevel[key].sort(byVerticalOrder(nodeById)));
+      .map(key => stepsByLevel[key].sort(byCrossOrder(nodeById, axes)));
 
     const steps = [];
     for (let stepIndex = 0; stepIndex < idSteps.length; stepIndex += 1) {
@@ -548,8 +590,8 @@ export const remapActionVariables = (action, mapping) => {
  * `{ actions, nodes, edges, mapping, orphans }`, where `mapping` gives the new path of every
  * action whose path changed (for the variables of the editor).
  */
-export const applyGraph = (scene, nodes, edges) => {
-  const result = graphToActions(nodes, edges, node => getNodeAction(node, scene.actions));
+export const applyGraph = (scene, nodes, edges, direction) => {
+  const result = graphToActions(nodes, edges, node => getNodeAction(node, scene.actions), direction);
   if (result.error) {
     return { error: result.error };
   }
@@ -618,7 +660,7 @@ export const applyGraph = (scene, nodes, edges) => {
     return {
       id: join.id,
       type: NODE_TYPES.JOIN,
-      position: previous ? previous.position : joinPosition(join, wiredEdges, keptNodes),
+      position: previous ? previous.position : joinPosition(join, wiredEdges, keptNodes, geometry(direction)),
       data: { flowKey: join.flowKey, stepIndex: join.stepIndex }
     };
   });
@@ -636,7 +678,7 @@ export const applyGraph = (scene, nodes, edges) => {
 };
 
 // A new join node sits between the nodes it joins
-const joinPosition = (join, edges, nodes) => {
+const joinPosition = (join, edges, nodes, axes) => {
   const positionOf = id => {
     const node = nodes.find(candidate => candidate.id === id);
     return node && node.position ? node.position : { x: 0, y: 0 };
@@ -645,17 +687,17 @@ const joinPosition = (join, edges, nodes) => {
   const targets = edges.filter(edge => edge.source === join.id).map(edge => positionOf(edge.target));
   const all = [...sources, ...targets];
   const average = values => values.reduce((sum, value) => sum + value, 0) / values.length;
-  return {
-    x: snapToGrid((Math.max(...sources.map(p => p.x)) + Math.min(...targets.map(p => p.x))) / 2),
-    y: snapToGrid(average(all.map(p => p.y)) + (NODE_SIZE.HEIGHT - NODE_SIZE.JOIN) / 2)
-  };
+  return axes.toPosition(
+    snapToGrid((Math.max(...sources.map(axes.flowOf)) + Math.min(...targets.map(axes.flowOf))) / 2),
+    snapToGrid(average(all.map(axes.crossOf)) + (axes.crossSize - NODE_SIZE.JOIN) / 2)
+  );
 };
 
 /**
  * Tell whether an edge may be drawn: not into a trigger or the start, not from a node to itself,
  * an output of the source node, and the result still expressible as steps.
  */
-export const canConnect = (scene, nodes, edges, connection) => {
+export const canConnect = (scene, nodes, edges, connection, direction) => {
   const source = nodes.find(node => node.id === connection.source);
   const target = nodes.find(node => node.id === connection.target);
   if (!source || !target || source.id === target.id) {
@@ -678,7 +720,7 @@ export const canConnect = (scene, nodes, edges, connection) => {
     return false;
   }
   const candidate = [...edges, makeEdge(source.id, handle, target.id)];
-  return !graphToActions(nodes, candidate, node => getNodeAction(node, scene.actions)).error;
+  return !graphToActions(nodes, candidate, node => getNodeAction(node, scene.actions), direction).error;
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -697,11 +739,15 @@ export const newActionNode = (id, position) => ({
 const overlaps = (position, other) =>
   Math.abs(position.x - other.x) < NODE_SIZE.WIDTH && Math.abs(position.y - other.y) < NODE_SIZE.HEIGHT;
 
-/** The first free position at or below the given one, so a new node never covers another one. */
-export const freePosition = (nodes, position) => {
+/**
+ * The first free position at or after the given one, along the cross axis, so a new node never
+ * covers another one.
+ */
+export const freePosition = (nodes, position, direction) => {
+  const axes = geometry(direction);
   let candidate = position;
   while (nodes.some(node => node.position && node.type !== NODE_TYPES.JOIN && overlaps(candidate, node.position))) {
-    candidate = { x: candidate.x, y: candidate.y + LAYOUT.ROW_HEIGHT };
+    candidate = axes.toPosition(axes.flowOf(candidate), axes.crossOf(candidate) + axes.crossStep);
   }
   return candidate;
 };
@@ -720,25 +766,26 @@ const downstream = (edges, startIds) => {
   return reached;
 };
 
-const nextPosition = (nodes, nodeId, rowOffset = 0) => {
+const nextPosition = (nodes, nodeId, rowOffset, axes) => {
   const node = nodes.find(candidate => candidate.id === nodeId);
   const position = (node && node.position) || { x: 0, y: 0 };
-  // next to a block, a node lines up with the block's center, not its top
-  const centering = node && node.type === NODE_TYPES.BLOCK ? (NODE_SIZE.BLOCK_HEIGHT - NODE_SIZE.HEIGHT) / 2 : 0;
-  return {
-    x: position.x + LAYOUT.COLUMN_WIDTH,
-    y: position.y + centering + rowOffset * LAYOUT.ROW_HEIGHT
-  };
+  // next to a block, a node lines up with the block's center, not its edge
+  const centering = node && node.type === NODE_TYPES.BLOCK ? -axes.blockCrossOffset : 0;
+  return axes.toPosition(
+    axes.flowOf(position) + axes.flowStep,
+    axes.crossOf(position) + centering + rowOffset * axes.crossStep
+  );
 };
 
 /**
  * Insert a node right after another one, on one of its outputs: what followed that output now
  * follows the new node.
  */
-export const insertAfter = ({ nodes, edges }, nodeId, newNode, handle = HANDLES.NEXT) => {
+export const insertAfter = ({ nodes, edges }, nodeId, newNode, handle = HANDLES.NEXT, direction) => {
+  const axes = geometry(direction);
   const following = edges.filter(edge => edge.source === nodeId && (edge.sourceHandle || HANDLES.NEXT) === handle);
   const rowOffset = handle === HANDLES.ELSE ? 1 : 0;
-  const placed = { ...newNode, position: newNode.position || nextPosition(nodes, nodeId, rowOffset) };
+  const placed = { ...newNode, position: newNode.position || nextPosition(nodes, nodeId, rowOffset, axes) };
   // what follows moves one column right, to make room, as in a list
   const shifted = downstream(
     edges,
@@ -748,7 +795,10 @@ export const insertAfter = ({ nodes, edges }, nodeId, newNode, handle = HANDLES.
     nodes: [
       ...nodes.map(node =>
         shifted.has(node.id) && node.position
-          ? { ...node, position: { x: node.position.x + LAYOUT.COLUMN_WIDTH, y: node.position.y } }
+          ? {
+              ...node,
+              position: axes.toPosition(axes.flowOf(node.position) + axes.flowStep, axes.crossOf(node.position))
+            }
           : node
       ),
       placed
@@ -762,12 +812,15 @@ export const insertAfter = ({ nodes, edges }, nodeId, newNode, handle = HANDLES.
 };
 
 /** Add a node running at the same time as another one: same inputs, same following nodes. */
-export const addParallel = ({ nodes, edges }, nodeId, newNode) => {
+export const addParallel = ({ nodes, edges }, nodeId, newNode, direction) => {
+  const axes = geometry(direction);
   const node = nodes.find(candidate => candidate.id === nodeId);
   const position = (node && node.position) || { x: 0, y: 0 };
   const placed = {
     ...newNode,
-    position: newNode.position || freePosition(nodes, { x: position.x, y: position.y + LAYOUT.ROW_HEIGHT })
+    position:
+      newNode.position ||
+      freePosition(nodes, axes.toPosition(axes.flowOf(position), axes.crossOf(position) + axes.crossStep), direction)
   };
   return {
     nodes: [...nodes, placed],
@@ -784,7 +837,8 @@ export const addParallel = ({ nodes, edges }, nodeId, newNode) => {
 };
 
 /** Add a node at the end of the scene: after every action of its last step. */
-export const appendToMainFlow = ({ nodes, edges }, newNode) => {
+export const appendToMainFlow = ({ nodes, edges }, newNode, direction) => {
+  const axes = geometry(direction);
   const lastStep = {};
   let lastIndex = -1;
   nodes.forEach(node => {
@@ -800,15 +854,19 @@ export const appendToMainFlow = ({ nodes, edges }, newNode) => {
     }
   });
   const sources = lastIndex >= 0 ? lastStep[lastIndex] : [nodes.find(node => node.id === START_NODE_ID)];
-  const rightmost = sources.reduce(
-    (best, node) => (node.position && node.position.x > best ? node.position.x : best),
+  const furthest = sources.reduce(
+    (best, node) => (node.position && axes.flowOf(node.position) > best ? axes.flowOf(node.position) : best),
     0
   );
   const placed = {
     ...newNode,
     position:
       newNode.position ||
-      freePosition(nodes, { x: rightmost + LAYOUT.COLUMN_WIDTH, y: (sources[0].position || { y: 0 }).y })
+      freePosition(
+        nodes,
+        axes.toPosition(furthest + axes.flowStep, axes.crossOf(sources[0].position || { x: 0, y: 0 })),
+        direction
+      )
   };
   return {
     nodes: [...nodes, placed],
@@ -858,7 +916,8 @@ export const removeNode = ({ nodes, edges }, nodeId) => {
  * Keep one trigger node per trigger of the scene, each wired into the start: after a trigger was
  * added or removed in its panel.
  */
-export const syncTriggerNodes = ({ nodes, edges }, triggerCount) => {
+export const syncTriggerNodes = ({ nodes, edges }, triggerCount, direction) => {
+  const axes = geometry(direction);
   const existing = nodes.filter(node => node.type === NODE_TYPES.TRIGGER);
   const others = nodes.filter(node => node.type !== NODE_TYPES.TRIGGER);
   const triggers = [];
@@ -868,7 +927,7 @@ export const syncTriggerNodes = ({ nodes, edges }, triggerCount) => {
       previous || {
         id: triggerNodeId(index),
         type: NODE_TYPES.TRIGGER,
-        position: { x: -LAYOUT.COLUMN_WIDTH, y: index * LAYOUT.ROW_HEIGHT },
+        position: axes.toPosition(-axes.flowStep, index * axes.crossStep),
         data: { index }
       }
     );
@@ -883,18 +942,20 @@ export const syncTriggerNodes = ({ nodes, edges }, triggerCount) => {
 };
 
 /** Lay the whole canvas out again, from the steps of the scene. */
-export const relayout = (scene, { nodes, edges }) => {
+export const relayout = (scene, { nodes, edges }, direction) => {
+  const axes = geometry(direction);
   const wired = nodes.filter(node => node.type !== NODE_TYPES.JOIN && !(node.data && node.data.path === null));
   const unwired = nodes.filter(node => node.data && node.data.path === null);
   const joins = nodes.filter(node => node.type === NODE_TYPES.JOIN);
-  const laidOut = autoLayout([...wired, ...joins], edges, scene);
-  const bottom = laidOut.reduce((max, node) => Math.max(max, node.position.y), 0);
+  const laidOut = autoLayout([...wired, ...joins], edges, scene, direction);
+  // the unwired nodes go aside, past the furthest node across the flow
+  const edge = laidOut.reduce((max, node) => Math.max(max, axes.crossOf(node.position)), 0);
   return {
     nodes: [
       ...laidOut,
       ...unwired.map((node, index) => ({
         ...node,
-        position: { x: index * LAYOUT.COLUMN_WIDTH, y: bottom + 2 * LAYOUT.ROW_HEIGHT }
+        position: axes.toPosition(index * axes.flowStep, edge + 2 * axes.crossStep)
       }))
     ],
     edges

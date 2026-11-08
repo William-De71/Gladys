@@ -9,6 +9,7 @@ import Settings from './Settings';
 import EditActions from './EditActions';
 import DraftBanner from './DraftBanner';
 import EditorModeSwitch from './EditorModeSwitch';
+import ErrorDetail from './ErrorDetail';
 import SceneCanvas from './graph/LazySceneCanvas';
 import SceneCodeEditor from './code/SceneCodeEditor';
 import dashboardStyle from '../../dashboard/style.css';
@@ -131,14 +132,16 @@ const EditScenePage = ({ children, ...props }) => {
                 <div class="alert alert-danger" ref={errorRef}>
                   <Text id="editScene.saveSceneError" />
                   {props.errorMessage && (
-                    <div class="mt-2">
-                      <small>{props.errorMessage}</small>
-                    </div>
+                    <ErrorDetail message={props.errorMessage} problems={props.errorProblems} scene={props.scene} />
                   )}
                   {props.errorMessageId && (
                     <div class="mt-2">
                       <small>
-                        <Text id={props.errorMessageId} fields={props.errorMessageFields} />
+                        <Text
+                          id={props.errorMessageId}
+                          fields={props.errorMessageFields}
+                          plural={props.errorMessageFields && props.errorMessageFields.count}
+                        />
                       </small>
                     </div>
                   )}

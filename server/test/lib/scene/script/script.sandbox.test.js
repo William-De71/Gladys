@@ -51,7 +51,7 @@ describe('scene script sandbox', () => {
         event: { type: 'device.new-state' },
         onLog,
       });
-      expect(result).to.deep.equal({ status: 'success' });
+      expect(result.status).to.equal('success');
       sinon.assert.calledOnceWithExactly(api.action, 'device.get-value', { device_feature: 'temp' }, null);
       expect(onLog.args).to.deep.equal([
         ['info', 'value 12 device.new-state {"nested":true}'],
@@ -75,6 +75,7 @@ describe('scene script sandbox', () => {
         'scene.start': record('scene.start'),
         'message.send': record('message.send'),
         sleep: record('sleep'),
+        store: record('store'),
       };
       const result = await runScript({
         code: `
@@ -86,10 +87,11 @@ describe('scene script sandbox', () => {
           await gladys.scene.start('other');
           await gladys.message.send('john', 'hello');
           await sleep(5);
+          await gladys.store('total', 3);
         `,
         api,
       });
-      expect(result).to.deep.equal({ status: 'success' });
+      expect(result.status).to.equal('success');
       expect(calls).to.deep.equal([
         ['action', 'delay', { value: 1 }, { saveAs: 'wait' }],
         ['check', 'house.is-empty', { house: 'main' }, null],
@@ -99,7 +101,15 @@ describe('scene script sandbox', () => {
         ['scene.start', 'other'],
         ['message.send', 'john', 'hello'],
         ['sleep', 5],
+        ['store', 'total', 3],
       ]);
+    });
+    it('should give back what the script returns', async () => {
+      expect(await runScript({ code: 'return { answer: 42 };', api: {} })).to.deep.equal({
+        status: 'success',
+        value: { answer: 42 },
+      });
+      expect(await runScript({ code: 'const a = 1;', api: {} })).to.deep.equal({ status: 'success', value: undefined });
     });
     it('should give `undefined` as event when the scene was started by hand', async () => {
       const onLog = sinon.fake();
@@ -121,7 +131,7 @@ describe('scene script sandbox', () => {
         api: {},
         onLog,
       });
-      expect(result).to.deep.equal({ status: 'success' });
+      expect(result.status).to.equal('success');
       expect(onLog.args).to.deep.equal([
         ['info', 'undefined undefined undefined undefined undefined'],
         ['info', 'TypeError'],
@@ -144,7 +154,7 @@ describe('scene script sandbox', () => {
         api,
         onLog,
       });
-      expect(result).to.deep.equal({ status: 'success' });
+      expect(result.status).to.equal('success');
       expect(onLog.args).to.deep.equal([
         ['info', 'caught Device not found'],
         ['info', 'caught not an error'],
@@ -191,7 +201,7 @@ describe('scene script sandbox', () => {
         },
         maxSyncExecutionMs: 60,
       });
-      expect(result).to.deep.equal({ status: 'success' });
+      expect(result.status).to.equal('success');
     });
     it('should stop a runaway recursion with an error, and allow a deep one', async () => {
       const overflow = await runScript({ code: 'function f() { return f() + 1; }\nf();', api: {} });
@@ -205,7 +215,7 @@ describe('scene script sandbox', () => {
         api: {},
         onLog,
       });
-      expect(deep).to.deep.equal({ status: 'success' });
+      expect(deep.status).to.equal('success');
       sinon.assert.calledOnceWithExactly(onLog, 'info', '500');
     });
     it('should resume the script once, when several calls settle at the same time', async () => {
@@ -215,7 +225,7 @@ describe('scene script sandbox', () => {
         api: { action: async (type) => type },
         onLog,
       });
-      expect(result).to.deep.equal({ status: 'success' });
+      expect(result.status).to.equal('success');
       sinon.assert.calledOnceWithExactly(onLog, 'info', 'a');
     });
     it('should give null to the script for a method returning nothing', async () => {
@@ -288,7 +298,7 @@ describe('scene script sandbox', () => {
         });
         expect(result).to.deep.equal({ status: 'aborted' });
       }
-      expect(await runScript({ code: 'return 1;', api: {} })).to.deep.equal({ status: 'success' });
+      expect(await runScript({ code: 'return 1;', api: {} })).to.deep.equal({ status: 'success', value: 1 });
     });
     it('should not start a script whose scene is already aborted', async () => {
       const abortController = new AbortController();
@@ -328,7 +338,7 @@ describe('scene script sandbox', () => {
           }),
       };
       const result = await runScript({ code: "gladys.action('x', {}); return 1;", api });
-      expect(result).to.deep.equal({ status: 'success' });
+      expect(result.status).to.equal('success');
       resolveLateCall({ late: true });
       await new Promise((resolve) => {
         setImmediate(resolve);
@@ -343,7 +353,7 @@ describe('scene script sandbox', () => {
           }),
       };
       const result = await runScript({ code: "gladys.action('x', {}).catch(() => {}); return 1;", api });
-      expect(result).to.deep.equal({ status: 'success' });
+      expect(result.status).to.equal('success');
       rejectLateCall(new Error('late'));
       await new Promise((resolve) => {
         setImmediate(resolve);

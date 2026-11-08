@@ -4366,6 +4366,9 @@
         "outOfRange": "Wir befinden uns außerhalb der Zeitfenster",
         "description": "Diese Bedingung nutzt die Zeitfenster des Auslösers „Zeitfenster“ der Szene. Verwenden Sie sie in einem „Wenn… Dann… Sonst“-Block, um ein Gerät zu Beginn eines Zeitfensters einzuschalten und am Ende auszuschalten – mit einer einzigen Szene.",
         "noTrigger": "Diese Szene hat keinen geplanten Auslöser „Zeitfenster“: Diese Bedingung wird sie jedes Mal stoppen."
+      },
+      "runScript": {
+        "description": "Dieser Code läuft in einer Sandbox, wenn die Szene diesen Block erreicht. Was er mit return zurückgibt, steht den nächsten Blöcken als Variable zur Verfügung; stop() beendet die Szene."
       }
     },
     "actions": {
@@ -4460,7 +4463,9 @@
       "energy-contract": {
         "current-price": "Bedingung zum Strompreis"
       },
-      "script.run": "Skript ausführen"
+      "script": {
+        "run": "Funktion (JavaScript)"
+      }
     },
     "actionsDescriptions": {
       "light": {
@@ -4549,6 +4554,9 @@
       },
       "energy-contract": {
         "current-price": "Nur fortfahren, wenn der aktuelle Preis eines Energievertrags einen Schwellenwert erfüllt"
+      },
+      "script": {
+        "run": "Führt eigenen JavaScript-Code aus, wie ein Node-RED-Funktionsknoten"
       }
     },
     "actionCategories": {
@@ -4592,6 +4600,9 @@
         "date": "Aktuelles Datum",
         "time": "Aktuelle Uhrzeit",
         "timestamp": "Aktueller Zeitstempel (in Sekunden, in einer Berechnung verwendbar)"
+      },
+      "runScript": {
+        "result": "Ergebnis der Funktion"
       }
     },
     "triggers": {
@@ -5046,7 +5057,9 @@
         "multiple-flows": "Ein Block kann nicht zu zwei Zweigen gehören."
       },
       "loadError": "Der grafische Editor konnte nicht geladen werden.",
-      "deleteBlockTitle": "Diesen Block löschen?"
+      "deleteBlockTitle": "Diesen Block löschen?",
+      "directionToVertical": "Von oben nach unten",
+      "directionToHorizontal": "Von links nach rechts"
     },
     "code": {
       "thenSectionSubtitle": "das Skript der Szene, in JavaScript",
@@ -5068,7 +5081,34 @@
         "check": "Prüft einen Bedingungsblock: true oder false, die Szene läuft weiter",
         "sleep": "Wartet, unterbrochen, wenn die Szene gestoppt wird",
         "stop": "Beendet die Szene ohne Fehler",
-        "console": "Schreibt in die Konsole unten und in die Gladys-Logs"
+        "console": "Schreibt in die Konsole unten und in die Gladys-Logs",
+        "store": "Speichert einen Wert unter einem Namen, für die Vorlagen der nächsten Aktionen"
+      },
+      "functionIntro": "Die Funktion läuft in einer Sandbox als Körper einer async-Funktion: Verwende await, return gibt ihr Ergebnis an die nächsten Blöcke. Sie hat 32 MB Speicher und wird gestoppt, wenn sie länger als eine Sekunde läuft, ohne auf Gladys zu warten."
+    },
+    "untypedActionsError": {
+      "one": "Ein Block hat noch keinen Typ: Wähle seinen Typ in seiner Karte oder lösche ihn.",
+      "other": "{{count}} Blöcke haben noch keinen Typ: Wähle ihren Typ in ihrer Karte oder lösche sie."
+    },
+    "showErrorDetail": "Technische Details anzeigen",
+    "hideErrorDetail": "Technische Details ausblenden",
+    "saveErrors": {
+      "places": {
+        "step": "Schritt {{number}}",
+        "action": "Aktion {{number}}",
+        "then": "Dann",
+        "else": "Sonst",
+        "condition": "Bedingung {{number}}",
+        "trigger": "Auslöser {{number}}",
+        "scene": "Die Szene"
+      },
+      "problems": {
+        "missingType": "es wurde kein Typ gewählt",
+        "required": "eine Pflichteinstellung fehlt ({{field}})",
+        "notAllowed": "eine Einstellung wird nicht erkannt ({{field}})",
+        "invalid": "eine Einstellung hat einen falschen Wert ({{field}})",
+        "syntax": "der Code enthält einen Syntaxfehler: {{reason}}",
+        "syntaxAt": "der Code enthält einen Syntaxfehler in Zeile {{line}}, Spalte {{column}}: {{reason}}"
       }
     }
   },

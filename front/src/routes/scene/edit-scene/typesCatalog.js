@@ -42,7 +42,8 @@ export const ACTION_ICON = {
   [ACTIONS.SMS.SEND]: 'fe fe-message-circle',
   [ACTIONS.VARIABLE.SET]: 'fe fe-hash',
   [ACTIONS.TIME.GET_DATE]: 'fe fe-clock',
-  [ACTIONS.EXTERNAL_INTEGRATION.SCENE_ACTION]: 'fe fe-box'
+  [ACTIONS.EXTERNAL_INTEGRATION.SCENE_ACTION]: 'fe fe-box',
+  [ACTIONS.SCRIPT.RUN]: 'fe fe-code'
 };
 
 // Action types on their way out. They stay in the picker because existing scenes
@@ -145,7 +146,8 @@ export const ACTION_CATEGORIES = [
       ACTIONS.ZIGBEE2MQTT.SEND,
       ACTIONS.AI.ASK,
       ACTIONS.VARIABLE.SET,
-      ACTIONS.TIME.GET_DATE
+      ACTIONS.TIME.GET_DATE,
+      ACTIONS.SCRIPT.RUN
     ]
   }
 ];

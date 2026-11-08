@@ -128,10 +128,22 @@
   border-left-color: #a55eea;
 }
 
+/* vertical: the outputs are under the text, not beside it */
+.blockNodeVertical {
+  align-items: flex-start;
+  padding: 12px 12px 0;
+}
+
 .unwiredNode {
   border: 1px dashed #e0a526;
   border-left-width: 4px;
   opacity: 0.85;
+}
+
+/* a block whose type was never picked: it cannot be saved */
+.untypedNode {
+  border: 1px dashed #d4593f;
+  border-left-width: 4px;
 }
 
 .executingNode {
@@ -230,6 +242,26 @@
 
 .outputBottom {
   top: 66.667%;
+}
+
+/* Vertical graphs: the branches leave from the bottom edge, label above their handle */
+.outputVertical {
+  top: auto;
+  right: auto;
+  bottom: 4px;
+  transform: translateX(-50%);
+}
+
+.outputLeft {
+  left: 33.333%;
+}
+
+.outputCenter {
+  left: 50%;
+}
+
+.outputRight {
+  left: 66.667%;
 }
 
 .handleThen {

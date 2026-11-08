@@ -436,4 +436,41 @@ describe('SceneManager', () => {
     });
     await assert.isRejected(assertScriptCompiles([[{ type: ACTIONS.SCRIPT.RUN }]]), 'Script syntax error: broken');
   });
+  it('should refuse a function block which does not compile, naming it', async () => {
+    const promise = sceneManager.create({
+      name: 'My scene with a broken function',
+      icon: 'bell',
+      triggers: [],
+      actions: [
+        [{ type: ACTIONS.LIGHT.TURN_ON }],
+        [
+          {
+            type: ACTIONS.CONDITION.IF_THEN_ELSE,
+            if: [],
+            then: [[{ type: ACTIONS.SCRIPT.RUN, code: 'return ;;(' }]],
+            else: [[]],
+          },
+        ],
+      ],
+    });
+    await assert.isRejected(promise, 'Script syntax error in the function block 1.0.then.0.0 at line');
+  });
+  it('should create a scene with function blocks that compile', async () => {
+    const scene = await sceneManager.create({
+      name: 'My scene with functions',
+      icon: 'bell',
+      triggers: [],
+      actions: [
+        [{ type: ACTIONS.SCRIPT.RUN, code: 'return 1;' }],
+        [
+          {
+            type: ACTIONS.CONDITION.WHILE,
+            if: [{ type: ACTIONS.SCRIPT.RUN }],
+            then: [[{ type: ACTIONS.LIGHT.TURN_ON }]],
+          },
+        ],
+      ],
+    });
+    expect(scene.actions[0][0].code).to.equal('return 1;');
+  });
 });

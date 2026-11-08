@@ -196,6 +196,14 @@ const getActionSummary = (action, dictionary, deviceFeatures, thermostatSchedule
         action.device ? listDeviceNames([action.device], deviceFeatures) : null,
         truncate(nameVariablesInText(action.text, names))
       ]);
+    case ACTIONS.SCRIPT.RUN:
+      // the first line of code that is not a comment
+      return truncate(
+        (action.code || '')
+          .split('\n')
+          .map(line => line.trim())
+          .find(line => line && !line.startsWith('//'))
+      );
     case ACTIONS.MUSIC.PLAY_MEDIA:
       return joinParts([
         action.device ? listDeviceNames([action.device], deviceFeatures) : null,

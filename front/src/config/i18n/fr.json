@@ -4366,6 +4366,9 @@
         "outOfRange": "On est en dehors des plages horaires",
         "description": "Cette condition s'appuie sur les plages horaires du déclencheur « Plages horaires » de la scène. Placez-la dans un bloc « Si… Alors… Sinon » pour allumer un équipement au début d'une plage et l'éteindre à la fin, avec une seule scène.",
         "noTrigger": "Cette scène n'a pas de déclencheur planifié « plages horaires » : cette condition l'arrêtera à chaque fois."
+      },
+      "runScript": {
+        "description": "Ce code s’exécute dans un bac à sable quand la scène arrive sur ce bloc. Ce qu’il renvoie avec return est disponible pour les blocs suivants comme variable ; stop() termine la scène."
       }
     },
     "actions": {
@@ -4460,7 +4463,9 @@
       "energy-contract": {
         "current-price": "Condition sur le prix de l'électricité"
       },
-      "script.run": "Exécuter un script"
+      "script": {
+        "run": "Fonction (JavaScript)"
+      }
     },
     "actionsDescriptions": {
       "light": {
@@ -4549,6 +4554,9 @@
       },
       "energy-contract": {
         "current-price": "Continuer seulement si le prix actuel d'un contrat d'énergie respecte un seuil"
+      },
+      "script": {
+        "run": "Exécute ton propre code JavaScript, comme un nœud « function » de Node-RED"
       }
     },
     "actionCategories": {
@@ -4592,6 +4600,9 @@
         "date": "Date actuelle",
         "time": "Heure actuelle",
         "timestamp": "Timestamp actuel (en secondes, utilisable dans un calcul)"
+      },
+      "runScript": {
+        "result": "Résultat de la fonction"
       }
     },
     "triggers": {
@@ -5046,7 +5057,9 @@
         "multiple-flows": "Un bloc ne peut pas appartenir à deux branches."
       },
       "loadError": "L’éditeur graphique n’a pas pu être chargé.",
-      "deleteBlockTitle": "Supprimer ce bloc ?"
+      "deleteBlockTitle": "Supprimer ce bloc ?",
+      "directionToVertical": "De haut en bas",
+      "directionToHorizontal": "De gauche à droite"
     },
     "code": {
       "thenSectionSubtitle": "le script de la scène, en JavaScript",
@@ -5068,7 +5081,34 @@
         "check": "Vérifie un bloc condition : true ou false, la scène continue",
         "sleep": "Attend, interrompu si la scène est arrêtée",
         "stop": "Termine la scène sans erreur",
-        "console": "Écrit dans la console ci-dessous et dans les logs de Gladys"
+        "console": "Écrit dans la console ci-dessous et dans les logs de Gladys",
+        "store": "Garde une valeur sous un nom, pour les modèles des actions suivantes"
+      },
+      "functionIntro": "La fonction s’exécute dans un bac à sable, comme le corps d’une fonction async : utilise await, return donne son résultat aux blocs suivants. Elle dispose de 32 Mo de mémoire et est arrêtée si elle tourne plus d’une seconde sans attendre Gladys."
+    },
+    "untypedActionsError": {
+      "one": "Un bloc n’a pas encore de type : choisis son type dans sa carte, ou supprime-le.",
+      "other": "{{count}} blocs n’ont pas encore de type : choisis leur type dans leur carte, ou supprime-les."
+    },
+    "showErrorDetail": "Afficher le détail technique",
+    "hideErrorDetail": "Masquer le détail technique",
+    "saveErrors": {
+      "places": {
+        "step": "Étape {{number}}",
+        "action": "Action {{number}}",
+        "then": "Alors",
+        "else": "Sinon",
+        "condition": "Condition {{number}}",
+        "trigger": "Déclencheur {{number}}",
+        "scene": "La scène"
+      },
+      "problems": {
+        "missingType": "aucun type n’a été choisi",
+        "required": "un réglage obligatoire manque ({{field}})",
+        "notAllowed": "un réglage n’est pas reconnu ({{field}})",
+        "invalid": "un réglage a une valeur incorrecte ({{field}})",
+        "syntax": "le code contient une erreur de syntaxe : {{reason}}",
+        "syntaxAt": "le code contient une erreur de syntaxe ligne {{line}}, colonne {{column}} : {{reason}}"
       }
     }
   },

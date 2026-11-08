@@ -26,7 +26,8 @@ import {
   syncTriggerNodes,
   relayout,
   layoutPositions,
-  freePosition
+  freePosition,
+  DIRECTIONS
 } from './sceneGraph.js';
 
 const idGenerator = () => {
@@ -704,5 +705,102 @@ describe('canvas edits', () => {
       ]),
       { start: { x: 1, y: 3 }, '0.0': { x: 3, y: 4 } }
     );
+  });
+});
+
+describe('vertical graphs', () => {
+  const VERTICAL = DIRECTIONS.VERTICAL;
+  const buildVertical = scene => sceneToGraph(scene, { newId: idGenerator(), direction: VERTICAL });
+  const scene = {
+    triggers: [{ type: 'time.sunset' }, { type: 'time.sunrise' }],
+    actions: [[light('a'), ifBlock([], [[light('b')]], [[light('c')]])], [light('d'), light('e')], [light('f')]]
+  };
+
+  it('should lay steps out as rows, parallel actions side by side, on the grid', () => {
+    const graph = buildVertical(scene);
+    const position = path => nodeAt(graph, path).position;
+    assert.deepEqual(graph.nodes[0].position, { x: 0, y: -150 });
+    assert.deepEqual(graph.nodes[1].position, { x: 300, y: -150 });
+    // the start is narrower: centered on the column of the nodes
+    assert.deepEqual(graph.nodes[2].position, { x: 210, y: 0 });
+    assert.deepEqual(position('0.0'), { x: 0, y: 150 });
+    // a block is not shifted across the flow
+    assert.deepEqual(position('0.1'), { x: 300, y: 150 });
+    assert.deepEqual(position('0.1.then.0.0'), { x: 600, y: 300 });
+    assert.deepEqual(position('0.1.else.0.0'), { x: 900, y: 300 });
+    assert.deepEqual(position('1.0'), { x: 0, y: 450 });
+    assert.deepEqual(position('1.1'), { x: 300, y: 450 });
+    const join = graph.nodes.find(node => node.type === NODE_TYPES.JOIN);
+    // in the gap above its row, centered on the column
+    assert.deepEqual(join.position, { x: 105, y: 390 });
+    graph.nodes.forEach(node => {
+      assert.ok(node.position.x % 15 === 0 && node.position.y % 15 === 0);
+    });
+  });
+
+  it('should order parallel actions from left to right', () => {
+    const parallel = { triggers: [], actions: [[light('a'), light('b')]] };
+    const graph = buildVertical(parallel);
+    nodeAt(graph, '0.0').position = { x: 900, y: 0 };
+    const result = graphToActions(graph.nodes, graph.edges, node => getNodeAction(node, parallel.actions), VERTICAL);
+    assert.deepEqual(result.actions, [[light('b'), light('a')]]);
+    // the same positions read horizontally keep the order of the rows
+    const horizontal = graphToActions(graph.nodes, graph.edges, node => getNodeAction(node, parallel.actions));
+    assert.deepEqual(horizontal.actions, [[light('a'), light('b')]]);
+  });
+
+  it('should place and make room along the flow, and look for room across it', () => {
+    const simple = { triggers: [], actions: [[light('a')], [light('b')]] };
+    const graph = buildVertical(simple);
+    const inserted = insertAfter(graph, 'n1', newActionNode('new'), HANDLES.NEXT, VERTICAL);
+    assert.deepEqual(inserted.nodes.find(node => node.id === 'new').position, { x: 0, y: 300 });
+    assert.deepEqual(inserted.nodes.find(node => node.id === 'n2').position, { x: 0, y: 450 });
+    const parallel = addParallel(graph, 'n1', newActionNode('side'), VERTICAL);
+    assert.deepEqual(parallel.nodes.find(node => node.id === 'side').position, { x: 300, y: 150 });
+    const appended = appendToMainFlow(graph, newActionNode('last'), VERTICAL);
+    assert.deepEqual(appended.nodes.find(node => node.id === 'last').position, { x: 0, y: 450 });
+    assert.deepEqual(freePosition(graph.nodes, { x: 0, y: 150 }, VERTICAL), { x: 300, y: 150 });
+  });
+
+  it('should insert into the else branch one column aside, next to a block', () => {
+    const withBlock = { triggers: [], actions: [[ifBlock([], [[]], [[]])]] };
+    const graph = buildVertical(withBlock);
+    const inserted = insertAfter(graph, 'n1', newActionNode('new'), HANDLES.ELSE, VERTICAL);
+    assert.deepEqual(inserted.nodes.find(node => node.id === 'new').position, { x: 300, y: 300 });
+  });
+
+  it('should add trigger nodes side by side, and lay unwired nodes aside', () => {
+    const graph = buildVertical({ triggers: [], actions: [[light('a')]] });
+    const triggers = syncTriggerNodes(graph, 2, VERTICAL);
+    assert.deepEqual(
+      triggers.nodes.filter(node => node.type === NODE_TYPES.TRIGGER).map(node => node.position),
+      [
+        { x: 0, y: -150 },
+        { x: 300, y: -150 }
+      ]
+    );
+    const withFree = { nodes: [...graph.nodes, newActionNode('free')], edges: graph.edges };
+    const result = relayout({ triggers: [], actions: [[light('a')]] }, withFree, VERTICAL);
+    // two columns past the furthest node (the start, centered at x 60)
+    assert.deepEqual(result.nodes.find(node => node.id === 'free').position, { x: 660, y: 0 });
+  });
+
+  it('should place a new join node between the rows it joins', () => {
+    const sequential = { triggers: [], actions: [[light('a'), light('b')]] };
+    const graph = buildVertical(sequential);
+    const nodes = [
+      ...graph.nodes,
+      { id: 'c', type: NODE_TYPES.ACTION, position: { x: 0, y: 300 }, data: { path: null, action: light('c') } },
+      { id: 'd', type: NODE_TYPES.ACTION, position: { x: 300, y: 300 }, data: { path: null, action: light('d') } }
+    ];
+    const edges = [
+      ...graph.edges,
+      makeEdge('n1', HANDLES.NEXT, 'c'),
+      makeEdge('n2', HANDLES.NEXT, 'd'),
+      makeEdge('n1', HANDLES.NEXT, 'd'),
+      makeEdge('n2', HANDLES.NEXT, 'c')
+    ];
+    const result = applyGraph(sequential, nodes, edges, VERTICAL);
+    assert.deepEqual(result.nodes.find(node => node.type === NODE_TYPES.JOIN).position, { x: 255, y: 225 });
   });
 });

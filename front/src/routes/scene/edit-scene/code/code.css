@@ -101,3 +101,18 @@
 .level-error {
   color: #d4593f;
 }
+
+/* A function block: a smaller editor, inside a card or the panel of the graph */
+.functionEditor .toolbar select {
+  max-width: 220px;
+}
+
+.functionEditor .editor,
+.functionEditor .editor :global(.cm-editor),
+.functionEditor .fallback {
+  min-height: 180px;
+}
+
+.functionEditor .editor :global(.cm-editor) {
+  max-height: 40vh;
+}

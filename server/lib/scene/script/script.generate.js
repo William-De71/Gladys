@@ -154,7 +154,11 @@ function generateSteps(steps, basePath, context, indent) {
     lines.push(`${indent}await Promise.all([`);
     actions.forEach(({ action, path }) => {
       const inner = `${indent}${INDENT}`;
-      if (action.type === ACTIONS.CONDITION.IF_THEN_ELSE || action.type === ACTIONS.CONDITION.WHILE) {
+      if (
+        action.type === ACTIONS.CONDITION.IF_THEN_ELSE ||
+        action.type === ACTIONS.CONDITION.WHILE ||
+        action.type === ACTIONS.SCRIPT.RUN
+      ) {
         lines.push(`${inner}(async () => {`);
         // eslint-disable-next-line no-use-before-define
         lines.push(...generateAction(action, path, context, `${inner}${INDENT}`));
@@ -238,6 +242,23 @@ function generateAction(action, path, context, indent) {
     lines.push(`${inner}await sleep(Math.max(0, ${WHILE_MIN_ITERATION_TIME_MS} - (Date.now() - ${startedAt})));`);
     lines.push(`${indent}}`);
     return lines;
+  }
+
+  if (action.type === ACTIONS.SCRIPT.RUN) {
+    // A function block: its code runs as it is, in a function of its own, so its `return` ends the
+    // block only. What it returns is kept when a later action reads it ({{path.result}}).
+    const body = (action.code || '').split('\n').map((line) => (line ? `${inner}${line}` : line));
+    if (isPathReferenced(context.strings, path)) {
+      return [
+        `${indent}// Function block`,
+        `${indent}await gladys.store(${toJsLiteral(path, indent)}, {`,
+        `${inner}result: await (async () => {`,
+        ...body.map((line) => (line ? `${INDENT}${line}` : line)),
+        `${inner}})(),`,
+        `${indent}});`,
+      ];
+    }
+    return [`${indent}// Function block`, `${indent}await (async () => {`, ...body, `${indent}})();`];
   }
 
   if (CONDITION_ACTIONS.includes(action.type)) {

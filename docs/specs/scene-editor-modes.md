@@ -48,17 +48,19 @@ mode, so every existing scene is unchanged.
     "positions": {
       "trigger.0": { "x": -320, "y": 0 },
       "0.0": { "x": 0, "y": 0 }
-    }
+    },
+    "direction": "horizontal"
   }
 }
 ```
 
-| Field             | Type                                   | Rule                                                      |
-| ----------------- | -------------------------------------- | --------------------------------------------------------- |
-| `mode`            | `'classic'` \| `'graph'` \| `'code'`   | required; the mode the scene opens in                     |
-| `graph`           | object                                 | optional; the canvas layout, display only                 |
-| `graph.signature` | string, ≤ 4096 chars                   | the shape of the scene the positions were saved for (C.4) |
-| `graph.positions` | `{ [nodeKey]: { x, y } }`, ≤ 2000 keys | finite numbers; node keys of C.1                          |
+| Field             | Type                                   | Rule                                                          |
+| ----------------- | -------------------------------------- | ------------------------------------------------------------- |
+| `mode`            | `'classic'` \| `'graph'` \| `'code'`   | required; the mode the scene opens in                         |
+| `graph`           | object                                 | optional; the canvas layout, display only                     |
+| `graph.signature` | string, ≤ 4096 chars                   | the shape of the scene the positions were saved for (C.4)     |
+| `graph.positions` | `{ [nodeKey]: { x, y } }`, ≤ 2000 keys | finite numbers; node keys of C.1                              |
+| `graph.direction` | `'horizontal'` \| `'vertical'`         | optional, `horizontal` when absent; how the graph flows (C.5) |
 
 `mode` is a preference, except for `code`, which is an invariant of the actions (B.3).
 
@@ -70,17 +72,19 @@ mode, so every existing scene is unchanged.
 | `language` | `'javascript'` | optional, the only value (room for later)         |
 | `code`     | string         | ≤ 100 000 chars; may be empty while being written |
 
-### B.3 Invariant of the code mode
+### B.3 Invariant of the code mode, function blocks
 
-`editor.mode === 'code'` **if and only if** `actions` is exactly `[[{ type: 'script.run', … }]]`.
+`editor.mode === 'code'` implies that `actions` is exactly `[[{ type: 'script.run', … }]]`.
 
 - Checked by the model (Sequelize model-level validator), so neither the API nor MCP can store a
-  code scene with blocks, or a `script.run` block in a classic scene.
-- The `script.run` block is not offered in the classic and graph palettes.
-- On create and update, the code of a code scene is **compiled** (not run) in the sandbox: a
+  code scene with blocks.
+- A block scene (classic or graph) may hold `script.run` actions anywhere, branches and conditions
+  included: **function blocks** (D.6), offered in the "Advanced" category of the picker.
+- On create and update, **every** script of the scene is **compiled** (not run) in the sandbox: a
   syntax error refuses the save with `400` and the message
-  `Script syntax error at line <l>, column <c>: <reason>`, so a scene is never saved in a state
-  where it cannot run.
+  `Script syntax error at line <l>, column <c>: <reason>` — with `in the function block <path>`
+  before the position for a function block — so a scene is never saved in a state where it
+  cannot run.
 
 ### B.4 Duplication and device migration
 
@@ -164,6 +168,12 @@ the layout is stored apart (C.4).
 - **Look.** The canvas, its toolbar, the panel and the code editor follow the Horizon glass
   grammar of the editor: glass surfaces, pill buttons (accent, neutral, danger).
 
+- **Direction.** A toolbar button switches the graph between left to right (Node-RED style, the
+  default) and top to bottom, saved in `editor.graph.direction`. The layout code is written once, in
+  two axes — the flow axis the steps follow, the cross axis parallel actions are stacked on — and a
+  direction only maps them to x / y: in a vertical graph, steps are 150 px apart, parallel actions
+  side by side and ordered left to right, branches leave from the bottom of their block and the
+  rest of the scene from its right side. Switching lays the canvas out again in the new direction.
 - **Adding.** The toolbar's "Action" button adds a block at the end of the scene; the panel of a
   block adds one right after it, at the same time as it, or at the start of one of its branches
   (`then`, `else`, the loop of a while). An insertion moves what follows one column right, as in a
@@ -182,6 +192,14 @@ the layout is stored apart (C.4).
   unwired (C.3.4). `Delete` / `Backspace` remove the selected node or edge.
 - **History.** `Ctrl+Z` / `Ctrl+Y` (and the toolbar) undo / redo the changes of the canvas, up to
   50; a snapshot holds the graph, the actions, the triggers and their variables.
+- **Saving.** Before sending, the editor counts the blocks whose type was never picked (a new
+  block, a new condition), in every mode and at any depth, and names them in a translated message
+  instead of letting the server refuse the scene with its schema error. Untyped nodes are drawn
+  with a red dashed border. A refusal the server still sends back is made readable
+  (`saveErrors.js`, unit-tested): its schema messages, which name a JSON path and list every value
+  they accept, become one line per place of the scene and kind of problem, in the user's language
+  ("Step 2 › Action 1 (Function): no type has been picked"); a script syntax error names its block,
+  line and column. The raw answer stays available behind a "technical detail" button.
 - **Selecting.** A click selects a node and opens its panel; it never counts as a change of the
   scene (a drag without a move is ignored).
 - **Running.** The block being run is highlighted, from the `scene.executing-action` events.
@@ -238,6 +256,7 @@ or `sleep` rejects, and the interrupt handler stops any running code.
 | `gladys.device.setValue(feature, value)`  | null               | same as the "set value" block                                                                                             |
 | `gladys.scene.start(selector)`            | null               | same as the "start scene" block                                                                                           |
 | `gladys.message.send(user, text)`         | null               | same as the "send message" block                                                                                          |
+| `gladys.store(name, value)`               | null               | keeps a value for the `{{name.…}}` templates of the next actions                                                          |
 | `sleep(ms)`                               | null               | waits, interrupted by a stop                                                                                              |
 | `stop()`                                  | never              | ends the scene quietly, like an unmet condition                                                                           |
 | `console.log/info/warn/error(…args)`      | —                  | Gladys logs and the editor console                                                                                        |
@@ -248,6 +267,9 @@ or `sleep` rejects, and the interrupt handler stops any running code.
   same way, even if the script catches the error: nothing it does afterwards reaches Gladys. Any
   other error is thrown into the script, which may `try / catch` it.
 - Without `saveAs`, the result of an action is kept under `<path of the script>.script.<n>`.
+- `gladys.store(name, value)` keeps a value under a name for the templates of the next actions
+  (`{{name.…}}`), like `saveAs`.
+- What the script returns (`return value`) is kept under `<path of the script>.result`.
 - Values cross the sandbox boundary as JSON.
 
 ### D.4 Converting blocks to code
@@ -261,7 +283,10 @@ behavior of the steps.
 - a condition → `if (!(await gladys.check(…))) stop();`;
 - if / else → `if ((await Promise.all([checks])).every(Boolean)) { … } else { … }`;
 - while → a bounded `for` loop re-checking its conditions in series, with its minimal iteration
-  time.
+  time;
+- a function block → its code as it is, in an `async` function of its own (its `return` ends the
+  block only), wrapped in `gladys.store('<path>', { result: … })` when a later action reads its
+  result.
 
 Server tests run every conversion scenario both ways — as blocks through the engine, as the
 generated script — on the same fakes, and compare the effects.
@@ -276,6 +301,17 @@ discards the code, after a confirmation, and starts from an empty step.
 editor shows the last 200 lines of the scene it displays. An execution logs 1 000 lines at most
 (the last one says the limit was reached), each cut at 2 000 characters. An error that ends the
 script is logged there too, with its line and column.
+
+### D.6 Function blocks
+
+A `script.run` action inside a block scene, like a Node-RED function node: JavaScript run in the
+sandbox of D.2, with the API of D.3, when the scene reaches the block.
+
+- The form of the block is the editor of the advanced mode (insert a device, example, API
+  reference), smaller; it declares the variable `result` for the next blocks.
+- What the code returns is the block's `result` (`{{1.0.result}}`); `stop()` ends the scene, an
+  error fails the block like any action, the scene goes on with the next step.
+- Its logs go to the Gladys logs and the `scene.script-log` event (D.5).
 
 ## E. Mode switch
 
@@ -296,5 +332,4 @@ The mode is saved with the scene (`editor.mode`): the scene reopens where it was
 
 - Other languages (Lua, Python): `language` leaves room, nothing more.
 - Code → blocks.
-- A `script.run` block inside a block scene.
 - Free-form graphs the steps cannot express (merging branches, loops drawn as edges).

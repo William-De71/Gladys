@@ -1,5 +1,6 @@
 const cloneDeep = require('lodash.clonedeep');
 const get = require('get-value');
+const set = require('set-value');
 
 const { ACTIONS, WEBSOCKET_MESSAGE_TYPES, EVENTS } = require('../../../utils/constants');
 const { AbortScene, SceneStopped, NotFoundError } = require('../../../utils/coreErrors');
@@ -109,6 +110,15 @@ function buildScriptApi({ self, scope, path, actionsFunc, schema }) {
       await runAction(ACTIONS.MESSAGE.SEND, { user, text });
       return null;
     },
+    // keeps a value for the templates of the next actions ({{name.…}}), like `saveAs`
+    store: async (name, value) => {
+      if (typeof name !== 'string' || !SAVE_AS_REGEX.test(name)) {
+        throw new Error(`Invalid name "${name}": letters, digits, "_", "-", separated by dots`);
+      }
+      // an absent value crosses the sandbox boundary as null
+      set(scope, name, value);
+      return null;
+    },
     sleep: (ms) =>
       new Promise((resolve, reject) => {
         if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < 0) {
@@ -180,12 +190,18 @@ async function runSceneScript(self, action, scope, path, actionsFunc) {
   if (result.status === 'stopped') {
     throw new AbortScene('SCRIPT_STOPPED');
   }
-  if (result.status === 'error') {
-    const { name, message, line, column } = result.error;
-    const position = line === null ? '' : ` (line ${line}, column ${column})`;
-    onLog('error', `${name}: ${message}${position}`);
-    throw new Error(`Script of scene "${sceneSelector}" failed: ${name}: ${message}${position}`);
+  if (result.status === 'success') {
+    // What a function block returns is kept for the next actions: {{<path>.result}}
+    if (result.value !== undefined) {
+      set(scope, path, { result: toJsonValue(result.value) }, { merge: true });
+    }
+    return;
   }
+  // status: error
+  const { name, message, line, column } = result.error;
+  const position = line === null ? '' : ` (line ${line}, column ${column})`;
+  onLog('error', `${name}: ${message}${position}`);
+  throw new Error(`Script of scene "${sceneSelector}" failed: ${name}: ${message}${position}`);
 }
 
 module.exports = {

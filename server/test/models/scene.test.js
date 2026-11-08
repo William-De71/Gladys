@@ -341,21 +341,26 @@ describe('models/scene', () => {
       await assert.isRejected(buildSceneWithEditor({ mode: 'code' }, []).validate(), message);
     });
 
-    it('should reject a script outside of the code mode, even nested in a block', async () => {
-      const message = 'A "script.run" action is only allowed in a scene in code mode';
-      await assert.isRejected(buildSceneWithEditor(null, scriptActions).validate(), message);
-      await assert.isRejected(buildSceneWithEditor({ mode: 'graph' }, scriptActions).validate(), message);
+    it('should accept function blocks in a block scene, at any depth', async () => {
+      await buildSceneWithEditor(null, [...scriptActions, [{ type: ACTIONS.LIGHT.TURN_ON }]]).validate();
+      await buildSceneWithEditor({ mode: 'graph' }, scriptActions).validate();
+      await buildSceneWithEditor(null, [
+        [{ type: ACTIONS.CONDITION.IF_THEN_ELSE, if: [], then: [[]], else: scriptActions }],
+      ]).validate();
+    });
+
+    it('should accept the direction of a graph, and refuse another one', async () => {
+      const actions = [[{ type: ACTIONS.LIGHT.TURN_ON }]];
+      await buildSceneWithEditor(
+        { mode: 'graph', graph: { signature: '', positions: {}, direction: 'vertical' } },
+        actions,
+      ).validate();
       await assert.isRejected(
-        buildSceneWithEditor(null, [
-          [{ type: ACTIONS.CONDITION.IF_THEN_ELSE, if: [], then: [[]], else: scriptActions }],
-        ]).validate(),
-        message,
-      );
-      await assert.isRejected(
-        buildSceneWithEditor(null, [
-          [{ type: ACTIONS.CONDITION.WHILE, if: [scriptActions[0][0]], then: [[]] }],
-        ]).validate(),
-        message,
+        buildSceneWithEditor(
+          { mode: 'graph', graph: { signature: '', positions: {}, direction: 'diagonal' } },
+          actions,
+        ).validate(),
+        '"graph.direction" must be one of',
       );
     });
 

@@ -38,6 +38,7 @@ import ConditionWhile from './actions/ConditionWhile';
 import SetVariable from './actions/SetVariable';
 import GetDate from './actions/GetDate';
 import ExternalIntegrationAction from './actions/ExternalIntegrationAction';
+import RunScript from './actions/RunScript';
 
 const ACTION_COMPONENTS = {
   [null]: ChooseActionTypeParams,
@@ -81,7 +82,9 @@ const ACTION_COMPONENTS = {
   [ACTIONS.CONDITION.WHILE]: ConditionWhile,
   [ACTIONS.VARIABLE.SET]: SetVariable,
   [ACTIONS.TIME.GET_DATE]: GetDate,
-  [ACTIONS.EXTERNAL_INTEGRATION.SCENE_ACTION]: ExternalIntegrationAction
+  [ACTIONS.EXTERNAL_INTEGRATION.SCENE_ACTION]: ExternalIntegrationAction,
+  // a function block (docs/specs/scene-editor-modes.md D.6)
+  [ACTIONS.SCRIPT.RUN]: RunScript
 };
 
 export default ACTION_COMPONENTS;
