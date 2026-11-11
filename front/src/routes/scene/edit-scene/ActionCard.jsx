@@ -137,7 +137,11 @@ const ActionCard = ({ children, ...props }) => {
           </span>
           <div class={style.stepText} onClick={toggleExpanded} data-not-an-edit>
             <span class={style.stepLabel} data-step-label>
-              {declarationTitle || <Text id={`editScene.actions.${props.action.type}`} />}
+              {declarationTitle ||
+                // a function block may be named by the user
+                (props.action.type === ACTIONS.SCRIPT.RUN && props.action.name) || (
+                  <Text id={`editScene.actions.${props.action.type}`} />
+                )}
               {props.action.type === null && props.path.includes('if') && <Text id="editScene.newCondition" />}
               {props.action.type === null && !props.path.includes('if') && <Text id="editScene.newAction" />}
             </span>

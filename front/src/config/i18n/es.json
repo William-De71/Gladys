@@ -4368,7 +4368,9 @@
         "noTrigger": "Esta escena no tiene un disparador programado «franjas horarias»: esta condición la detendrá cada vez."
       },
       "runScript": {
-        "description": "Este código se ejecuta en un entorno aislado cuando la escena llega a este bloque. Lo que devuelve con return está disponible para los bloques siguientes como variable; stop() termina la escena."
+        "description": "Este código se ejecuta en un entorno aislado cuando la escena llega a este bloque. Lo que devuelve con return está disponible para los bloques siguientes como variable; stop() termina la escena.",
+        "nameLabel": "Nombre de la función",
+        "namePlaceholder": "Función (JavaScript)"
       }
     },
     "actions": {
@@ -5062,7 +5064,9 @@
       "directionToHorizontal": "De izquierda a derecha",
       "copy": "Copiar (Ctrl+C)",
       "paste": "Pegar (Ctrl+V)",
-      "deleteSelection": "Eliminar los {{count}} bloques"
+      "deleteSelection": "Eliminar los {{count}} bloques",
+      "widenPanel": "Ampliar el panel",
+      "narrowPanel": "Reducir el panel"
     },
     "code": {
       "thenSectionSubtitle": "el script de la escena, en JavaScript",

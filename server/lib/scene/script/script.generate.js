@@ -248,10 +248,13 @@ function generateAction(action, path, context, indent) {
   if (action.type === ACTIONS.SCRIPT.RUN) {
     // A function block: its code runs as it is, in a function of its own, so its `return` ends the
     // block only. What it returns is kept when a later action reads it ({{path.result}}).
+    // the name the user gave the block, on one line
+    const name = typeof action.name === 'string' ? action.name.replace(/\s+/g, ' ').trim() : '';
+    const comment = `${indent}// Function block${name ? `: ${name}` : ''}`;
     const body = (action.code || '').split('\n').map((line) => (line ? `${inner}${line}` : line));
     if (isPathReferenced(context.strings, path)) {
       return [
-        `${indent}// Function block`,
+        comment,
         `${indent}await gladys.store(${toJsLiteral(path, indent)}, {`,
         `${inner}result: await (async () => {`,
         ...body.map((line) => (line ? `${INDENT}${line}` : line)),
@@ -259,7 +262,7 @@ function generateAction(action, path, context, indent) {
         `${indent}});`,
       ];
     }
-    return [`${indent}// Function block`, `${indent}await (async () => {`, ...body, `${indent}})();`];
+    return [comment, `${indent}await (async () => {`, ...body, `${indent}})();`];
   }
 
   if (CONDITION_ACTIONS.includes(action.type)) {

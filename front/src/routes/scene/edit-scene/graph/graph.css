@@ -326,7 +326,7 @@
   right: 0;
   bottom: 0;
   z-index: 5;
-  width: 420px;
+  width: var(--panel-width, 420px);
   max-width: 100%;
   overflow-y: auto;
   padding: 1rem 1.25rem;
@@ -348,6 +348,37 @@
   }
 }
 
+/* The left edge of the panel, dragged to resize it */
+.panelResizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.panelResizer:hover,
+.panelResizer:active {
+  background: rgba(86, 110, 245, 0.18);
+}
+
+/* beside the close button of the header */
+.panelWiden {
+  position: absolute;
+  top: 1rem;
+  right: 4rem;
+}
+
+@media (max-width: 767px) {
+  .panelResizer,
+  .panelWiden {
+    display: none;
+  }
+}
+
 .panelHeader {
   display: flex;
   align-items: center;
@@ -357,6 +388,11 @@
 }
 
 .panelTitle {
+  /* room for the button that widens the panel, left of the close button */
+  margin-right: 2.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 1rem;
   font-weight: 600;
 }

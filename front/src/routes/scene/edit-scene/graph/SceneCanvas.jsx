@@ -84,7 +84,8 @@ class SceneCanvas extends Component {
       const title =
         action.type === ACTIONS.EXTERNAL_INTEGRATION.SCENE_ACTION
           ? getSceneDeclarationTitle(sceneIntegrations, SCENE_DECLARATION_KINDS.action, action, language)
-          : null;
+          : // a function block may be named by the user
+            (action.type === ACTIONS.SCRIPT.RUN && action.name) || null;
       return {
         ...display,
         type: isBlockType(action.type) ? NODE_TYPES.BLOCK : NODE_TYPES.ACTION,

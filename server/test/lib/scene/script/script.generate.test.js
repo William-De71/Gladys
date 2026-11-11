@@ -144,6 +144,25 @@ describe('scene script generation', () => {
       );
     });
 
+    it('should write the name of a function block in its comment, on one line', () => {
+      const code = generateScript([
+        [{ type: ACTIONS.SCRIPT.RUN, name: '  Average\ntemperature ', code: 'return 1;' }],
+        [{ type: ACTIONS.SCRIPT.RUN, name: 3, code: 'return 2;' }],
+      ]);
+      expect(body(code)).to.equal(
+        [
+          '// Function block: Average temperature',
+          'await (async () => {',
+          '  return 1;',
+          '})();',
+          '// Function block',
+          'await (async () => {',
+          '  return 2;',
+          '})();',
+          '',
+        ].join('\n'),
+      );
+    });
     it('should write a function block as it is, keeping its result only when it is read', () => {
       const code = generateScript([
         [{ type: ACTIONS.SCRIPT.RUN, code: 'const x = 2;\n\nreturn x;' }],

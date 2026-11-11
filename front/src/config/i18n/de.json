@@ -4368,7 +4368,9 @@
         "noTrigger": "Diese Szene hat keinen geplanten Auslöser „Zeitfenster“: Diese Bedingung wird sie jedes Mal stoppen."
       },
       "runScript": {
-        "description": "Dieser Code läuft in einer Sandbox, wenn die Szene diesen Block erreicht. Was er mit return zurückgibt, steht den nächsten Blöcken als Variable zur Verfügung; stop() beendet die Szene."
+        "description": "Dieser Code läuft in einer Sandbox, wenn die Szene diesen Block erreicht. Was er mit return zurückgibt, steht den nächsten Blöcken als Variable zur Verfügung; stop() beendet die Szene.",
+        "nameLabel": "Name der Funktion",
+        "namePlaceholder": "Funktion (JavaScript)"
       }
     },
     "actions": {
@@ -5062,7 +5064,9 @@
       "directionToHorizontal": "Von links nach rechts",
       "copy": "Kopieren (Strg+C)",
       "paste": "Einfügen (Strg+V)",
-      "deleteSelection": "Die {{count}} Blöcke löschen"
+      "deleteSelection": "Die {{count}} Blöcke löschen",
+      "widenPanel": "Seitenleiste vergrößern",
+      "narrowPanel": "Seitenleiste verkleinern"
     },
     "code": {
       "thenSectionSubtitle": "das Skript der Szene, in JavaScript",

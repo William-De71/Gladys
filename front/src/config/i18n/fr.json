@@ -4368,7 +4368,9 @@
         "noTrigger": "Cette scène n'a pas de déclencheur planifié « plages horaires » : cette condition l'arrêtera à chaque fois."
       },
       "runScript": {
-        "description": "Ce code s’exécute dans un bac à sable quand la scène arrive sur ce bloc. Ce qu’il renvoie avec return est disponible pour les blocs suivants comme variable ; stop() termine la scène."
+        "description": "Ce code s’exécute dans un bac à sable quand la scène arrive sur ce bloc. Ce qu’il renvoie avec return est disponible pour les blocs suivants comme variable ; stop() termine la scène.",
+        "nameLabel": "Nom de la fonction",
+        "namePlaceholder": "Fonction (JavaScript)"
       }
     },
     "actions": {
@@ -5062,7 +5064,9 @@
       "directionToHorizontal": "De gauche à droite",
       "copy": "Copier (Ctrl+C)",
       "paste": "Coller (Ctrl+V)",
-      "deleteSelection": "Supprimer les {{count}} blocs"
+      "deleteSelection": "Supprimer les {{count}} blocs",
+      "widenPanel": "Agrandir le panneau",
+      "narrowPanel": "Réduire le panneau"
     },
     "code": {
       "thenSectionSubtitle": "le script de la scène, en JavaScript",

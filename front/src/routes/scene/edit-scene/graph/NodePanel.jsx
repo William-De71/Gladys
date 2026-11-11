@@ -1,3 +1,4 @@
+import { Component, createRef } from 'preact';
 import { Localizer, Text } from 'preact-i18n';
 import cx from 'classnames';
 
@@ -17,6 +18,111 @@ const BLOCK_COMPONENTS = {
   [ACTIONS.CONDITION.IF_THEN_ELSE]: ConditionIfElseThen,
   [ACTIONS.CONDITION.WHILE]: ConditionWhile
 };
+
+const PANEL_WIDTH_KEY = 'gladys-scene-graph-panel-width';
+const PANEL_DEFAULT_WIDTH = 420;
+const PANEL_MIN_WIDTH = 320;
+// what the panel leaves of the canvas, at its widest
+const CANVAS_MIN_WIDTH = 80;
+const PANEL_WIDE_RATIO = 0.7;
+
+const readPanelWidth = () => {
+  try {
+    const width = Number(window.localStorage.getItem(PANEL_WIDTH_KEY));
+    return Number.isFinite(width) && width >= PANEL_MIN_WIDTH ? width : PANEL_DEFAULT_WIDTH;
+  } catch (e) {
+    return PANEL_DEFAULT_WIDTH;
+  }
+};
+
+// The frame of the panel (spec C.5): resized by dragging its left edge, or with the button of
+// its header. The width is kept in the browser, for every scene.
+class PanelFrame extends Component {
+  frame = createRef();
+
+  state = { width: readPanelWidth() };
+
+  maxWidth = () => {
+    const canvas = this.frame.current && this.frame.current.parentElement;
+    return canvas ? Math.max(canvas.clientWidth - CANVAS_MIN_WIDTH, PANEL_MIN_WIDTH) : PANEL_DEFAULT_WIDTH;
+  };
+
+  setWidth = width => {
+    const clamped = Math.round(Math.min(Math.max(width, PANEL_MIN_WIDTH), this.maxWidth()));
+    this.setState({ width: clamped });
+    try {
+      window.localStorage.setItem(PANEL_WIDTH_KEY, String(clamped));
+    } catch (e) {
+      // the width is then only kept until the panel closes
+    }
+  };
+
+  startResize = event => {
+    event.preventDefault();
+    event.target.setPointerCapture(event.pointerId);
+    this.resizing = true;
+  };
+
+  resize = event => {
+    if (this.resizing && this.frame.current) {
+      this.setWidth(this.frame.current.getBoundingClientRect().right - event.clientX);
+    }
+  };
+
+  stopResize = () => {
+    this.resizing = false;
+  };
+
+  isWide = () => this.state.width > PANEL_DEFAULT_WIDTH;
+
+  toggleWide = () => {
+    const canvas = this.frame.current.parentElement;
+    this.setWidth(this.isWide() ? PANEL_DEFAULT_WIDTH : canvas.clientWidth * PANEL_WIDE_RATIO);
+  };
+
+  // the width is a CSS variable of the frame: the bottom sheet of a phone ignores it
+  applyWidth = () => {
+    if (this.frame.current) {
+      this.frame.current.style.setProperty('--panel-width', `${this.state.width}px`);
+    }
+  };
+
+  componentDidMount() {
+    this.applyWidth();
+  }
+
+  componentDidUpdate() {
+    this.applyWidth();
+  }
+
+  render({ children }) {
+    return (
+      <div class={style.panel} ref={this.frame} data-cy="graph-panel" data-graph-panel>
+        <div
+          class={style.panelResizer}
+          onPointerDown={this.startResize}
+          onPointerMove={this.resize}
+          onPointerUp={this.stopResize}
+          onPointerCancel={this.stopResize}
+          onDblClick={this.toggleWide}
+          data-cy="graph-panel-resizer"
+        />
+        <Localizer>
+          <button
+            type="button"
+            class={cx(editStyle.pill, editStyle.pillIcon, style.panelWiden)}
+            onClick={this.toggleWide}
+            title={<Text id={this.isWide() ? 'editScene.graph.narrowPanel' : 'editScene.graph.widenPanel'} />}
+            data-cy="graph-panel-widen"
+          >
+            <i class={`fe fe-${this.isWide() ? 'minimize-2' : 'maximize-2'}`} />
+          </button>
+        </Localizer>
+        {children}
+      </div>
+    );
+  }
+}
 
 const PanelButton = ({ onClick, icon, labelId, cy, danger }) => (
   <Localizer>
@@ -84,7 +190,7 @@ const NodePanel = props => {
 
   if (node.type === NODE_TYPES.TRIGGER) {
     return (
-      <div class={style.panel} data-cy="graph-panel" data-graph-panel>
+      <PanelFrame>
         <TriggerCard
           trigger={scene.triggers[node.data.index]}
           index={node.data.index}
@@ -94,7 +200,7 @@ const NodePanel = props => {
           setVariablesTrigger={props.setVariablesTrigger}
           sceneIntegrations={props.sceneIntegrations}
         />
-      </div>
+      </PanelFrame>
     );
   }
 
@@ -117,10 +223,11 @@ const NodePanel = props => {
   const formAction = unwired ? action : getAtPath(scene.actions, path) || action;
 
   return (
-    <div class={style.panel} data-cy="graph-panel" data-graph-panel>
+    <PanelFrame>
       <div class={style.panelHeader}>
         <span class={style.panelTitle}>
-          {action.type ? <Text id={`editScene.actions.${action.type}`} /> : <Text id="editScene.newAction" />}
+          {(action.type === ACTIONS.SCRIPT.RUN && action.name) ||
+            (action.type ? <Text id={`editScene.actions.${action.type}`} /> : <Text id="editScene.newAction" />)}
         </span>
         <Localizer>
           <button
@@ -179,7 +286,7 @@ const NodePanel = props => {
           danger
         />
       </div>
-    </div>
+    </PanelFrame>
   );
 };
 

@@ -71,6 +71,7 @@ mode, so every existing scene is unchanged.
 | `type`     | `'script.run'` | `ACTIONS.SCRIPT.RUN`                              |
 | `language` | `'javascript'` | optional, the only value (room for later)         |
 | `code`     | string         | ≤ 100 000 chars; may be empty while being written |
+| `name`     | string         | optional: the name the user gives a function block |
 
 ### B.3 Invariant of the code mode, function blocks
 
@@ -210,6 +211,9 @@ the layout is stored apart (C.4).
   paste them as unwired nodes beside their originals, wired to each other as they were
   (`copyNodes` / `pasteNodes`). A block is copied without its branches, unless their nodes are
   selected too. The copy lives in the canvas, not in the system clipboard.
+- **Panel width.** The panel is resized by dragging its left edge, or widened / narrowed with the
+  button of its header (a function block needs room for its code). The width is kept in the
+  browser (`localStorage`), not in the scene; on a phone the panel is a bottom sheet, not resized.
 - **Mini-map.** A mini-map of the canvas, to move around a large scene; hidden on phones.
 - **Selecting.** A click selects a node and opens its panel; it never counts as a change of the
   scene (a drag without a move is ignored).
@@ -332,6 +336,9 @@ sandbox of D.2, with the API of D.3, when the scene reaches the block.
 - What the code returns is the block's `result` (`{{1.0.result}}`); `stop()` ends the scene, an
   error fails the block like any action, the scene goes on with the next step.
 - Its logs go to the Gladys logs and the `scene.script-log` event (D.5).
+- The user may name the block (`name`): the name replaces "Function (JavaScript)" as the title of
+  its card, of its node and of its panel, and is written in the comment of the block when the
+  scene is converted to code. An empty name is not saved.
 
 ### D.7 Trying a script
 

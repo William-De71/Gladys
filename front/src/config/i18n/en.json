@@ -4368,7 +4368,9 @@
         "noTrigger": "This scene has no \"time ranges\" scheduled trigger: this condition will stop it every time."
       },
       "runScript": {
-        "description": "This code runs in a sandbox when the scene reaches this block. What it returns with return is available to the next blocks as a variable; stop() ends the scene."
+        "description": "This code runs in a sandbox when the scene reaches this block. What it returns with return is available to the next blocks as a variable; stop() ends the scene.",
+        "nameLabel": "Name of the function",
+        "namePlaceholder": "Function (JavaScript)"
       }
     },
     "actions": {
@@ -5062,7 +5064,9 @@
       "directionToHorizontal": "Left to right",
       "copy": "Copy (Ctrl+C)",
       "paste": "Paste (Ctrl+V)",
-      "deleteSelection": "Delete the {{count}} blocks"
+      "deleteSelection": "Delete the {{count}} blocks",
+      "widenPanel": "Widen the panel",
+      "narrowPanel": "Narrow the panel"
     },
     "code": {
       "thenSectionSubtitle": "the script of the scene, in JavaScript",

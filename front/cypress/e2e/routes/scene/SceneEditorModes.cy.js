@@ -456,4 +456,51 @@ describe('Scene editor modes', () => {
       expect(scene.actions[0][0].code).to.equal('await sleep(1);');
     });
   });
+
+  it('Should name a function block, and widen its panel', () => {
+    authenticatedRequest({
+      method: 'PATCH',
+      url: `/api/v1/scene/${SCENE_SELECTOR}`,
+      body: { editor: { mode: 'graph' }, actions: [[{ type: 'script.run', code: 'return 1;' }]] }
+    });
+    cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
+    cy.get('[data-cy="graph-action-node"][data-path="0.0"]').click();
+
+    // the name replaces the generic title, on the node and in the panel
+    cy.get('[data-cy="function-block-name"]').type('Average temperature');
+    cy.get('[data-cy="graph-action-node"][data-path="0.0"]').should('contain', 'Average temperature');
+    cy.get('[data-cy="graph-panel"]').should('contain', 'Average temperature');
+
+    // the panel is widened with its button, and keeps its width when it opens again
+    cy.get('[data-cy="graph-panel"]')
+      .invoke('outerWidth')
+      .should('eq', 420);
+    cy.get('[data-cy="graph-panel-widen"]').click();
+    cy.get('[data-cy="graph-panel"]')
+      .invoke('outerWidth')
+      .should('be.greaterThan', 500);
+    cy.get('[data-cy="graph-close-panel"]').click();
+    cy.get('[data-cy="graph-action-node"][data-path="0.0"]').click();
+    cy.get('[data-cy="graph-panel"]')
+      .invoke('outerWidth')
+      .should('be.greaterThan', 500);
+    cy.get('[data-cy="graph-panel-widen"]').click();
+    cy.get('[data-cy="graph-panel"]')
+      .invoke('outerWidth')
+      .should('eq', 420);
+
+    save();
+    cy.contains('editScene.savedLabel').should('exist');
+    getSavedScene().then(scene => {
+      expect(scene.actions[0][0]).to.deep.equal({ type: 'script.run', code: 'return 1;', name: 'Average temperature' });
+    });
+
+    // an emptied name is not saved
+    cy.get('[data-cy="function-block-name"]').clear();
+    save();
+    cy.contains('editScene.savedLabel').should('exist');
+    getSavedScene().then(scene => {
+      expect(scene.actions[0][0]).to.deep.equal({ type: 'script.run', code: 'return 1;' });
+    });
+  });
 });
