@@ -3,7 +3,7 @@ const sinon = require('sinon').createSandbox();
 const EventEmitter = require('events');
 
 const { ACTIONS } = require('../../../../utils/constants');
-const { AbortScene } = require('../../../../utils/coreErrors');
+const { AbortScene, BadParameters } = require('../../../../utils/coreErrors');
 const actionsFunc = require('../../../../lib/scene/scene.actions');
 const executeActionsFactory = require('../../../../lib/scene/scene.executeActions');
 const { generateScript, toJsLiteral, isPathReferenced } = require('../../../../lib/scene/script/script.generate');
@@ -219,6 +219,28 @@ describe('scene script generation', () => {
       expect(toJsLiteral(['y'.repeat(50), 'z'.repeat(50)], '')).to.equal(
         `[\n  '${'y'.repeat(50)}',\n  '${'z'.repeat(50)}',\n]`,
       );
+    });
+  });
+
+  describe('shape of the steps', () => {
+    it('should refuse what is not steps of actions, at any depth', () => {
+      const refused = [
+        undefined,
+        'x',
+        [{ type: 'delay' }],
+        [[null]],
+        [['delay']],
+        [[[]]],
+        [[{ type: 'condition.if-then-else', if: 'x' }]],
+        [[{ type: 'condition.if-then-else', if: [], then: [{ type: 'delay' }] }]],
+        [[{ type: 'condition.if-then-else', if: [], then: [], else: [[1]] }]],
+      ];
+      refused.forEach((actions) => {
+        expect(() => generateScript(actions)).to.throw(BadParameters);
+      });
+    });
+    it('should accept empty steps, untyped actions and blocks without branches', () => {
+      expect(generateScript([[], [{ type: null }], [{ type: 'condition.if-then-else' }]])).to.contain('if (true) {');
     });
   });
 

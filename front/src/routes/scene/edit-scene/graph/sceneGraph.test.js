@@ -27,6 +27,9 @@ import {
   relayout,
   layoutPositions,
   freePosition,
+  copyNodes,
+  pasteNodes,
+  removeNodes,
   DIRECTIONS
 } from './sceneGraph.js';
 
@@ -36,6 +39,12 @@ const idGenerator = () => {
     counter += 1;
     return `n${counter}`;
   };
+};
+
+let pastedCount = 0;
+const nextPastedNumber = () => {
+  pastedCount += 1;
+  return pastedCount;
 };
 
 const build = (scene, positions) => sceneToGraph(scene, { newId: idGenerator(), positions });
@@ -653,6 +662,74 @@ describe('canvas edits', () => {
     const graph = build(scene);
     const withFree = { nodes: [...graph.nodes, placeholder], edges: graph.edges };
     assert.equal(removeNode(withFree, 'new').nodes.length, graph.nodes.length);
+  });
+
+  it('should remove several nodes, bridging over each', () => {
+    const graph = build(scene);
+    const result = apply(removeNodes(graph, [nodeAt(graph, '0.0').id, nodeAt(graph, '2.0').id]));
+    assert.deepEqual(result.actions, [[ifBlock([], [[light('b')]], [[]])]]);
+  });
+
+  it('should copy action nodes with the edges between them, a block without its branches', () => {
+    const graph = build(scene);
+    const ids = [START_NODE_ID, 'trigger-0', nodeAt(graph, '0.0').id, nodeAt(graph, '1.0').id];
+    const clipboard = copyNodes(graph, ids, scene.actions);
+    assert.deepEqual(
+      clipboard.nodes.map(node => node.action),
+      [light('a'), { type: 'condition.if-then-else', if: [] }]
+    );
+    assert.deepEqual(clipboard.nodes[0].position, nodeAt(graph, '0.0').position);
+    assert.deepEqual(clipboard.edges, [{ source: 0, sourceHandle: HANDLES.NEXT, target: 1 }]);
+    // the copy does not share anything with the scene
+    clipboard.nodes[0].action.devices.push('changed');
+    assert.deepEqual(scene.actions[0][0], light('a'));
+  });
+
+  it('should paste the copied nodes unwired, next to the originals, without changing the scene', () => {
+    const graph = build(scene);
+    const clipboard = copyNodes(graph, [nodeAt(graph, '0.0').id, nodeAt(graph, '1.0').id], scene.actions);
+    let counter = 0;
+    const newId = () => {
+      counter += 1;
+      return `p${counter}`;
+    };
+    const { graph: pasted, ids } = pasteNodes(graph, clipboard, newId);
+    assert.deepEqual(ids, ['p1', 'p2']);
+    const [first, second] = ids.map(id => pasted.nodes.find(node => node.id === id));
+    assert.equal(first.type, NODE_TYPES.ACTION);
+    assert.equal(second.type, NODE_TYPES.BLOCK);
+    assert.deepEqual(first.data, { path: null, action: light('a') });
+    assert.deepEqual(first.position, {
+      x: nodeAt(graph, '0.0').position.x,
+      y: nodeAt(graph, '0.0').position.y + 120
+    });
+    assert.deepEqual(pasted.edges.slice(graph.edges.length), [makeEdge('p1', HANDLES.NEXT, 'p2')]);
+
+    const result = applyGraph(scene, pasted.nodes, pasted.edges);
+    assert.deepEqual(result.actions, scene.actions);
+    assert.deepEqual(result.orphans.sort(), ['p1', 'p2']);
+
+    // pasting twice never puts a node over another one
+    const twice = pasteNodes(pasted, clipboard, newId);
+    const positions = twice.graph.nodes.filter(node => node.position).map(node => JSON.stringify(node.position));
+    assert.equal(new Set(positions).size, positions.length);
+  });
+
+  it('should make the pasted nodes steps of the scene once wired', () => {
+    const graph = build(scene);
+    const clipboard = copyNodes(graph, [nodeAt(graph, '0.0').id, nodeAt(graph, '2.0').id], scene.actions);
+    const { graph: pasted, ids } = pasteNodes(graph, clipboard, () => `p${nextPastedNumber()}`);
+    const wired = {
+      nodes: pasted.nodes,
+      edges: [
+        ...pasted.edges,
+        makeEdge(nodeAt(graph, '2.0').id, HANDLES.NEXT, ids[0]),
+        makeEdge(ids[0], HANDLES.NEXT, ids[1])
+      ]
+    };
+    const result = applyGraph(scene, wired.nodes, wired.edges);
+    assert.deepEqual(result.actions.slice(3), [[light('a')], [light('c')]]);
+    assert.deepEqual(result.orphans, []);
   });
 
   it('should not bridge to a node removed with the block', () => {

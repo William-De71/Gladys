@@ -5059,7 +5059,10 @@
       "loadError": "L’éditeur graphique n’a pas pu être chargé.",
       "deleteBlockTitle": "Supprimer ce bloc ?",
       "directionToVertical": "De haut en bas",
-      "directionToHorizontal": "De gauche à droite"
+      "directionToHorizontal": "De gauche à droite",
+      "copy": "Copier (Ctrl+C)",
+      "paste": "Coller (Ctrl+V)",
+      "deleteSelection": "Supprimer les {{count}} blocs"
     },
     "code": {
       "thenSectionSubtitle": "le script de la scène, en JavaScript",
@@ -5084,7 +5087,20 @@
         "console": "Écrit dans la console ci-dessous et dans les logs de Gladys",
         "store": "Garde une valeur sous un nom, pour les modèles des actions suivantes"
       },
-      "functionIntro": "La fonction s’exécute dans un bac à sable, comme le corps d’une fonction async : utilise await, return donne son résultat aux blocs suivants. Elle dispose de 32 Mo de mémoire et est arrêtée si elle tourne plus d’une seconde sans attendre Gladys."
+      "functionIntro": "La fonction s’exécute dans un bac à sable, comme le corps d’une fonction async : utilise await, return donne son résultat aux blocs suivants. Elle dispose de 32 Mo de mémoire et est arrêtée si elle tourne plus d’une seconde sans attendre Gladys.",
+      "test": {
+        "run": "Essayer",
+        "stop": "Arrêter",
+        "hint": "Exécute ce code maintenant, sans enregistrer la scène. Les actions sont réellement effectuées.",
+        "started": "Essai lancé…",
+        "success": "Essai terminé.",
+        "successWithResult": "Essai terminé, résultat : {{result}}",
+        "stopped": "Essai arrêté.",
+        "error": "Essai terminé sur une erreur.",
+        "syntaxError": "Erreur de syntaxe : {{reason}}",
+        "syntaxErrorAt": "Erreur de syntaxe ligne {{line}}, colonne {{column}} : {{reason}}",
+        "failed": "L’essai n’a pas pu être lancé."
+      }
     },
     "untypedActionsError": {
       "one": "Un bloc n’a pas encore de type : choisis son type dans sa carte, ou supprime-le.",

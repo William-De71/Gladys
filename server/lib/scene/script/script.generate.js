@@ -1,4 +1,5 @@
 const { ACTIONS, CONDITION_ACTIONS } = require('../../../utils/constants');
+const { BadParameters } = require('../../../utils/coreErrors');
 
 // Converts the steps of a scene to a script with the same behavior
 // (docs/specs/scene-editor-modes.md D.4). Every action goes through `gladys.action`, which runs
@@ -273,6 +274,34 @@ function generateAction(action, path, context, indent) {
 }
 
 /**
+ * @description Refuse steps that do not have the shape of scene actions: a list of steps, each a
+ * list of actions, whose `if` is a list of actions and whose `then` / `else` are steps.
+ * @param {any} steps - The steps.
+ * @example
+ * assertStepsShape([[{ type: 'delay', value: 1, unit: 'seconds' }]]);
+ */
+function assertStepsShape(steps) {
+  if (!Array.isArray(steps) || !steps.every((step) => Array.isArray(step))) {
+    throw new BadParameters('"actions" must be an array of steps, each an array of actions');
+  }
+  steps.forEach((step) => {
+    step.forEach((action) => {
+      if (action === null || typeof action !== 'object' || Array.isArray(action)) {
+        throw new BadParameters('An action must be an object');
+      }
+      if (action.if !== undefined) {
+        assertStepsShape([action.if]);
+      }
+      ['then', 'else'].forEach((branch) => {
+        if (action[branch] !== undefined) {
+          assertStepsShape(action[branch]);
+        }
+      });
+    });
+  });
+}
+
+/**
  * @description Convert the steps of a scene to a script with the same behavior.
  * @param {Array} actions - The steps of the scene.
  * @returns {string} The JavaScript of the script.
@@ -280,6 +309,7 @@ function generateAction(action, path, context, indent) {
  * generateScript([[{ type: 'light.turn-on', devices: ['lamp'] }]]);
  */
 function generateScript(actions) {
+  assertStepsShape(actions);
   const context = { strings: collectStrings(actions, []) };
   const lines = generateSteps(actions, '', context, '');
   const header = [

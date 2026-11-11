@@ -84,7 +84,7 @@ const NodePanel = props => {
 
   if (node.type === NODE_TYPES.TRIGGER) {
     return (
-      <div class={style.panel} data-cy="graph-panel">
+      <div class={style.panel} data-cy="graph-panel" data-graph-panel>
         <TriggerCard
           trigger={scene.triggers[node.data.index]}
           index={node.data.index}
@@ -117,7 +117,7 @@ const NodePanel = props => {
   const formAction = unwired ? action : getAtPath(scene.actions, path) || action;
 
   return (
-    <div class={style.panel} data-cy="graph-panel">
+    <div class={style.panel} data-cy="graph-panel" data-graph-panel>
       <div class={style.panelHeader}>
         <span class={style.panelTitle}>
           {action.type ? <Text id={`editScene.actions.${action.type}`} /> : <Text id="editScene.newAction" />}
@@ -127,6 +127,7 @@ const NodePanel = props => {
             type="button"
             class={cx(editStyle.pill, editStyle.pillIcon)}
             onClick={props.closePanel}
+            data-cy="graph-close-panel"
             aria-label={<Text id="editScene.graph.closePanel" />}
           >
             <i class="fe fe-x" />

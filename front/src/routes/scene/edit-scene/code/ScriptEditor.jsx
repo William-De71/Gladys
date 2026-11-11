@@ -2,6 +2,8 @@ import { Component, createRef } from 'preact';
 import { Localizer, Text } from 'preact-i18n';
 import cx from 'classnames';
 
+import { ACTIONS, CONDITION_ACTIONS } from '../../../../../../server/utils/constants';
+import { completionSource } from './completions';
 import editStyle from '../style.css';
 import style from './code.css';
 
@@ -39,6 +41,13 @@ const temperature = await gladys.device.getValue('living-room-temperature');
 return temperature > 26 ? 'hot' : 'fine';
 `;
 
+// What `gladys.action` runs: every action but those whose logic is JavaScript itself
+const flattenTypes = value => (typeof value === 'string' ? [value] : Object.values(value).flatMap(flattenTypes));
+const SCRIPT_ONLY_ACTIONS = [ACTIONS.SCRIPT.RUN, ACTIONS.CONDITION.IF_THEN_ELSE, ACTIONS.CONDITION.WHILE];
+const ACTION_TYPES = flattenTypes(ACTIONS)
+  .filter(type => !SCRIPT_ONLY_ACTIONS.includes(type))
+  .sort();
+
 class ScriptEditor extends Component {
   editorContainer = createRef();
 
@@ -48,9 +57,19 @@ class ScriptEditor extends Component {
     this.mountEditor();
   }
 
+  // The suggestions follow the devices of the instance (docs/specs/scene-editor-modes.md D.8)
+  getCompletionData = () => ({
+    features: Object.keys(this.props.deviceFeatures || {}).map(selector => {
+      const { device, feature } = this.props.deviceFeatures[selector];
+      return { selector, name: `${device.name} — ${feature.name || selector}` };
+    }),
+    actionTypes: ACTION_TYPES,
+    conditionTypes: CONDITION_ACTIONS
+  });
+
   mountEditor = async () => {
     try {
-      const [{ EditorView, basicSetup }, { javascript }] = await Promise.all([
+      const [{ EditorView, basicSetup }, { javascript, javascriptLanguage }] = await Promise.all([
         import('codemirror'),
         import('@codemirror/lang-javascript')
       ]);
@@ -62,6 +81,7 @@ class ScriptEditor extends Component {
         extensions: [
           basicSetup,
           javascript(),
+          javascriptLanguage.data.of({ autocomplete: completionSource(this.getCompletionData) }),
           EditorView.lineWrapping,
           EditorView.updateListener.of(update => {
             if (update.docChanged) {
@@ -122,6 +142,8 @@ class ScriptEditor extends Component {
 
   insertExample = () => this.insertText(this.props.functionBlock ? FUNCTION_EXAMPLE : SCENE_EXAMPLE);
 
+  onTestClick = () => (this.props.testing ? this.props.onStopTest() : this.props.onTest());
+
   render(props, { editorLoaded, editorError, showReference, featureToInsert }) {
     const features = Object.keys(props.deviceFeatures || {})
       .map(selector => ({ selector, ...props.deviceFeatures[selector] }))
@@ -155,6 +177,21 @@ class ScriptEditor extends Component {
           >
             <i class="fe fe-book-open" /> <Text id="editScene.code.reference" />
           </button>
+          {props.onTest && (
+            <Localizer>
+              <button
+                type="button"
+                class={cx(editStyle.pill, props.testing ? editStyle.pillDanger : editStyle.pillAccent)}
+                onClick={this.onTestClick}
+                disabled={props.testStarting}
+                title={<Text id="editScene.code.test.hint" />}
+                data-cy="code-test"
+              >
+                <i class={`fe fe-${props.testing ? 'square' : 'play'}`} />{' '}
+                <Text id={props.testing ? 'editScene.code.test.stop' : 'editScene.code.test.run'} />
+              </button>
+            </Localizer>
+          )}
         </div>
 
         {showReference && (

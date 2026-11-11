@@ -226,6 +226,41 @@ describe('POST /api/v1/scene/script/generate', () => {
       .send({})
       .expect(400);
   });
+  it('should refuse actions that are not steps of actions', async () => {
+    await authenticatedRequest
+      .post('/api/v1/scene/script/generate')
+      .send({ actions: [[{ type: 'condition.if-then-else', if: 'x' }]] })
+      .expect(400);
+  });
+});
+
+describe('POST /api/v1/scene/:scene_selector/script/test', () => {
+  it('should run a script of the scene without saving it', async () => {
+    await authenticatedRequest
+      .post('/api/v1/scene/test-scene/script/test')
+      .send({ code: 'return 1;' })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .then((res) => {
+        expect(res.body).to.have.property('execution_id');
+      });
+  });
+  it('should refuse a script which does not compile, and a body without code', async () => {
+    await authenticatedRequest
+      .post('/api/v1/scene/test-scene/script/test')
+      .send({ code: 'let x = ;' })
+      .expect(400);
+    await authenticatedRequest
+      .post('/api/v1/scene/test-scene/script/test')
+      .send({})
+      .expect(400);
+  });
+  it('should return 404 for an unknown scene', async () => {
+    await authenticatedRequest
+      .post('/api/v1/scene/unknown-scene/script/test')
+      .send({ code: 'return 1;' })
+      .expect(404);
+  });
 });
 
 describe('PATCH /api/v1/scene/:scene_selector in code mode', () => {

@@ -213,8 +213,7 @@ const EditScenePage = ({ children, ...props }) => {
                 code={(props.scene.actions[0] && props.scene.actions[0][0] && props.scene.actions[0][0].code) || ''}
                 onChange={props.updateScriptCode}
                 deviceFeatures={props.deviceFeatures}
-                scriptLogs={props.scriptLogs}
-                clearScriptLogs={props.clearScriptLogs}
+                sceneSelector={props.scene.selector}
               />
             )}
 

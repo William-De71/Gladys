@@ -5059,7 +5059,10 @@
       "loadError": "Der grafische Editor konnte nicht geladen werden.",
       "deleteBlockTitle": "Diesen Block löschen?",
       "directionToVertical": "Von oben nach unten",
-      "directionToHorizontal": "Von links nach rechts"
+      "directionToHorizontal": "Von links nach rechts",
+      "copy": "Kopieren (Strg+C)",
+      "paste": "Einfügen (Strg+V)",
+      "deleteSelection": "Die {{count}} Blöcke löschen"
     },
     "code": {
       "thenSectionSubtitle": "das Skript der Szene, in JavaScript",
@@ -5084,7 +5087,20 @@
         "console": "Schreibt in die Konsole unten und in die Gladys-Logs",
         "store": "Speichert einen Wert unter einem Namen, für die Vorlagen der nächsten Aktionen"
       },
-      "functionIntro": "Die Funktion läuft in einer Sandbox als Körper einer async-Funktion: Verwende await, return gibt ihr Ergebnis an die nächsten Blöcke. Sie hat 32 MB Speicher und wird gestoppt, wenn sie länger als eine Sekunde läuft, ohne auf Gladys zu warten."
+      "functionIntro": "Die Funktion läuft in einer Sandbox als Körper einer async-Funktion: Verwende await, return gibt ihr Ergebnis an die nächsten Blöcke. Sie hat 32 MB Speicher und wird gestoppt, wenn sie länger als eine Sekunde läuft, ohne auf Gladys zu warten.",
+      "test": {
+        "run": "Ausprobieren",
+        "stop": "Stoppen",
+        "hint": "Führt diesen Code jetzt aus, ohne die Szene zu speichern. Die Aktionen werden wirklich ausgeführt.",
+        "started": "Probelauf gestartet…",
+        "success": "Probelauf beendet.",
+        "successWithResult": "Probelauf beendet, Ergebnis: {{result}}",
+        "stopped": "Probelauf gestoppt.",
+        "error": "Probelauf mit einem Fehler beendet.",
+        "syntaxError": "Syntaxfehler: {{reason}}",
+        "syntaxErrorAt": "Syntaxfehler in Zeile {{line}}, Spalte {{column}}: {{reason}}",
+        "failed": "Der Probelauf konnte nicht gestartet werden."
+      }
     },
     "untypedActionsError": {
       "one": "Ein Block hat noch keinen Typ: Wähle seinen Typ in seiner Karte oder lösche ihn.",

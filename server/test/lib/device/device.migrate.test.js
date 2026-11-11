@@ -695,6 +695,7 @@ describe('Device.migrate', function Describe() {
       'await gladys.device.setValue("migration-source-binary", 1);',
       "await gladys.action('light.turn-on', { devices: [`migration-source`] });",
       "console.log('migration-source-temperature', 'migration-source-temp-' + 1);",
+      "console.log(typeof temperature['toString'], 'constructor');",
     ].join('\n');
     await db.Scene.create({
       name: 'Migration scene',
@@ -722,6 +723,8 @@ describe('Device.migrate', function Describe() {
               "await gladys.action('light.turn-on', { devices: [`migration-destination`] });",
               // only whole literals are selectors
               "console.log('migration-source-temperature', 'migration-source-temp-' + 1);",
+              // a literal named like an inherited property of the replacement maps is not a selector
+              "console.log(typeof temperature['toString'], 'constructor');",
             ].join('\n'),
           },
         ],

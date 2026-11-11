@@ -85,7 +85,7 @@ describe('gateway.init', () => {
   });
 
   it('check constructor event subscription', () => {
-    assert.callCount(event.on, 11);
+    assert.callCount(event.on, 12);
   });
 
   it('check init well connected', async () => {

@@ -87,6 +87,21 @@
   background: var(--gl-popover-bg, rgba(255, 255, 255, 0.94));
 }
 
+.minimap {
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--gl-border, rgba(255, 255, 255, 0.85));
+  background: var(--gl-popover-bg, rgba(255, 255, 255, 0.94));
+  box-shadow: var(--gl-shadow-soft, 0 4px 16px rgba(44, 62, 118, 0.09));
+}
+
+/* a phone has no room for it: the whole scene already fits the screen */
+@media (max-width: 575.98px) {
+  .minimap {
+    display: none;
+  }
+}
+
 .canvas :global(.react-flow__background) {
   color: rgba(44, 62, 118, 0.25);
 }

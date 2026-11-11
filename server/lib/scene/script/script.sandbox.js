@@ -2,7 +2,12 @@ const { newQuickJSWASMModuleFromVariant } = require('quickjs-emscripten-core');
 const releaseSyncVariant = require('@jitl/quickjs-wasmfile-release-sync');
 
 const logger = require('../../../utils/logger');
-const { SCRIPT_MEMORY_LIMIT_BYTES, SCRIPT_MAX_STACK_SIZE_BYTES, SCRIPT_MAX_SYNC_EXECUTION_MS } = require('./constants');
+const {
+  SCRIPT_MEMORY_LIMIT_BYTES,
+  SCRIPT_MAX_STACK_SIZE_BYTES,
+  SCRIPT_MAX_SYNC_EXECUTION_MS,
+  SCRIPT_MAX_TOTAL_EXECUTION_MS,
+} = require('./constants');
 
 // The sandbox of the code mode (docs/specs/scene-editor-modes.md D.2): the script runs in QuickJS
 // compiled to WebAssembly, never in Node. It only sees the globals the prelude below builds over
@@ -128,17 +133,21 @@ function getErrorPosition(error) {
  * @description Turn an error dumped from the sandbox into a plain description.
  * @param {any} error - The dumped error (an object, or any thrown value).
  * @param {number} [maxSyncExecutionMs] - The time budget, for the message of an interruption.
+ * @param {number} [totalExecutionMs] - The total budget, when it is the one that was spent.
  * @returns {{name: string, message: string, line: number|null, column: number|null}} The error.
  * @example
  * describeError({ name: 'Error', message: 'boom', stack: 'at scene.js:2:3' });
  */
-function describeError(error, maxSyncExecutionMs = SCRIPT_MAX_SYNC_EXECUTION_MS) {
+function describeError(error, maxSyncExecutionMs = SCRIPT_MAX_SYNC_EXECUTION_MS, totalExecutionMs = null) {
   const isObject = error !== null && typeof error === 'object';
   const name = isObject && error.name ? String(error.name) : 'Error';
   let message = isObject && error.message !== undefined ? String(error.message) : String(error);
   // QuickJS only says "interrupted" when the interrupt handler stopped a script hogging the CPU.
   if (name === 'InternalError' && message === 'interrupted') {
-    message = `The script ran for more than ${maxSyncExecutionMs} ms without awaiting Gladys and was interrupted`;
+    message =
+      totalExecutionMs === null
+        ? `The script ran for more than ${maxSyncExecutionMs} ms without awaiting Gladys and was interrupted`
+        : `The script used more than ${totalExecutionMs} ms of processor time in all and was interrupted`;
   }
   return { name, message, ...getErrorPosition(isObject ? error : null) };
 }
@@ -184,6 +193,7 @@ async function compileScript(code) {
  * @param {Function} [options.isStopError] - Tells whether an error thrown by a host method stops
  * the scene quietly (an unmet condition) rather than being thrown into the script.
  * @param {number} [options.maxSyncExecutionMs] - Longest run without awaiting the API.
+ * @param {number} [options.maxTotalExecutionMs] - Processor time the execution may use in all.
  * @returns {Promise<object>} `{ status: 'success', value }` (what the script returned),
  * `{ status: 'stopped' | 'aborted' }`, or `{ status: 'error', error: { name, message, line, column } }`.
  * @example
@@ -197,6 +207,7 @@ async function runScript({
   abortSignal,
   isStopError = () => false,
   maxSyncExecutionMs = SCRIPT_MAX_SYNC_EXECUTION_MS,
+  maxTotalExecutionMs = SCRIPT_MAX_TOTAL_EXECUTION_MS,
 }) {
   const isAborted = () => Boolean(abortSignal && abortSignal.aborted);
   const QuickJS = await newQuickJS();
@@ -213,7 +224,18 @@ async function runScript({
   let stopped = false;
   // `finished`: the sandbox is being freed, nothing may enter it anymore.
   let finished = false;
-  let deadline = Date.now() + maxSyncExecutionMs;
+  // The script runs by slices, between two waits. Each has a time budget of its own, within what
+  // is left of the budget of the whole execution.
+  let usedMs = 0;
+  let sliceStart = Date.now();
+  let deadline = sliceStart + maxSyncExecutionMs;
+  const startSlice = () => {
+    sliceStart = Date.now();
+    deadline = sliceStart + Math.min(maxSyncExecutionMs, Math.max(maxTotalExecutionMs - usedMs, 0));
+  };
+  const endSlice = () => {
+    usedMs += Date.now() - sliceStart;
+  };
 
   // Run the jobs (promise callbacks) queued in the sandbox, with a fresh time budget. A job never
   // fails: the script's promise carries any error, so the result only needs to be freed.
@@ -221,8 +243,9 @@ async function runScript({
     if (finished) {
       return;
     }
-    deadline = Date.now() + maxSyncExecutionMs;
+    startSlice();
     runtime.executePendingJobs().dispose();
+    endSlice();
   };
 
   let abortListener = null;
@@ -231,6 +254,11 @@ async function runScript({
       abortListener = () => resolve({ aborted: true });
       abortSignal.addEventListener('abort', abortListener, { once: true });
     }
+  });
+
+  let resolveOutcome;
+  const outcomePromise = new Promise((resolve) => {
+    resolveOutcome = resolve;
   });
 
   try {
@@ -272,7 +300,20 @@ async function runScript({
         await deferred.settled;
         executePendingJobs();
       };
-      settle();
+      // The host itself failed to hand the result over (the sandbox is out of memory…): the
+      // script would wait forever, so it ends with the error.
+      const settleOrFail = async () => {
+        try {
+          await settle();
+        } catch (error) {
+          // the call was never settled: its promise is freed here, not with the pending ones
+          if (!finished) {
+            deferred.dispose();
+          }
+          resolveOutcome({ error: { name: 'Error', message: error.message || String(error) } });
+        }
+      };
+      settleOrFail();
       return deferred.handle;
     });
     context.setProp(context.global, '__host', hostFunction);
@@ -302,10 +343,6 @@ async function runScript({
     // Set after the prelude, which always runs to its end.
     runtime.setInterruptHandler(() => stopped || isAborted() || Date.now() > deadline);
 
-    let resolveOutcome;
-    const outcomePromise = new Promise((resolve) => {
-      resolveOutcome = resolve;
-    });
     const doneFunction = context.newFunction('done', (valueHandle) => {
       resolveOutcome({ value: context.dump(valueHandle) });
     });
@@ -313,11 +350,12 @@ async function runScript({
       resolveOutcome({ error: context.dump(errorHandle) });
     });
 
-    deadline = Date.now() + maxSyncExecutionMs;
+    startSlice();
     const evalResult = context.evalCode(`${WRAPPER_START}${code}${WRAPPER_END}`, SCRIPT_FILE_NAME);
     if (evalResult.error) {
       resolveOutcome({ error: context.dump(evalResult.error) });
       evalResult.error.dispose();
+      endSlice();
     } else {
       // The script is an async function: whatever it does, the call returns its promise, and
       // how it ends comes back through done / fail.
@@ -325,6 +363,7 @@ async function runScript({
         .unwrapResult(context.callFunction(evalResult.value, context.undefined, doneFunction, failFunction))
         .dispose();
       evalResult.value.dispose();
+      endSlice();
       executePendingJobs();
     }
     doneFunction.dispose();
@@ -338,7 +377,8 @@ async function runScript({
       return { status: 'stopped' };
     }
     if (outcome.error !== undefined) {
-      return { status: 'error', error: describeError(outcome.error, maxSyncExecutionMs) };
+      const totalSpent = usedMs >= maxTotalExecutionMs ? maxTotalExecutionMs : null;
+      return { status: 'error', error: describeError(outcome.error, maxSyncExecutionMs, totalSpent) };
     }
     return { status: 'success', value: outcome.value };
   } finally {

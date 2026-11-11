@@ -1105,6 +1105,11 @@ function getRoutes(gladys) {
       admin: true,
       controller: sceneController.generateScript,
     },
+    'post /api/v1/scene/:scene_selector/script/test': {
+      authenticated: true,
+      admin: true,
+      controller: sceneController.testScript,
+    },
     'get /api/v1/scene/running': {
       authenticated: true,
       controller: sceneController.getRunning,

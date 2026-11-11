@@ -203,6 +203,24 @@ describe('scene script sandbox', () => {
       });
       expect(result.status).to.equal('success');
     });
+    it('should interrupt a script using too much processor time in all, slice after slice', async () => {
+      const result = await runScript({
+        code: `
+          for (;;) {
+            const start = Date.now();
+            while (Date.now() - start < 20) {}
+            await sleep(0);
+          }
+        `,
+        api: { sleep: async () => null },
+        maxSyncExecutionMs: 50,
+        maxTotalExecutionMs: 100,
+      });
+      expect(result.status).to.equal('error');
+      expect(result.error.message).to.equal(
+        'The script used more than 100 ms of processor time in all and was interrupted',
+      );
+    });
     it('should stop a runaway recursion with an error, and allow a deep one', async () => {
       const overflow = await runScript({ code: 'function f() { return f() + 1; }\nf();', api: {} });
       expect(overflow.status).to.equal('error');
@@ -358,6 +376,27 @@ describe('scene script sandbox', () => {
       await new Promise((resolve) => {
         setImmediate(resolve);
       });
+    });
+    it('should end the script with an error when the host cannot hand a result over', async () => {
+      const api = {
+        action: async () => {
+          throw new Error('boom');
+        },
+      };
+      const failing = () => {
+        throw new Error('host failure');
+      };
+      const result = await runScript({ code: "await gladys.action('x', {});", api, isStopError: failing });
+      expect(result).to.deep.equal({
+        status: 'error',
+        error: { name: 'Error', message: 'host failure', line: null, column: null },
+      });
+      const thrownValue = () => {
+        // eslint-disable-next-line no-throw-literal
+        throw { toString: () => 'not an error' };
+      };
+      const other = await runScript({ code: "await gladys.action('x', {});", api, isStopError: thrownValue });
+      expect(other.error.message).to.equal('not an error');
     });
   });
 

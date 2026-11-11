@@ -13,6 +13,10 @@ const { runScript } = require('./script.sandbox');
 const FORBIDDEN_SCRIPT_ACTIONS = [ACTIONS.SCRIPT.RUN, ACTIONS.CONDITION.IF_THEN_ELSE, ACTIONS.CONDITION.WHILE];
 // `saveAs`: a key of the scope, as the templates read it ({{saveAs.…}}).
 const SAVE_AS_REGEX = /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/;
+// What the engine keeps in the scope of an execution: a script cannot write over it.
+const RESERVED_SCOPE_KEYS = ['abortSignal', 'sceneSelector', 'alreadyExecutedScenes', 'triggerEvent'];
+// The longest delay of a Node timer: beyond it, the timer fires at once.
+const MAX_SLEEP_MS = 2 ** 31 - 1;
 // A runaway script must not flood the logs and the websocket.
 const MAX_LOG_LINES_PER_EXECUTION = 1000;
 const MAX_LOG_LINE_LENGTH = 2000;
@@ -29,6 +33,22 @@ function toJsonValue(value) {
     return null;
   }
   return JSON.parse(JSON.stringify(value));
+}
+
+/**
+ * @description Check a name a script writes in the scope (`saveAs`, `gladys.store`).
+ * @param {any} name - The name.
+ * @param {string} label - What the name is, for the error.
+ * @example
+ * assertScopeName('living-room.temperature', 'name');
+ */
+function assertScopeName(name, label) {
+  if (typeof name !== 'string' || !SAVE_AS_REGEX.test(name)) {
+    throw new Error(`Invalid ${label} "${name}": letters, digits, "_", "-", separated by dots`);
+  }
+  if (RESERVED_SCOPE_KEYS.includes(name.split('.')[0])) {
+    throw new Error(`Invalid ${label} "${name}": "${name.split('.')[0]}" is reserved by Gladys`);
+  }
 }
 
 /**
@@ -58,8 +78,8 @@ function buildScriptApi({ self, scope, path, actionsFunc, schema }) {
       throw new Error('The parameters of an action must be an object');
     }
     const saveAs = options && options.saveAs !== null ? options.saveAs : undefined;
-    if (saveAs !== undefined && (typeof saveAs !== 'string' || !SAVE_AS_REGEX.test(saveAs))) {
-      throw new Error(`Invalid saveAs "${saveAs}": letters, digits, "_", "-", separated by dots`);
+    if (saveAs !== undefined) {
+      assertScopeName(saveAs, 'saveAs');
     }
     const action = { ...params, type };
     const { error } = schema.validate(action, { abortEarly: false });
@@ -112,17 +132,15 @@ function buildScriptApi({ self, scope, path, actionsFunc, schema }) {
     },
     // keeps a value for the templates of the next actions ({{name.…}}), like `saveAs`
     store: async (name, value) => {
-      if (typeof name !== 'string' || !SAVE_AS_REGEX.test(name)) {
-        throw new Error(`Invalid name "${name}": letters, digits, "_", "-", separated by dots`);
-      }
+      assertScopeName(name, 'name');
       // an absent value crosses the sandbox boundary as null
       set(scope, name, value);
       return null;
     },
     sleep: (ms) =>
       new Promise((resolve, reject) => {
-        if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < 0) {
-          reject(new Error('sleep() takes a number of milliseconds'));
+        if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < 0 || ms > MAX_SLEEP_MS) {
+          reject(new Error(`sleep() takes a number of milliseconds, up to ${MAX_SLEEP_MS}`));
           return;
         }
         const { abortSignal } = scope;
@@ -169,7 +187,7 @@ async function runSceneScript(self, action, scope, path, actionsFunc) {
         ? `Log limit reached (${MAX_LOG_LINES_PER_EXECUTION} lines), the next lines are dropped`
         : message.slice(0, MAX_LOG_LINE_LENGTH);
     logger[level](`Scene "${sceneSelector}" script: ${line}`);
-    self.event.emit(EVENTS.WEBSOCKET.SEND_ALL, {
+    self.event.emit(EVENTS.WEBSOCKET.SEND_ADMINS, {
       type: WEBSOCKET_MESSAGE_TYPES.SCENE.SCRIPT_LOG,
       payload: { sceneSelector, level, message: line },
     });

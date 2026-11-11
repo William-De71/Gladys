@@ -141,6 +141,29 @@ describe('Websockets', () => {
     websocketManager.sendMessageAllUsers(message);
     assert.calledWith(client.send, JSON.stringify(message));
   });
+  it('should send a message to the administrators only', () => {
+    const wss = new EventEmitter();
+    const gladys = {
+      event: new EventEmitter(),
+    };
+    const websocketManager = new WebsocketManager(wss, gladys);
+    const adminClient = { readyState: WebSocket.OPEN, send: fake.returns(0) };
+    const closedAdminClient = { readyState: WebSocket.CLOSED, send: fake.returns(0) };
+    const userClient = { readyState: WebSocket.OPEN, send: fake.returns(0) };
+    const message = {
+      type: 'test',
+      payload: 'test',
+    };
+    websocketManager.userConnected({ id: 'aa0eaee9-5b90-4287-841a-0237f9d75832', role: 'admin' }, adminClient);
+    websocketManager.userConnected({ id: 'aa0eaee9-5b90-4287-841a-0237f9d75832', role: 'admin' }, closedAdminClient);
+    websocketManager.userConnected({ id: 'bb0eaee9-5b90-4287-841a-0237f9d75832', role: 'user' }, userClient);
+    adminClient.send.resetHistory();
+    userClient.send.resetHistory();
+    gladys.event.emit('websocket.send-admins', message);
+    assert.calledOnceWithExactly(adminClient.send, JSON.stringify(message));
+    assert.notCalled(closedAdminClient.send);
+    assert.notCalled(userClient.send);
+  });
   it('should not send message to all users', () => {
     const wss = new EventEmitter();
     const gladys = {

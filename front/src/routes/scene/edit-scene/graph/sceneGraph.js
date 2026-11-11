@@ -874,6 +874,72 @@ export const appendToMainFlow = ({ nodes, edges }, newNode, direction) => {
   };
 };
 
+const cloneAction = action => JSON.parse(JSON.stringify(action || { type: null }));
+
+/**
+ * Copy some action nodes (spec C.5): their actions, their places, and the edges between them. A
+ * block is copied without its branches, unless their nodes are copied too.
+ */
+export const copyNodes = ({ nodes, edges }, ids, actions) => {
+  const copied = nodes.filter(
+    node => ids.includes(node.id) && (node.type === NODE_TYPES.ACTION || node.type === NODE_TYPES.BLOCK)
+  );
+  const indexById = {};
+  copied.forEach((node, index) => {
+    indexById[node.id] = index;
+  });
+  return {
+    nodes: copied.map(node => ({
+      action: cloneAction(getNodeAction(node, actions)),
+      position: { x: node.position.x, y: node.position.y }
+    })),
+    edges: edges
+      .filter(edge => indexById[edge.source] !== undefined && indexById[edge.target] !== undefined)
+      .map(edge => ({
+        source: indexById[edge.source],
+        sourceHandle: edge.sourceHandle || HANDLES.NEXT,
+        target: indexById[edge.target]
+      }))
+  };
+};
+
+/**
+ * Paste copied nodes: unwired nodes beside the ones they were copied from, wired to each other
+ * as they were. Returns `{ graph, ids }`, the ids being those of the new nodes.
+ */
+export const pasteNodes = ({ nodes, edges }, clipboard, newId, direction) => {
+  const placed = [...nodes];
+  const pasted = clipboard.nodes.map(item => {
+    const action = cloneAction(item.action);
+    // the first free place beside the original
+    const position = freePosition(placed, item.position, direction);
+    const node = {
+      id: newId(),
+      type: isBlockType(action.type) ? NODE_TYPES.BLOCK : NODE_TYPES.ACTION,
+      position,
+      data: { path: null, action }
+    };
+    placed.push(node);
+    return node;
+  });
+  return {
+    graph: {
+      nodes: placed,
+      edges: [
+        ...edges,
+        ...clipboard.edges.map(edge => makeEdge(pasted[edge.source].id, edge.sourceHandle, pasted[edge.target].id))
+      ]
+    },
+    ids: pasted.map(node => node.id)
+  };
+};
+
+/**
+ * Remove several nodes, one after the other: each removal wires what came before the node to what
+ * came after it.
+ */
+export const removeNodes = (graph, ids) => ids.reduce((current, id) => removeNode(current, id), graph);
+
 /**
  * Remove a node. What came before it is wired to what came after it, so removing a step does not
  * cut the rest of the scene off. Removing a block removes its branches with it.

@@ -742,6 +742,8 @@ const EVENTS = {
   WEBSOCKET: {
     SEND: 'websocket.send',
     SEND_ALL: 'websocket.send-all',
+    // to the administrators only (the logs of the scene scripts)
+    SEND_ADMINS: 'websocket.send-admins',
   },
   HOUSE: {
     CREATED: 'house.created',
@@ -2244,6 +2246,7 @@ const WEBSOCKET_MESSAGE_TYPES = {
     STARTED: 'scene.started',
     STOPPED: 'scene.stopped',
     SCRIPT_LOG: 'scene.script-log',
+    SCRIPT_TEST_FINISHED: 'scene.script-test-finished',
   },
   THERMOSTAT: {
     CONFIG_UPDATED: 'thermostat.config-updated',

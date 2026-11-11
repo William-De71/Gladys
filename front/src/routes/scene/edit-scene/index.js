@@ -77,6 +77,8 @@ import {
   addParallel,
   appendToMainFlow,
   removeNode,
+  removeNodes,
+  pasteNodes,
   syncTriggerNodes,
   relayout,
   triggerNodeId,
@@ -91,8 +93,9 @@ export const EDITOR_MODES = {
   CODE: 'code'
 };
 const MAX_GRAPH_HISTORY = 50;
-const MAX_SCRIPT_LOGS = 200;
 const EXECUTING_HIGHLIGHT_DELAY_MS = 500;
+// Edits of a form closer than this are undone together (typing a text)
+const FORM_EDIT_GROUP_DELAY_MS = 1000;
 
 // The confirmations of the mode switch (docs/specs/scene-editor-modes.md E)
 const CONFIRMATIONS = {
@@ -2344,6 +2347,10 @@ class EditScene extends Component {
     }
 
     if (mode === EDITOR_MODES.CODE) {
+      // the unwired blocks of the graph are not in the scene: the script would not hold them
+      if (countUnwired(this.state.graph) > 0 && !(await this.askConfirmation('dropUnwired'))) {
+        return;
+      }
       if (!(await this.askConfirmation('toCode'))) {
         return;
       }
@@ -2472,6 +2479,17 @@ class EditScene extends Component {
     this.changeGraph(removeNode(this.state.graph, nodeId));
   };
 
+  removeGraphNodes = nodeIds => {
+    this.changeGraph(removeNodes(this.state.graph, nodeIds));
+  };
+
+  // Paste copied nodes (spec C.5); returns the ids of the new nodes
+  pasteGraphNodes = clipboard => {
+    const { graph, ids } = pasteNodes(this.state.graph, clipboard, this.newNodeId, getGraphDirection(this.state.scene));
+    this.changeGraph(graph);
+    return ids;
+  };
+
   insertGraphNode = (nodeId, where, handle) => {
     const node = newActionNode(this.newNodeId());
     const { graph } = this.state;
@@ -2585,22 +2603,6 @@ class EditScene extends Component {
 
   updateScriptCode = code => this.updateActionProperty('0.0', 'code', code);
 
-  onScriptLog = payload => {
-    if (!payload || payload.sceneSelector !== this.props.scene_selector) {
-      return;
-    }
-    this.scriptLogCounter = (this.scriptLogCounter || 0) + 1;
-    const log = {
-      id: this.scriptLogCounter,
-      time: new Date().toLocaleTimeString(),
-      level: payload.level,
-      message: payload.message
-    };
-    this.setState(prevState => ({ scriptLogs: [...prevState.scriptLogs, log].slice(-MAX_SCRIPT_LOGS) }));
-  };
-
-  clearScriptLogs = () => this.setState({ scriptLogs: [] });
-
   constructor(props) {
     super(props);
     this.state = {
@@ -2609,7 +2611,6 @@ class EditScene extends Component {
       graphFuture: [],
       graphError: null,
       executingPaths: {},
-      scriptLogs: [],
       confirmation: null,
       scene: null,
       variables: {},
@@ -2656,7 +2657,6 @@ class EditScene extends Component {
       WEBSOCKET_MESSAGE_TYPES.SCENE.FINISHED_EXECUTING_ACTION,
       this.onFinishedExecutingAction
     );
-    this.props.session.dispatcher.addListener(WEBSOCKET_MESSAGE_TYPES.SCENE.SCRIPT_LOG, this.onScriptLog);
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -2665,7 +2665,38 @@ class EditScene extends Component {
     if (prevState.scene !== this.state.scene || prevState.savedSceneSnapshot !== this.state.savedSceneSnapshot) {
       this.scheduleDraftWrite();
     }
+    this.recordFormEdit(prevState);
   }
+
+  // In the graph mode, what a form of a panel changes (a parameter, a condition, a trigger) can
+  // be undone like a change of the canvas (spec C.5). The canvas pushes its own history: here are
+  // caught the changes of the scene that came with none.
+  recordFormEdit = prevState => {
+    const { scene, graph, graphHistory, graphFuture } = this.state;
+    if (
+      !graph ||
+      !prevState.graph ||
+      !prevState.scene ||
+      graphHistory !== prevState.graphHistory ||
+      graphFuture !== prevState.graphFuture ||
+      (scene.actions === prevState.scene.actions && scene.triggers === prevState.scene.triggers) ||
+      (JSON.stringify(scene.actions) === JSON.stringify(prevState.scene.actions) &&
+        JSON.stringify(scene.triggers) === JSON.stringify(prevState.scene.triggers))
+    ) {
+      return;
+    }
+    const now = Date.now();
+    const grouped = this.lastFormEditAt && now - this.lastFormEditAt < FORM_EDIT_GROUP_DELAY_MS;
+    this.lastFormEditAt = now;
+    if (grouped && this.lastFormEditHistory === graphHistory) {
+      // the snapshot taken at the start of the typing already goes back before it
+      this.setState({ graphFuture: [] });
+      return;
+    }
+    const nextHistory = [...graphHistory, this.graphSnapshot(prevState)].slice(-MAX_GRAPH_HISTORY);
+    this.lastFormEditHistory = nextHistory;
+    this.setState({ graphHistory: nextHistory, graphFuture: [] });
+  };
 
   componentWillUnmount() {
     if (this.unwatchViewport) {
@@ -2701,7 +2732,6 @@ class EditScene extends Component {
       WEBSOCKET_MESSAGE_TYPES.SCENE.FINISHED_EXECUTING_ACTION,
       this.onFinishedExecutingAction
     );
-    this.props.session.dispatcher.removeListener(WEBSOCKET_MESSAGE_TYPES.SCENE.SCRIPT_LOG, this.onScriptLog);
     if (this.ticker) {
       clearInterval(this.ticker);
       this.ticker = null;
@@ -2742,7 +2772,6 @@ class EditScene extends Component {
       graphFuture,
       graphError,
       executingPaths,
-      scriptLogs,
       confirmation
     }
   ) {
@@ -2816,6 +2845,8 @@ class EditScene extends Component {
       connectNodes: this.connectNodes,
       removeEdge: this.removeGraphEdge,
       removeNode: this.removeGraphNode,
+      removeNodes: this.removeGraphNodes,
+      pasteNodes: this.pasteGraphNodes,
       insertNode: this.insertGraphNode,
       appendNode: this.appendGraphNode,
       addGraphTrigger: this.addGraphTrigger,
@@ -2826,8 +2857,6 @@ class EditScene extends Component {
       undoGraph: this.undoGraph,
       redoGraph: this.redoGraph,
       updateScriptCode: this.updateScriptCode,
-      scriptLogs,
-      clearScriptLogs: this.clearScriptLogs,
       askConfirmation: this.askConfirmation
     };
     return (

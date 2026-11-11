@@ -1,6 +1,5 @@
 const asyncMiddleware = require('../middlewares/asyncMiddleware');
 const { generateScript } = require('../../lib/scene/script/script.generate');
-const { BadParameters } = require('../../utils/coreErrors');
 const { EVENTS, ACTIONS, ACTIONS_STATUS } = require('../../utils/constants');
 
 /**
@@ -146,14 +145,27 @@ module.exports = function SceneController(gladys) {
    * { "code": "await gladys.action('light.turn-on', { devices: ['lamp'] });\n" }
    */
   async function generateSceneScript(req, res) {
-    if (!req.body || !Array.isArray(req.body.actions)) {
-      throw new BadParameters('"actions" must be an array of steps');
-    }
-    res.json({ code: generateScript(req.body.actions) });
+    res.json({ code: generateScript(req.body && req.body.actions) });
+  }
+
+  /**
+   * @api {post} /api/v1/scene/:scene_selector/script/test test a script
+   * @apiName testScript
+   * @apiGroup Scene
+   * @apiDescription Run a script of the scene as it is being written, without saving the scene
+   * (docs/specs/scene-editor-modes.md D.7). The script runs for real.
+   * @apiBody {String} code The JavaScript to run.
+   * @apiSuccessExample {json} Success-Response:
+   * { "execution_id": "0a5f7305-4faf-42b3-aeb2-fbc0217c4855" }
+   */
+  async function testSceneScript(req, res) {
+    const execution = await gladys.scene.testScript(req.params.scene_selector, req.body && req.body.code);
+    res.json(execution);
   }
 
   return Object.freeze({
     create: asyncMiddleware(create),
+    testScript: asyncMiddleware(testSceneScript),
     generateScript: asyncMiddleware(generateSceneScript),
     destroy: asyncMiddleware(destroy),
     get: asyncMiddleware(get),

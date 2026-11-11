@@ -327,4 +327,133 @@ describe('Scene editor modes', () => {
     cy.contains('button', i18n.showErrorDetail).click();
     cy.get('[data-cy="save-error-detail"]').should('contain', 'must be one of');
   });
+
+  it('Should select several blocks, copy, paste and remove them, with a mini-map', () => {
+    authenticatedRequest({
+      method: 'PATCH',
+      url: `/api/v1/scene/${SCENE_SELECTOR}`,
+      body: { editor: { mode: 'graph' }, actions: [[delay(1)], [delay(2)]] }
+    });
+    cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
+    cy.get('[data-cy="graph-canvas"] .react-flow__minimap').should('exist');
+    cy.get('[data-cy="graph-paste"]').should('be.disabled');
+
+    // a copy is pasted beside its original, wired to nothing
+    cy.get('[data-cy="graph-action-node"][data-path="0.0"]').click();
+    cy.get('[data-cy="graph-copy"]').click();
+    cy.get('[data-cy="graph-paste"]').click();
+    cy.get('[data-cy="graph-action-node"]').should('have.length', 3);
+    cy.get('[data-cy="graph-unwired-count"]').should('exist');
+
+    // a key typed in a select of the panel is not for the canvas
+    cy.get('[data-cy="graph-panel"] select')
+      .first()
+      .trigger('keydown', { key: 'Delete' });
+    cy.get('[data-cy="graph-panel"] [data-cy="graph-delete-node"]').trigger('keydown', { key: 'Backspace' });
+    cy.get('[data-cy="graph-action-node"]').should('have.length', 3);
+
+    // Ctrl + click selects several blocks: they are removed together, and come back with an undo
+    // (building a selection never opens the panel, which would cover the other blocks)
+    cy.get('[data-cy="graph-close-panel"]').click();
+    cy.get('[data-cy="graph-action-node"][data-path="0.0"]').click({ ctrlKey: true });
+    cy.get('[data-cy="graph-panel"]').should('not.exist');
+    cy.get('[data-cy="graph-action-node"][data-path="1.0"]').click({ ctrlKey: true });
+    cy.get('[data-cy="graph-panel"]').should('not.exist');
+    cy.get('[data-cy="graph-delete-selection"]').click();
+    cy.get('[data-cy="graph-action-node"]').should('have.length', 1);
+    cy.get('[data-cy="graph-undo"]').click();
+    cy.get('[data-cy="graph-action-node"]').should('have.length', 3);
+  });
+
+  it('Should undo what a form of the panel changed', () => {
+    authenticatedRequest({
+      method: 'PATCH',
+      url: `/api/v1/scene/${SCENE_SELECTOR}`,
+      body: { editor: { mode: 'graph' }, actions: [[delay(1)]] }
+    });
+    cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
+    cy.get('[data-cy="graph-undo"]').should('be.disabled');
+    cy.get('[data-cy="graph-action-node"][data-path="0.0"]').click();
+    cy.get('[data-cy="graph-panel"] select')
+      .first()
+      .select('minutes');
+    cy.get('[data-cy="graph-undo"]').should('not.be.disabled');
+    cy.get('[data-cy="graph-undo"]').click();
+    cy.get('[data-cy="graph-panel"] select')
+      .first()
+      .should('have.value', 'seconds');
+    cy.get('[data-cy="graph-redo"]').click();
+    cy.get('[data-cy="graph-panel"] select')
+      .first()
+      .should('have.value', 'minutes');
+  });
+
+  it('Should ask before dropping the unwired blocks on the way to the advanced mode', () => {
+    const i18n = Cypress.env('i18n').editScene;
+    authenticatedRequest({
+      method: 'PATCH',
+      url: `/api/v1/scene/${SCENE_SELECTOR}`,
+      body: { editor: { mode: 'graph' }, actions: [[delay(1)]] }
+    });
+    cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
+    cy.get('[data-cy="graph-action-node"][data-path="0.0"]').click();
+    cy.get('[data-cy="graph-copy"]').click();
+    cy.get('[data-cy="graph-paste"]').click();
+    cy.get('[data-cy="graph-unwired-count"]').should('exist');
+
+    cy.get('[data-cy="editor-mode-code"]').click();
+    cy.get('[data-cy="confirm-dialog"]').should('contain', i18n.modes.dropUnwiredTitle);
+    cy.get('[data-cy="confirm-dialog-cancel"]').click();
+    cy.get('[data-cy="graph-canvas"]').should('exist');
+
+    cy.get('[data-cy="editor-mode-code"]').click();
+    cy.get('[data-cy="confirm-dialog-confirm"]').click();
+    cy.get('[data-cy="confirm-dialog"]').should('contain', i18n.modes.toCodeTitle);
+    cy.get('[data-cy="confirm-dialog-confirm"]').click();
+    cy.get('[data-cy="scene-code-editor"]').should('exist');
+  });
+
+  it('Should suggest the API while typing, and try a script without saving the scene', () => {
+    const i18n = Cypress.env('i18n').editScene;
+    authenticatedRequest({
+      method: 'PATCH',
+      url: `/api/v1/scene/${SCENE_SELECTOR}`,
+      body: { editor: { mode: 'code' }, actions: [[{ type: 'script.run', code: 'await sleep(1);' }]] }
+    });
+    cy.visit(`/dashboard/scene/${SCENE_SELECTOR}`);
+
+    cy.get('[data-cy="scene-code-editor"] .cm-content').click();
+    cy.get('[data-cy="scene-code-editor"] .cm-content').type('{selectall}{backspace}', { delay: 0 });
+    cy.get('[data-cy="scene-code-editor"] .cm-content').type('gladys.');
+    cy.get('.cm-tooltip-autocomplete').should('contain', 'device');
+    cy.get('.cm-tooltip-autocomplete').should('contain', 'store');
+    cy.get('[data-cy="scene-code-editor"] .cm-content').type('{esc}');
+
+    // a script that does not compile is not started
+    typeInCodeEditor('const a = ;');
+    cy.get('[data-cy="code-test"]').click();
+    cy.get('[data-cy="code-console"]').should('contain', i18n.code.test.syntaxErrorAt.split('{{line}}')[0]);
+
+    // the script runs on the server as it is written, the saved scene is left alone
+    typeInCodeEditor('return 2;');
+    cy.intercept('POST', `**/api/v1/scene/${SCENE_SELECTOR}/script/test`).as('testScript');
+    cy.get('[data-cy="code-test"]').click();
+    cy.wait('@testScript').then(({ request, response }) => {
+      expect(request.body).to.deep.equal({ code: 'return 2;' });
+      expect(response.statusCode).to.equal(200);
+      cy.sendWebSocket({
+        type: 'scene.script-test-finished',
+        payload: {
+          executionId: response.body.execution_id,
+          sceneSelector: SCENE_SELECTOR,
+          status: 'success',
+          result: 2
+        }
+      });
+    });
+    cy.get('[data-cy="code-console"]').should('contain', i18n.code.test.successWithResult.replace('{{result}}', '2'));
+    getSavedScene().then(scene => {
+      expect(scene.actions[0][0].code).to.equal('await sleep(1);');
+    });
+  });
 });

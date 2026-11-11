@@ -5059,7 +5059,10 @@
       "loadError": "The graph editor could not be loaded.",
       "deleteBlockTitle": "Delete this block?",
       "directionToVertical": "Top to bottom",
-      "directionToHorizontal": "Left to right"
+      "directionToHorizontal": "Left to right",
+      "copy": "Copy (Ctrl+C)",
+      "paste": "Paste (Ctrl+V)",
+      "deleteSelection": "Delete the {{count}} blocks"
     },
     "code": {
       "thenSectionSubtitle": "the script of the scene, in JavaScript",
@@ -5084,7 +5087,20 @@
         "console": "Write to the console below and to the Gladys logs",
         "store": "Keep a value under a name, for the templates of the next actions"
       },
-      "functionIntro": "The function runs in a sandbox, as the body of an async function: use await, return gives its result to the next blocks. It has 32 MB of memory and is stopped if it runs more than one second without awaiting Gladys."
+      "functionIntro": "The function runs in a sandbox, as the body of an async function: use await, return gives its result to the next blocks. It has 32 MB of memory and is stopped if it runs more than one second without awaiting Gladys.",
+      "test": {
+        "run": "Try",
+        "stop": "Stop",
+        "hint": "Runs this code now, without saving the scene. The actions are really performed.",
+        "started": "Trial started…",
+        "success": "Trial finished.",
+        "successWithResult": "Trial finished, result: {{result}}",
+        "stopped": "Trial stopped.",
+        "error": "Trial ended with an error.",
+        "syntaxError": "Syntax error: {{reason}}",
+        "syntaxErrorAt": "Syntax error at line {{line}}, column {{column}}: {{reason}}",
+        "failed": "The trial could not be started."
+      }
     },
     "untypedActionsError": {
       "one": "A block has no type yet: pick its type in its card, or delete it.",

@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 const { parseWebsocketMessage, formatWebsocketMessage } = require('../../utils/websocketUtils');
-const { EVENTS, WEBSOCKET_MESSAGE_TYPES, ERROR_MESSAGES } = require('../../utils/constants');
+const { EVENTS, WEBSOCKET_MESSAGE_TYPES, ERROR_MESSAGES, USER_ROLE } = require('../../utils/constants');
 const logger = require('../../utils/logger');
 
 const WebsocketManager = function WebsocketManager(wss, gladys) {
@@ -9,6 +9,7 @@ const WebsocketManager = function WebsocketManager(wss, gladys) {
   this.connections = {};
   this.gladys.event.on(EVENTS.WEBSOCKET.SEND, (event) => this.sendMessageUser(event));
   this.gladys.event.on(EVENTS.WEBSOCKET.SEND_ALL, (event) => this.sendMessageAllUsers(event));
+  this.gladys.event.on(EVENTS.WEBSOCKET.SEND_ADMINS, (event) => this.sendMessageAdmins(event));
 };
 
 /**
@@ -61,6 +62,30 @@ function sendMessageAllUsers({ type, payload }) {
   usersIds.forEach((userId) => {
     this.connections[userId].forEach((userConnection) => {
       if (userConnection && userConnection.client && userConnection.client.readyState === WebSocket.OPEN) {
+        this.sendToConnection(userConnection, formatWebsocketMessage(type, payload));
+      }
+    });
+  });
+}
+
+/**
+ * @description Send a websocket message to the administrators only.
+ * @param {object} event - Event.
+ * @param {string} event.type - Type of event.
+ * @param {object} event.payload - Payload to send.
+ * @example
+ * sendMessageAdmins(event);
+ */
+function sendMessageAdmins({ type, payload }) {
+  Object.keys(this.connections).forEach((userId) => {
+    this.connections[userId].forEach((userConnection) => {
+      if (
+        userConnection &&
+        userConnection.user &&
+        userConnection.user.role === USER_ROLE.ADMIN &&
+        userConnection.client &&
+        userConnection.client.readyState === WebSocket.OPEN
+      ) {
         this.sendToConnection(userConnection, formatWebsocketMessage(type, payload));
       }
     });
@@ -222,5 +247,6 @@ WebsocketManager.prototype.userDisconnected = userDisconnected;
 WebsocketManager.prototype.sendMessageUser = sendMessageUser;
 WebsocketManager.prototype.sendToConnection = sendToConnection;
 WebsocketManager.prototype.sendMessageAllUsers = sendMessageAllUsers;
+WebsocketManager.prototype.sendMessageAdmins = sendMessageAdmins;
 
 module.exports = WebsocketManager;

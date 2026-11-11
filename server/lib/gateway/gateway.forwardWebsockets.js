@@ -1,4 +1,5 @@
 const logger = require('../../utils/logger');
+const { USER_ROLE } = require('../../utils/constants');
 
 /**
  * @description Forward websocket message to Gateway.
@@ -29,6 +30,32 @@ async function forwardWebsockets(event) {
   }
 }
 
+/**
+ * @description Forward a websocket message to the administrators only, through the Gateway.
+ * @param {object} event - Websocket event.
+ * @returns {Promise} Resolve when the message was forwarded.
+ * @example
+ * forwardWebsocketsToAdmins({
+ *   type: ''
+ *   payload: {}
+ * });
+ */
+async function forwardWebsocketsToAdmins(event) {
+  if (!this.connected) {
+    return;
+  }
+  try {
+    const admins = await this.user.getByRole(USER_ROLE.ADMIN);
+    await Promise.all(
+      admins.map((admin) => this.gladysGatewayClient.newEventInstanceUser(event.type, admin.id, event.payload)),
+    );
+  } catch (e) {
+    logger.debug('Unable to forward websocket to Gladys Gateway');
+    logger.debug(e);
+  }
+}
+
 module.exports = {
   forwardWebsockets,
+  forwardWebsocketsToAdmins,
 };

@@ -142,6 +142,11 @@ describe('scene action script.run', () => {
       await gladys.action('message.send', { user: 'john', text: 'Total {{total}}' });
       try { await gladys.store('../bad', 1); } catch (e) { console.log(e.message); }
       try { await gladys.store(3, 1); } catch (e) { console.log(e.message); }
+      try { await gladys.store('abortSignal', 1); } catch (e) { console.log(e.message); }
+      try { await gladys.store('triggerEvent.key', 1); } catch (e) { console.log(e.message); }
+      try {
+        await gladys.action('device.get-value', { device_feature: 'living-room-lamp' }, { saveAs: 'sceneSelector' });
+      } catch (e) { console.log(e.message); }
     `,
       scope,
     );
@@ -151,7 +156,11 @@ describe('scene action script.run', () => {
     expect(scriptLogs().map((log) => log.message)).to.deep.equal([
       'Invalid name "../bad": letters, digits, "_", "-", separated by dots',
       'Invalid name "3": letters, digits, "_", "-", separated by dots',
+      'Invalid name "abortSignal": "abortSignal" is reserved by Gladys',
+      'Invalid name "triggerEvent.key": "triggerEvent" is reserved by Gladys',
+      'Invalid saveAs "sceneSelector": "sceneSelector" is reserved by Gladys',
     ]);
+    expect(scope.sceneSelector).to.equal('my-scene');
   });
 
   it('should give the trigger event to the script', async () => {
@@ -276,14 +285,16 @@ describe('scene action script.run', () => {
       console.log(Date.now() - start >= 25);
       try { await sleep(-1); } catch (e) { console.log(e.message); }
       try { await sleep('1'); } catch (e) { console.log(e.message); }
+      try { await sleep(1e12); } catch (e) { console.log(e.message); }
     `,
       { sceneSelector: 'my-scene', abortSignal: abortController.signal },
     );
     await run(`await sleep(1); console.log('slept');`);
     expect(scriptLogs().map((log) => log.message)).to.deep.equal([
       'true',
-      'sleep() takes a number of milliseconds',
-      'sleep() takes a number of milliseconds',
+      'sleep() takes a number of milliseconds, up to 2147483647',
+      'sleep() takes a number of milliseconds, up to 2147483647',
+      'sleep() takes a number of milliseconds, up to 2147483647',
       'slept',
     ]);
   });
@@ -304,7 +315,7 @@ describe('scene action script.run', () => {
 
   it('should emit the logs on the websocket', async () => {
     await run(`console.warn('careful');`);
-    sinon.assert.calledWith(self.event.emit, EVENTS.WEBSOCKET.SEND_ALL, {
+    sinon.assert.calledWith(self.event.emit, EVENTS.WEBSOCKET.SEND_ADMINS, {
       type: WEBSOCKET_MESSAGE_TYPES.SCENE.SCRIPT_LOG,
       payload: { sceneSelector: 'my-scene', level: 'warn', message: 'careful' },
     });

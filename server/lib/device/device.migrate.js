@@ -58,10 +58,11 @@ const SCRIPT_STRING_LITERAL_REGEX = /(['"`])([^'"`\\\n]+)\1/g;
  */
 function rewriteScriptReferences(code, featureReplacements, deviceReplacements) {
   return code.replace(SCRIPT_STRING_LITERAL_REGEX, (literal, quote, content) => {
-    if (featureReplacements[content] !== undefined) {
+    // own keys only: 'toString' or 'constructor' in a script are not selectors
+    if (Object.prototype.hasOwnProperty.call(featureReplacements, content)) {
       return `${quote}${featureReplacements[content]}${quote}`;
     }
-    if (deviceReplacements[content] !== undefined) {
+    if (Object.prototype.hasOwnProperty.call(deviceReplacements, content)) {
       return `${quote}${deviceReplacements[content]}${quote}`;
     }
     return literal;

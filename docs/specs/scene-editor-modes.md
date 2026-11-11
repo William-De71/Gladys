@@ -189,9 +189,12 @@ the layout is stored apart (C.4).
   in the scene, branches included, so its form never resets them.
 - **Removing.** Removing a block wires what came before it to what came after it; removing an if /
   while removes its branches with it, after a confirmation. Removing an edge may leave blocks
-  unwired (C.3.4). `Delete` / `Backspace` remove the selected node or edge.
-- **History.** `Ctrl+Z` / `Ctrl+Y` (and the toolbar) undo / redo the changes of the canvas, up to
-  50; a snapshot holds the graph, the actions, the triggers and their variables.
+  unwired (C.3.4). `Delete` / `Backspace` remove the selected node or edge, except when the key is
+  typed in the panel or in a field.
+- **History.** `Ctrl+Z` / `Ctrl+Y` (and the toolbar) undo / redo the changes of the canvas and
+  what the forms of the panel changed (a parameter, a condition, a trigger), up to 50; a snapshot
+  holds the graph, the actions, the triggers and their variables. Edits of a form less than a
+  second apart are undone together, so a typed text goes back in one step.
 - **Saving.** Before sending, the editor counts the blocks whose type was never picked (a new
   block, a new condition), in every mode and at any depth, and names them in a translated message
   instead of letting the server refuse the scene with its schema error. Untyped nodes are drawn
@@ -200,6 +203,14 @@ the layout is stored apart (C.4).
   they accept, become one line per place of the scene and kind of problem, in the user's language
   ("Step 2 › Action 1 (Function): no type has been picked"); a script syntax error names its block,
   line and column. The raw answer stays available behind a "technical detail" button.
+- **Selecting several blocks.** `Ctrl` + click adds a node to the selection or takes it out,
+  `Shift` + drag draws a box; the selected nodes are moved and removed together. Building a
+  selection never opens the panel, which covers a part of the canvas.
+- **Copy and paste.** `Ctrl+C` / `Ctrl+V` (and the toolbar) copy the selected action nodes and
+  paste them as unwired nodes beside their originals, wired to each other as they were
+  (`copyNodes` / `pasteNodes`). A block is copied without its branches, unless their nodes are
+  selected too. The copy lives in the canvas, not in the system clipboard.
+- **Mini-map.** A mini-map of the canvas, to move around a large scene; hidden on phones.
 - **Selecting.** A click selects a node and opens its panel; it never counts as a change of the
   scene (a drag without a move is ignored).
 - **Running.** The block being run is highlighted, from the `scene.executing-action` events.
@@ -219,7 +230,8 @@ editor is covered end to end by `front/cypress/e2e/routes/scene/SceneEditorModes
 - The triggers keep their classic cards; the actions are one JavaScript editor (CodeMirror,
   loaded only in this mode).
 - A reference panel lists the API (D.3), with examples.
-- A console shows what the script logs while the scene runs (D.5).
+- A console shows what the script logs while the scene runs (D.5) or is tried (D.7).
+- The editor suggests the API and the selectors of the instance while typing (D.8).
 
 ### D.2 Sandbox
 
@@ -229,7 +241,10 @@ The script runs in **QuickJS compiled to WebAssembly** (`quickjs-emscripten-core
 - no `require`, `process`, file system, network or timers other than the API below; the API is
   frozen and the script runs in strict mode;
 - **memory**: 32 MB per execution; **CPU**: a script running more than 1 s without yielding to
-  Gladys (an `await` on the API) is interrupted — a `while (true) {}` cannot freeze Gladys;
+  Gladys (an `await` on the API) is interrupted — a `while (true) {}` cannot freeze Gladys. An
+  execution also has **30 s of processor time in all**, its waits (`sleep`, actions) left out, so
+  a script cannot keep Gladys busy by slices that each stay under the second; a script that waits
+  most of the time can run for days;
 - **stack**: 256 KB. QuickJS runs on the stack of Node, so its limit must be reached well before
   the one of V8: with 1 MB, a runaway recursion overflowed V8 inside the WebAssembly module
   instead of raising a JavaScript error. 256 KB still allows a recursion about 1 000 calls deep;
@@ -268,14 +283,17 @@ or `sleep` rejects, and the interrupt handler stops any running code.
   other error is thrown into the script, which may `try / catch` it.
 - Without `saveAs`, the result of an action is kept under `<path of the script>.script.<n>`.
 - `gladys.store(name, value)` keeps a value under a name for the templates of the next actions
-  (`{{name.…}}`), like `saveAs`.
+  (`{{name.…}}`), like `saveAs`. Neither may write over what the engine keeps in the scope
+  (`abortSignal`, `sceneSelector`, `alreadyExecutedScenes`, `triggerEvent`): the name is refused.
+- `sleep(ms)` takes at most 2 147 483 647 ms (about 24.8 days), the longest timer of Node.
 - What the script returns (`return value`) is kept under `<path of the script>.result`.
 - Values cross the sandbox boundary as JSON.
 
 ### D.4 Converting blocks to code
 
 `POST /api/v1/scene/script/generate` with `{ actions }` returns `{ code }`: a script with the
-behavior of the steps.
+behavior of the steps. Anything that does not have the shape of scene actions (steps of actions,
+`if` a list, `then` / `else` steps) is refused with a 400.
 
 - each action → `await gladys.action(type, params)`, with `saveAs: '<path>'` when a template or a
   condition selector reads its result, so `{{0.0.last_value}}` keeps working unchanged;
@@ -297,8 +315,10 @@ discards the code, after a confirmation, and starts from an empty step.
 ### D.5 Logs
 
 `console.*` writes to the Gladys logs (prefixed with the scene selector) and emits
-`scene.script-log` (`{ sceneSelector, level, message }`) on the websocket; the console of the code
-editor shows the last 200 lines of the scene it displays. An execution logs 1 000 lines at most
+`scene.script-log` (`{ sceneSelector, level, message }`) on the websocket, **to the administrators
+only** (`EVENTS.WEBSOCKET.SEND_ADMINS`, relayed user by user through Gladys Plus): a log may hold
+what a script reads. The console of the script editors shows the last 200 lines of the scene it
+displays. An execution logs 1 000 lines at most
 (the last one says the limit was reached), each cut at 2 000 characters. An error that ends the
 script is logged there too, with its line and column.
 
@@ -313,6 +333,31 @@ sandbox of D.2, with the API of D.3, when the scene reaches the block.
   error fails the block like any action, the scene goes on with the next step.
 - Its logs go to the Gladys logs and the `scene.script-log` event (D.5).
 
+### D.7 Trying a script
+
+`POST /api/v1/scene/:scene_selector/script/test` with `{ code }` (administrators) runs a script
+as it is being written, without saving the scene: the "Try" button of the script editors, in the
+advanced mode and in a function block.
+
+- The script **runs for real**, with the API of D.3 and the limits of D.2, as an execution of the
+  scene: it is listed with the running scenes (`scene.started` / `scene.stopped`) and stopped like
+  them — the button becomes "Stop". It does not go through the queue of the scenes.
+- A script that does not compile is refused (400, the message of B.3), an unknown scene is a 404.
+  The answer is `{ execution_id }`.
+- When it ends, `scene.script-test-finished`
+  (`{ executionId, sceneSelector, status: 'success' | 'stopped' | 'error', result }`) is sent to
+  the administrators; the console says how the trial ended, with what the script returned. Its
+  logs and its error come through D.5.
+- A function block is tried alone: the results of the blocks before it are not there.
+
+### D.8 Suggestions
+
+The script editors suggest, while typing (`code/completions.js`, pure and unit-tested): the
+globals of D.3, the members of `gladys.` and of its namespaces, the selectors of the device
+features of the instance where the API takes one (`gladys.device.getValue('…`, found by selector
+or by name), and the action types in `gladys.action('…` / the condition types in
+`gladys.check('…`.
+
 ## E. Mode switch
 
 A segmented control in the editor header: **Classic · Graph · Advanced** (the code mode is
@@ -323,7 +368,7 @@ pill). On a phone it takes its own full-width row below the scene name. The conf
 | From → to            | Effect                                                                                                                                                      |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | classic ↔ graph      | none on the scene; unwired graph blocks are dropped after a confirmation. The classic editor keeps an empty step at the end of the scene, as it always does |
-| classic/graph → code | confirmation, then D.4                                                                                                                                      |
+| classic/graph → code | unwired graph blocks are dropped after a confirmation of their own; confirmation, then D.4                                                                  |
 | code → classic/graph | confirmation, the code is discarded                                                                                                                         |
 
 The mode is saved with the scene (`editor.mode`): the scene reopens where it was left.

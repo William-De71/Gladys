@@ -5059,7 +5059,10 @@
       "loadError": "No se pudo cargar el editor gráfico.",
       "deleteBlockTitle": "¿Eliminar este bloque?",
       "directionToVertical": "De arriba abajo",
-      "directionToHorizontal": "De izquierda a derecha"
+      "directionToHorizontal": "De izquierda a derecha",
+      "copy": "Copiar (Ctrl+C)",
+      "paste": "Pegar (Ctrl+V)",
+      "deleteSelection": "Eliminar los {{count}} bloques"
     },
     "code": {
       "thenSectionSubtitle": "el script de la escena, en JavaScript",
@@ -5084,7 +5087,20 @@
         "console": "Escribe en la consola de abajo y en los registros de Gladys",
         "store": "Guarda un valor con un nombre, para las plantillas de las acciones siguientes"
       },
-      "functionIntro": "La función se ejecuta en un entorno aislado, como el cuerpo de una función async: usa await, return da su resultado a los bloques siguientes. Dispone de 32 MB de memoria y se detiene si funciona más de un segundo sin esperar a Gladys."
+      "functionIntro": "La función se ejecuta en un entorno aislado, como el cuerpo de una función async: usa await, return da su resultado a los bloques siguientes. Dispone de 32 MB de memoria y se detiene si funciona más de un segundo sin esperar a Gladys.",
+      "test": {
+        "run": "Probar",
+        "stop": "Detener",
+        "hint": "Ejecuta este código ahora, sin guardar la escena. Las acciones se realizan de verdad.",
+        "started": "Prueba iniciada…",
+        "success": "Prueba terminada.",
+        "successWithResult": "Prueba terminada, resultado: {{result}}",
+        "stopped": "Prueba detenida.",
+        "error": "La prueba terminó con un error.",
+        "syntaxError": "Error de sintaxis: {{reason}}",
+        "syntaxErrorAt": "Error de sintaxis en la línea {{line}}, columna {{column}}: {{reason}}",
+        "failed": "No se pudo iniciar la prueba."
+      }
     },
     "untypedActionsError": {
       "one": "Un bloque aún no tiene tipo: elige su tipo en su tarjeta o elimínalo.",

@@ -3,7 +3,7 @@ import { Localizer, Text } from 'preact-i18n';
 import { connect } from 'unistore/preact';
 import get from 'get-value';
 import cx from 'classnames';
-import ReactFlow, { Background, Controls, MarkerType, applyNodeChanges } from 'reactflow';
+import ReactFlow, { Background, Controls, MarkerType, MiniMap, applyNodeChanges } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { ACTIONS } from '../../../../../../server/utils/constants';
@@ -20,6 +20,7 @@ import {
   DIRECTIONS,
   canConnect,
   getNodeAction,
+  copyNodes,
   isBlockType
 } from './sceneGraph';
 import editStyle from '../style.css';
@@ -43,7 +44,16 @@ const FIT_VIEW_OPTIONS = {
 };
 
 class SceneCanvas extends Component {
-  state = { selectedNodeId: null, selectedEdgeId: null };
+  // Several nodes may be selected (Ctrl + click, or Shift + drag): they are moved, copied and
+  // removed together. The panel opens for a single one, picked with a plain click: it covers a
+  // part of the canvas, so building a selection never opens it.
+  state = { selectedNodeIds: [], selectedEdgeId: null, hasClipboard: false, panelClosed: false };
+
+  selectedNodeId = () => (this.state.selectedNodeIds.length === 1 ? this.state.selectedNodeIds[0] : null);
+
+  selectNode = id => this.setState({ selectedNodeIds: id ? [id] : [], selectedEdgeId: null, panelClosed: false });
+
+  isSelectable = node => Boolean(node) && node.type !== NODE_TYPES.JOIN && node.type !== NODE_TYPES.START;
 
   getNode = id => this.props.graph.nodes.find(node => node.id === id);
 
@@ -58,7 +68,7 @@ class SceneCanvas extends Component {
       const display = {
         ...node,
         data: { ...node.data, direction },
-        selected: node.id === this.state.selectedNodeId,
+        selected: this.state.selectedNodeIds.includes(node.id),
         draggable: node.type !== NODE_TYPES.JOIN,
         selectable: node.type !== NODE_TYPES.JOIN && node.type !== NODE_TYPES.START,
         deletable: false
@@ -111,6 +121,18 @@ class SceneCanvas extends Component {
   // parallel actions follows their vertical order). A click also reports a drag, without a move.
   onNodesChange = changes => {
     const { graph } = this.props;
+    // The box drawn with Shift + drag selects the nodes it covers. The clicks are handled by
+    // onNodeClick alone: the canvas would otherwise toggle a node a second time.
+    const selections = this.boxSelecting
+      ? changes.filter(change => change.type === 'select' && this.isSelectable(this.getNode(change.id)))
+      : [];
+    if (selections.length > 0) {
+      this.setState(prevState => {
+        const ids = new Set(prevState.selectedNodeIds);
+        selections.forEach(change => (change.selected ? ids.add(change.id) : ids.delete(change.id)));
+        return { selectedNodeIds: [...ids], selectedEdgeId: null, panelClosed: true };
+      });
+    }
     const moves = changes.filter(
       change => (change.type === 'position' && change.position) || change.type === 'dimensions'
     );
@@ -121,6 +143,14 @@ class SceneCanvas extends Component {
       { nodes: applyNodeChanges(moves, graph.nodes), edges: graph.edges },
       { structural: false, history: false }
     );
+  };
+
+  onSelectionStart = () => {
+    this.boxSelecting = true;
+  };
+
+  onSelectionEnd = () => {
+    this.boxSelecting = false;
   };
 
   onNodeDragStart = (event, node) => {
@@ -140,10 +170,21 @@ class SceneCanvas extends Component {
   };
 
   onNodeClick = (event, node) => {
-    if (node.type === NODE_TYPES.JOIN || node.type === NODE_TYPES.START) {
+    if (!this.isSelectable(node)) {
       return;
     }
-    this.setState({ selectedNodeId: node.id, selectedEdgeId: null });
+    if (event.ctrlKey || event.metaKey) {
+      // add the node to the selection, or take it out
+      this.setState(prevState => ({
+        selectedNodeIds: prevState.selectedNodeIds.includes(node.id)
+          ? prevState.selectedNodeIds.filter(id => id !== node.id)
+          : [...prevState.selectedNodeIds, node.id],
+        selectedEdgeId: null,
+        panelClosed: true
+      }));
+      return;
+    }
+    this.selectNode(node.id);
   };
 
   onEdgeClick = (event, edge) => {
@@ -151,10 +192,10 @@ class SceneCanvas extends Component {
     if (edge.target === START_NODE_ID) {
       return;
     }
-    this.setState({ selectedEdgeId: edge.id, selectedNodeId: null });
+    this.setState({ selectedEdgeId: edge.id, selectedNodeIds: [] });
   };
 
-  onPaneClick = () => this.setState({ selectedNodeId: null, selectedEdgeId: null });
+  onPaneClick = () => this.setState({ selectedNodeIds: [], selectedEdgeId: null });
 
   isValidConnection = connection =>
     canConnect(this.props.scene, this.props.graph.nodes, this.props.graph.edges, connection, this.props.direction);
@@ -168,8 +209,15 @@ class SceneCanvas extends Component {
 
   onKeyDown = event => {
     const target = event.target;
-    // keys typed in a form of the panel are not for the canvas
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+    // keys typed in a field, or anywhere in the panel (a select, a button), are not for the canvas
+    if (
+      target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable ||
+        (target.closest && target.closest('[data-graph-panel]')))
+    ) {
       return;
     }
     const ctrl = event.ctrlKey || event.metaKey;
@@ -183,9 +231,13 @@ class SceneCanvas extends Component {
       if (this.state.selectedEdgeId) {
         this.props.removeEdge(this.state.selectedEdgeId);
         this.setState({ selectedEdgeId: null });
-      } else if (this.state.selectedNodeId) {
-        this.removeNode(this.state.selectedNodeId);
+      } else {
+        this.removeSelection();
       }
+    } else if (ctrl && (event.key === 'c' || event.key === 'C')) {
+      this.copySelection();
+    } else if (ctrl && (event.key === 'v' || event.key === 'V')) {
+      this.pasteClipboard();
     }
   };
 
@@ -199,41 +251,92 @@ class SceneCanvas extends Component {
     } else {
       const action = getNodeAction(node, this.props.scene.actions);
       // a block goes away with its branches: ask first when they hold something
-      const hasBranches =
-        node.data.path &&
-        this.props.graph.nodes.some(
-          other => other.data && other.data.path && other.data.path.startsWith(`${node.data.path}.`)
-        );
-      if (action && isBlockType(action.type) && hasBranches && !(await this.props.askConfirmation('deleteBlock'))) {
+      if (
+        action &&
+        isBlockType(action.type) &&
+        this.hasBranchNodes(node) &&
+        !(await this.props.askConfirmation('deleteBlock'))
+      ) {
         return;
       }
       this.props.removeNode(nodeId);
     }
-    this.setState({ selectedNodeId: null });
+    this.selectNode(null);
+  };
+
+  hasBranchNodes = node =>
+    Boolean(node.data.path) &&
+    this.props.graph.nodes.some(
+      other => other.data && other.data.path && other.data.path.startsWith(`${node.data.path}.`)
+    );
+
+  // Remove what is selected: one node as its panel does, several ones together
+  removeSelection = async () => {
+    const ids = this.state.selectedNodeIds;
+    if (ids.length === 1) {
+      await this.removeNode(ids[0]);
+      return;
+    }
+    const nodes = ids.map(this.getNode).filter(Boolean);
+    if (nodes.length === 0) {
+      return;
+    }
+    const actionNodes = nodes.filter(node => node.type !== NODE_TYPES.TRIGGER);
+    if (actionNodes.some(this.hasBranchNodes) && !(await this.props.askConfirmation('deleteBlock'))) {
+      return;
+    }
+    if (actionNodes.length > 0) {
+      this.props.removeNodes(actionNodes.map(node => node.id));
+    }
+    // the last triggers first: removing one renumbers those after it
+    nodes
+      .filter(node => node.type === NODE_TYPES.TRIGGER)
+      .map(node => node.data.index)
+      .sort((a, b) => b - a)
+      .forEach(index => this.props.deleteTrigger(index));
+    this.selectNode(null);
+  };
+
+  // --- copy and paste (spec C.5): the copy stays in the canvas, it is not the system clipboard
+
+  copySelection = () => {
+    const clipboard = copyNodes(this.props.graph, this.state.selectedNodeIds, this.props.scene.actions);
+    if (clipboard.nodes.length > 0) {
+      this.clipboard = clipboard;
+      this.setState({ hasClipboard: true });
+    }
+  };
+
+  pasteClipboard = () => {
+    if (!this.clipboard) {
+      return;
+    }
+    const ids = this.props.pasteNodes(this.clipboard);
+    this.setState({ selectedNodeIds: ids, selectedEdgeId: null, panelClosed: false });
   };
 
   insertNode = (nodeId, where, handle) => {
     const newId = this.props.insertNode(nodeId, where, handle);
     if (newId) {
-      this.setState({ selectedNodeId: newId, selectedEdgeId: null });
+      this.selectNode(newId);
     }
   };
 
   appendNode = () => {
     const newId = this.props.appendNode();
     if (newId) {
-      this.setState({ selectedNodeId: newId, selectedEdgeId: null });
+      this.selectNode(newId);
     }
   };
 
   addTrigger = () => {
     const newId = this.props.addTrigger();
     if (newId) {
-      this.setState({ selectedNodeId: newId, selectedEdgeId: null });
+      this.selectNode(newId);
     }
   };
 
-  closePanel = () => this.setState({ selectedNodeId: null });
+  closePanel = () => this.selectNode(null);
 
   toggleDirection = () =>
     this.props.setGraphDirection(
@@ -246,12 +349,13 @@ class SceneCanvas extends Component {
 
   // the selected node may have gone (undo, removed trigger)
   dropMissingSelection = () => {
-    if (this.state.selectedNodeId && !this.getNode(this.state.selectedNodeId)) {
-      this.setState({ selectedNodeId: null });
+    if (this.state.selectedNodeIds.some(id => !this.getNode(id))) {
+      this.setState(prevState => ({ selectedNodeIds: prevState.selectedNodeIds.filter(id => this.getNode(id)) }));
     }
   };
 
-  render(props, { selectedNodeId }) {
+  render(props, { selectedNodeIds, hasClipboard, panelClosed }) {
+    const selectedNodeId = panelClosed ? null : this.selectedNodeId();
     const selectedNode = selectedNodeId ? this.getNode(selectedNodeId) : null;
     const panelNode =
       selectedNode && (selectedNode.type === NODE_TYPES.ACTION || selectedNode.type === NODE_TYPES.BLOCK)
@@ -338,6 +442,43 @@ class SceneCanvas extends Component {
               <i class="fe fe-corner-up-right" />
             </button>
           </Localizer>
+          <Localizer>
+            <button
+              type="button"
+              class={cx(editStyle.pill, editStyle.pillIcon)}
+              onClick={this.copySelection}
+              disabled={selectedNodeIds.length === 0}
+              title={<Text id="editScene.graph.copy" />}
+              data-cy="graph-copy"
+            >
+              <i class="fe fe-copy" />
+            </button>
+          </Localizer>
+          <Localizer>
+            <button
+              type="button"
+              class={cx(editStyle.pill, editStyle.pillIcon)}
+              onClick={this.pasteClipboard}
+              disabled={!hasClipboard}
+              title={<Text id="editScene.graph.paste" />}
+              data-cy="graph-paste"
+            >
+              <i class="fe fe-clipboard" />
+            </button>
+          </Localizer>
+          {selectedNodeIds.length > 1 && (
+            <button
+              type="button"
+              class={cx(editStyle.pill, editStyle.pillDanger)}
+              onClick={this.removeSelection}
+              data-cy="graph-delete-selection"
+            >
+              <i class="fe fe-trash-2" />
+              <span class={style.toolbarLabel}>
+                <Text id="editScene.graph.deleteSelection" fields={{ count: selectedNodeIds.length }} />
+              </span>
+            </button>
+          )}
           {unwiredCount > 0 && (
             <span class={cx(style.statusBadge, style.statusWarning)} data-cy="graph-unwired-count">
               <i class="fe fe-alert-triangle" />{' '}
@@ -363,6 +504,9 @@ class SceneCanvas extends Component {
             onNodeClick={this.onNodeClick}
             onEdgeClick={this.onEdgeClick}
             onPaneClick={this.onPaneClick}
+            onSelectionStart={this.onSelectionStart}
+            onSelectionEnd={this.onSelectionEnd}
+            multiSelectionKeyCode={null}
             onConnect={this.onConnect}
             isValidConnection={this.isValidConnection}
             deleteKeyCode={null}
@@ -375,6 +519,7 @@ class SceneCanvas extends Component {
           >
             <Background gap={GRID_SIZE} size={1} />
             <Controls showInteractive={false} />
+            <MiniMap pannable zoomable className={style.minimap} />
           </ReactFlow>
           {panelNode && (
             <NodePanel
