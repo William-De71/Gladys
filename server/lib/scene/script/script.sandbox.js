@@ -65,12 +65,52 @@ const PRELUDE = `
       getValue: (feature) => call('device.getValue', [feature]),
       getFeature: (feature) => call('device.getFeature', [feature]),
       setValue: (feature, value) => call('device.setValue', [feature, value]),
+      get: (device) => call('device.get', [device]),
+      list: (filter) => call('device.list', [filter]),
     },
     scene: {
       start: (selector) => call('scene.start', [selector]),
     },
     message: {
       send: (user, text) => call('message.send', [user, text]),
+    },
+    light: {
+      turnOn: (devices) => call('light.turnOn', [devices]),
+      turnOff: (devices) => call('light.turnOff', [devices]),
+      toggle: (devices) => call('light.toggle', [devices]),
+      blink: (devices, speed, seconds) => call('light.blink', [devices, speed, seconds]),
+    },
+    switch: {
+      turnOn: (devices) => call('switch.turnOn', [devices]),
+      turnOff: (devices) => call('switch.turnOff', [devices]),
+      toggle: (devices) => call('switch.toggle', [devices]),
+    },
+    variable: {
+      get: (name) => call('variable.get', [name]),
+      set: (name, value) => call('variable.set', [name, value]),
+      remove: (name) => call('variable.remove', [name]),
+    },
+    house: {
+      isEmpty: (house) => call('house.isEmpty', [house]),
+      getUsersAtHome: (house) => call('house.getUsersAtHome', [house]),
+      getAlarmMode: (house) => call('house.getAlarmMode', [house]),
+      setAlarmMode: (mode, house) => call('house.setAlarmMode', [mode, house]),
+      getSun: (house) => call('house.getSun', [house]),
+    },
+    user: {
+      setAtHome: (user, house) => call('user.setAtHome', [user, house]),
+      setAway: (user, house) => call('user.setAway', [user, house]),
+    },
+    http: {
+      request: (method, url, options) => call('http.request', [method, url, options]),
+      get: (url, options) => call('http.get', [url, options]),
+      post: (url, body, options) => call('http.post', [url, body, options]),
+    },
+    time: {
+      now: () => call('time.now', []),
+    },
+    music: {
+      say: (device, text, volume) => call('music.say', [device, text, volume]),
     },
     store: (name, value) => call('store', [name, value]),
   });

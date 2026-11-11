@@ -5089,7 +5089,19 @@
         "sleep": "Wartet, unterbrochen, wenn die Szene gestoppt wird",
         "stop": "Beendet die Szene ohne Fehler",
         "console": "Schreibt in die Konsole unten und in die Gladys-Logs",
-        "store": "Speichert einen Wert unter einem Namen, für die Vorlagen der nächsten Aktionen"
+        "store": "Speichert einen Wert unter einem Namen, für die Vorlagen der nächsten Aktionen",
+        "deviceGet": "Ein Gerät und die Liste seiner Funktionen",
+        "deviceList": "Die Funktionen eines Raums, einer Kategorie oder eines Typs, um sie zu durchlaufen",
+        "light": "Schaltet eine oder mehrere Lampen ein, aus, um oder lässt sie blinken",
+        "switch": "Schaltet eine oder mehrere Steckdosen ein, aus oder um",
+        "say": "Lässt einen Text von einem Lautsprecher sprechen, in der angegebenen Lautstärke",
+        "variable": "Behält einen Wert von einer Ausführung zur nächsten, geteilt von allen Skripten",
+        "houseHome": "Ob das Haus leer ist und wer anwesend ist",
+        "alarm": "Liest oder ändert den Alarmmodus: disarmed, armed, partially-armed, panic",
+        "sun": "Sonnenaufgang, Sonnenuntergang und ob es Tag ist (is_day)",
+        "userPresence": "Markiert einen Benutzer als anwesend oder abwesend",
+        "timeNow": "Die lokale Zeit der Instanz: date, time, hour, minute, day_of_week (1 = Montag)",
+        "http": "Ruft eine URL auf und gibt { status, data, headers } zurück"
       },
       "functionIntro": "Die Funktion läuft in einer Sandbox als Körper einer async-Funktion: Verwende await, return gibt ihr Ergebnis an die nächsten Blöcke. Sie hat 32 MB Speicher und wird gestoppt, wenn sie länger als eine Sekunde läuft, ohne auf Gladys zu warten.",
       "test": {

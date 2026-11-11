@@ -7,6 +7,7 @@ const { AbortScene, SceneStopped, NotFoundError } = require('../../../utils/core
 const logger = require('../../../utils/logger');
 const { actionSchema } = require('../../../models/scene');
 const { runScript } = require('./script.sandbox');
+const { buildScriptShortcuts } = require('./script.shortcuts');
 
 // Actions a script cannot run through `gladys.action`: their logic is JavaScript itself
 // (docs/specs/scene-editor-modes.md D.3).
@@ -101,6 +102,7 @@ function buildScriptApi({ self, scope, path, actionsFunc, schema }) {
   };
 
   return {
+    ...buildScriptShortcuts({ self, runAction }),
     action: runAction,
     check: async (type, params, options) => {
       try {

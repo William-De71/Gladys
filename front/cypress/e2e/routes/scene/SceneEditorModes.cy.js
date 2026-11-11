@@ -178,6 +178,9 @@ describe('Scene editor modes', () => {
     // the reference of the API
     cy.get('[data-cy="code-toggle-reference"]').click();
     cy.get('[data-cy="code-reference"]').should('contain', 'gladys.device.setValue');
+    cy.get('[data-cy="code-reference"]')
+      .should('contain', 'gladys.light.turnOn')
+      .should('contain', Cypress.env('i18n').editScene.code.api.variable);
   });
 
   it('Should go back to blocks, starting from an empty step', () => {
@@ -427,6 +430,7 @@ describe('Scene editor modes', () => {
     cy.get('[data-cy="scene-code-editor"] .cm-content').type('gladys.');
     cy.get('.cm-tooltip-autocomplete').should('contain', 'device');
     cy.get('.cm-tooltip-autocomplete').should('contain', 'store');
+    cy.get('.cm-tooltip-autocomplete').should('contain', 'light');
     cy.get('[data-cy="scene-code-editor"] .cm-content').type('{esc}');
 
     // a script that does not compile is not started

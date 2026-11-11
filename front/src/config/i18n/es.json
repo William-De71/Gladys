@@ -5089,7 +5089,19 @@
         "sleep": "Espera, interrumpido si se detiene la escena",
         "stop": "Termina la escena sin error",
         "console": "Escribe en la consola de abajo y en los registros de Gladys",
-        "store": "Guarda un valor con un nombre, para las plantillas de las acciones siguientes"
+        "store": "Guarda un valor con un nombre, para las plantillas de las acciones siguientes",
+        "deviceGet": "Un dispositivo y la lista de sus funciones",
+        "deviceList": "Las funciones de una habitación, una categoría o un tipo, para recorrerlas",
+        "light": "Enciende, apaga, alterna o hace parpadear una o varias luces",
+        "switch": "Enciende, apaga o alterna uno o varios enchufes",
+        "say": "Hace decir un texto por un altavoz, al volumen indicado",
+        "variable": "Guarda un valor de una ejecución a otra, compartido por todos los scripts",
+        "houseHome": "Si la casa está vacía y quién está presente",
+        "alarm": "Lee o cambia el modo de la alarma: disarmed, armed, partially-armed, panic",
+        "sun": "Amanecer, atardecer y si es de día (is_day)",
+        "userPresence": "Marca a un usuario como presente o ausente",
+        "timeNow": "La hora local de la instancia: date, time, hour, minute, day_of_week (1 = lunes)",
+        "http": "Llama a una URL y devuelve { status, data, headers }"
       },
       "functionIntro": "La función se ejecuta en un entorno aislado, como el cuerpo de una función async: usa await, return da su resultado a los bloques siguientes. Dispone de 32 MB de memoria y se detiene si funciona más de un segundo sin esperar a Gladys.",
       "test": {

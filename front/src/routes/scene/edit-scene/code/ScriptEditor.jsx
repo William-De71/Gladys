@@ -18,8 +18,20 @@ const API_REFERENCE = [
   { signature: "await gladys.device.getValue('feature')", key: 'getValue' },
   { signature: "await gladys.device.getFeature('feature')", key: 'getFeature' },
   { signature: "await gladys.device.setValue('feature', value)", key: 'setValue' },
+  { signature: "await gladys.device.get('device')", key: 'deviceGet' },
+  { signature: 'await gladys.device.list({ room, category, type })', key: 'deviceList' },
+  { signature: "await gladys.light.turnOn('device') · turnOff · toggle · blink('device', 'fast', 5)", key: 'light' },
+  { signature: "await gladys.switch.turnOn('device') · turnOff · toggle", key: 'switch' },
   { signature: "await gladys.scene.start('scene')", key: 'startScene' },
   { signature: "await gladys.message.send('user', 'text')", key: 'sendMessage' },
+  { signature: "await gladys.music.say('speaker', 'text', volume)", key: 'say' },
+  { signature: "await gladys.variable.get('name') · set('name', value) · remove('name')", key: 'variable' },
+  { signature: 'await gladys.house.isEmpty() · getUsersAtHome()', key: 'houseHome' },
+  { signature: "await gladys.house.getAlarmMode() · setAlarmMode('armed')", key: 'alarm' },
+  { signature: 'await gladys.house.getSun()', key: 'sun' },
+  { signature: "await gladys.user.setAtHome('user') · setAway('user')", key: 'userPresence' },
+  { signature: 'await gladys.time.now()', key: 'timeNow' },
+  { signature: 'await gladys.http.get(url) · post(url, body) · request(method, url, { body, headers })', key: 'http' },
   { signature: "await gladys.action('type', { …params }, { saveAs })", key: 'action' },
   { signature: "await gladys.check('type', { …params })", key: 'check' },
   { signature: "await gladys.store('name', value)", key: 'store' },
@@ -63,6 +75,12 @@ class ScriptEditor extends Component {
       const { device, feature } = this.props.deviceFeatures[selector];
       return { selector, name: `${device.name} — ${feature.name || selector}` };
     }),
+    devices: Object.values(
+      Object.values(this.props.deviceFeatures || {}).reduce((devices, { device }) => {
+        devices[device.selector] = { selector: device.selector, name: device.name };
+        return devices;
+      }, {})
+    ),
     actionTypes: ACTION_TYPES,
     conditionTypes: CONDITION_ACTIONS
   });

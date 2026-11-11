@@ -5089,7 +5089,19 @@
         "sleep": "Attend, interrompu si la scène est arrêtée",
         "stop": "Termine la scène sans erreur",
         "console": "Écrit dans la console ci-dessous et dans les logs de Gladys",
-        "store": "Garde une valeur sous un nom, pour les modèles des actions suivantes"
+        "store": "Garde une valeur sous un nom, pour les modèles des actions suivantes",
+        "deviceGet": "Un appareil et la liste de ses fonctionnalités",
+        "deviceList": "Les fonctionnalités d’une pièce, d’une catégorie ou d’un type, pour boucler dessus",
+        "light": "Allume, éteint, inverse ou fait clignoter une ou plusieurs lumières",
+        "switch": "Allume, éteint ou inverse une ou plusieurs prises",
+        "say": "Fait dire un texte par une enceinte, au volume donné",
+        "variable": "Garde une valeur d’une exécution à l’autre, partagée entre tous les scripts",
+        "houseHome": "La maison est-elle vide, et qui est présent",
+        "alarm": "Lit ou change le mode de l’alarme : disarmed, armed, partially-armed, panic",
+        "sun": "Lever, coucher du soleil et s’il fait jour (is_day)",
+        "userPresence": "Marque un utilisateur présent ou absent",
+        "timeNow": "L’heure locale de l’instance : date, time, hour, minute, day_of_week (1 = lundi)",
+        "http": "Appelle une URL et renvoie { status, data, headers }"
       },
       "functionIntro": "La fonction s’exécute dans un bac à sable, comme le corps d’une fonction async : utilise await, return donne son résultat aux blocs suivants. Elle dispose de 32 Mo de mémoire et est arrêtée si elle tourne plus d’une seconde sans attendre Gladys.",
       "test": {

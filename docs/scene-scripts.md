@@ -49,10 +49,102 @@ The editor suggests the API while you type, and the real selectors of your devic
 | `stop()`                                        | —                     | Ends the scene without error                                   |
 | `console.log(…)`, `.info`, `.warn`, `.error`    | —                     | Writes to the console of the editor and to the Gladys logs     |
 
+### Shortcuts
+
+The most common things have a function of their own. `devices` is one device selector or a list
+of them; `house` may be left out when Gladys has a single house.
+
+| Call                                                                | Returns                     | What it does                                                                                                              |
+| ------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `await gladys.light.turnOn(devices)`, `.turnOff`, `.toggle`         | `null`                      | Turns lights on, off, or toggles them                                                                                     |
+| `await gladys.light.blink(devices, speed, seconds)`                 | `null`                      | Blinks lights: `'slow'`, `'medium'` or `'fast'` (default), 5 seconds by default                                           |
+| `await gladys.switch.turnOn(devices)`, `.turnOff`, `.toggle`        | `null`                      | The same for switches and plugs                                                                                           |
+| `await gladys.music.say(speaker, text, volume)`                     | `null`                      | Says a text on a speaker; `volume` (0 to 100) is optional                                                                 |
+| `await gladys.device.get(device)`                                   | object                      | A device: `{ selector, name, room, features }`                                                                            |
+| `await gladys.device.list({ room, category, type })`                | array                       | The device features of a room, a category or a type: `{ selector, name, category, type, unit, last_value, device, room }` |
+| `await gladys.variable.get(name)`                                   | any or `null`               | A value kept by `variable.set`                                                                                            |
+| `await gladys.variable.set(name, value)`, `.remove(name)`           | `null`                      | Keeps a value from one execution to the next                                                                              |
+| `await gladys.house.isEmpty(house)`                                 | `true` / `false`            | Whether nobody is at home                                                                                                 |
+| `await gladys.house.getUsersAtHome(house)`                          | array                       | The selectors of the users at home                                                                                        |
+| `await gladys.house.getAlarmMode(house)`                            | text                        | `disarmed`, `armed`, `partially-armed` or `panic`                                                                         |
+| `await gladys.house.setAlarmMode(mode, house)`                      | `null`                      | Changes the alarm mode                                                                                                    |
+| `await gladys.house.getSun(house)`                                  | object                      | `sunrise`, `sunset`, `dawn`, `dusk`, `solar_noon` (ISO dates), `elevation`, `azimuth`, `is_day`                           |
+| `await gladys.user.setAtHome(user, house)`, `.setAway(user, house)` | `null`                      | Marks a user at home or away                                                                                              |
+| `await gladys.time.now()`                                           | object                      | Local time: `{ date, time, hour, minute, second, day_of_week, iso, timestamp, timezone }`                                 |
+| `await gladys.http.get(url, { headers })`                           | `{ status, data, headers }` | Calls a URL                                                                                                               |
+| `await gladys.http.post(url, body, { headers })`                    | same                        | Posts a body (an object is sent as JSON)                                                                                  |
+| `await gladys.http.request(method, url, { body, headers })`         | same                        | `get`, `post`, `patch`, `put` or `delete`                                                                                 |
+
 Selectors (`feature`, `scene`, `user`) are the ones shown in Gladys, for example
 `living-room-temperature`.
 
 ## Examples
+
+### Lights at sunset, only when someone is home
+
+```js
+const sun = await gladys.house.getSun();
+if (!sun.is_day && !(await gladys.house.isEmpty())) {
+  await gladys.light.turnOn(['living-room-lamp', 'hall-lamp']);
+}
+```
+
+### Loop over the devices of a room
+
+```js
+const lights = await gladys.device.list({
+  room: 'living-room',
+  category: 'light',
+  type: 'binary'
+});
+const on = lights.filter(light => light.last_value === 1);
+if (on.length > 0) {
+  await gladys.music.say(
+    'kitchen-speaker',
+    `${on.length} lights are still on in the living room`,
+    40
+  );
+}
+```
+
+### Remember something between two executions
+
+```js
+// tell only once a day that the washing machine is done
+const today = (await gladys.time.now()).date;
+if ((await gladys.variable.get('washing_notified')) === today) {
+  return;
+}
+await gladys.variable.set('washing_notified', today);
+await gladys.message.send('john', 'The washing machine is done');
+```
+
+Variables are shared by every script and survive a restart. Their names are not case sensitive.
+They are not the "Set a variable" block, whose variable only lives during one execution.
+
+### Call a web service
+
+```js
+const response = await gladys.http.get('https://api.example.com/weather', {
+  headers: { authorization: 'Bearer my-token' }
+});
+if (response.status === 200 && response.data.rain) {
+  await gladys.switch.turnOff('garden-watering');
+}
+```
+
+A request never throws on a 404 or a 500: check `response.status`.
+
+### Different behaviour on week-ends
+
+```js
+const now = await gladys.time.now();
+const weekend = now.day_of_week >= 6;
+await gladys.device.setValue('bedroom-heating-target', weekend ? 20 : 18);
+```
+
+Scripts have no time zone of their own: use `gladys.time.now()` rather than `new Date()` to
+read the local hour.
 
 ### Run any block: `gladys.action`
 
@@ -134,6 +226,8 @@ A script cannot harm Gladys, and Gladys stops it when it goes too far:
   days;
 - `sleep` takes at most about 24.8 days;
 - 1 000 log lines per execution, 2 000 characters per line;
+- a `gladys.variable` value takes at most 10 000 characters as JSON, an HTTP request times out
+  after 20 seconds;
 - `gladys.store` and `saveAs` cannot use the names Gladys keeps for itself (`abortSignal`,
   `sceneSelector`, `alreadyExecutedScenes`, `triggerEvent`).
 

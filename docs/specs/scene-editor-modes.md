@@ -66,11 +66,11 @@ mode, so every existing scene is unchanged.
 
 ### B.2 `script.run` action
 
-| Field      | Type           | Rule                                              |
-| ---------- | -------------- | ------------------------------------------------- |
-| `type`     | `'script.run'` | `ACTIONS.SCRIPT.RUN`                              |
-| `language` | `'javascript'` | optional, the only value (room for later)         |
-| `code`     | string         | ≤ 100 000 chars; may be empty while being written |
+| Field      | Type           | Rule                                               |
+| ---------- | -------------- | -------------------------------------------------- |
+| `type`     | `'script.run'` | `ACTIONS.SCRIPT.RUN`                               |
+| `language` | `'javascript'` | optional, the only value (room for later)          |
+| `code`     | string         | ≤ 100 000 chars; may be empty while being written  |
 | `name`     | string         | optional: the name the user gives a function block |
 
 ### B.3 Invariant of the code mode, function blocks
@@ -280,6 +280,38 @@ or `sleep` rejects, and the interrupt handler stops any running code.
 | `stop()`                                  | never              | ends the scene quietly, like an unmet condition                                                                           |
 | `console.log/info/warn/error(…args)`      | —                  | Gladys logs and the editor console                                                                                        |
 
+**Shortcuts** (`script.shortcuts.js`): what a script does most often, without knowing the type
+and the parameters of a block. Those that change something run the action of the matching block,
+through `gladys.action`, so they behave exactly like it. `devices` is a device selector or a list
+of them; `house` may be left out when Gladys has a single house.
+
+| Name                                                  | Returns                     | Behavior                                                                                                                 |
+| ----------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `gladys.light.turnOn / turnOff / toggle(devices)`     | null                        | the `light.*` blocks                                                                                                     |
+| `gladys.light.blink(devices, speed, seconds)`         | null                        | the `light.blink` block; `fast` for 5 s by default                                                                       |
+| `gladys.switch.turnOn / turnOff / toggle(devices)`    | null                        | the `switch.*` blocks                                                                                                    |
+| `gladys.music.say(device, text, volume)`              | null                        | the `music.play-notification` block                                                                                      |
+| `gladys.device.get(device)`                           | object                      | `{ selector, name, room, features }`, each feature as in `device.list`                                                   |
+| `gladys.device.list({ room, category, type })`        | array                       | the device features matching the filter: `{ selector, name, category, type, unit, last_value, device, room }`            |
+| `gladys.variable.get(name)`                           | any / null                  | a value kept by `variable.set`, `null` when there is none                                                                |
+| `gladys.variable.set(name, value)` / `remove(name)`   | null                        | keeps a JSON value from an execution to the next (below)                                                                 |
+| `gladys.house.isEmpty(house)`                         | boolean                     | nobody is at home                                                                                                        |
+| `gladys.house.getUsersAtHome(house)`                  | array                       | the selectors of the users at home                                                                                       |
+| `gladys.house.getAlarmMode(house)`                    | string                      | `disarmed`, `armed`, `partially-armed` or `panic`                                                                        |
+| `gladys.house.setAlarmMode(mode, house)`              | null                        | the `alarm.set-alarm-mode` block                                                                                         |
+| `gladys.house.getSun(house)`                          | object                      | `{ dawn, sunrise, solar_noon, sunset, dusk }` as ISO dates (null in polar day / night), `elevation`, `azimuth`, `is_day` |
+| `gladys.user.setAtHome(user, house)` / `setAway(…)`   | null                        | the `user.set-seen-at-home` / `user.set-out-of-home` blocks                                                              |
+| `gladys.time.now()`                                   | object                      | the local time of the instance: `{ iso, date, time, hour, minute, second, day_of_week, timestamp, timezone }`            |
+| `gladys.http.get(url, { headers })`                   | `{ status, data, headers }` | an HTTP request, as the `http.request` block makes it (20 s timeout, no error on a 4xx / 5xx status)                     |
+| `gladys.http.post(url, body, { headers })`            | same                        |                                                                                                                          |
+| `gladys.http.request(method, url, { body, headers })` | same                        | `get`, `post`, `patch`, `put` or `delete`                                                                                |
+
+- `gladys.variable` keeps its values in the variables of Gladys (`t_variable`, no service, no
+  user) under `SCENE_VARIABLE_<NAME>`: they survive a restart and are shared by every script. A
+  name is 1 to 60 letters, digits or `_`, not case sensitive; a value is at most 10 000 characters
+  as JSON. It is not the "set a variable" block, whose variable lives for one execution.
+- The sandbox has no time zone: `gladys.time.now()` gives the local time (`day_of_week` 1 is
+  Monday, 7 is Sunday), `gladys.house.getSun()` the sun of the day at the house.
 - `gladys.action` validates `params` with the action schema of the model; `script.run`,
   `condition.if-then-else` and `condition.while` are refused (use JavaScript instead).
 - An action that stops a block scene (a condition not met, an empty value…) stops the script the
@@ -362,8 +394,9 @@ advanced mode and in a function block.
 The script editors suggest, while typing (`code/completions.js`, pure and unit-tested): the
 globals of D.3, the members of `gladys.` and of its namespaces, the selectors of the device
 features of the instance where the API takes one (`gladys.device.getValue('…`, found by selector
-or by name), and the action types in `gladys.action('…` / the condition types in
-`gladys.check('…`.
+or by name), the selectors of the devices in the shortcuts that take devices
+(`gladys.light.turnOn('…`, alone or in a list), and the action types in `gladys.action('…` / the
+condition types in `gladys.check('…`.
 
 ## E. Mode switch
 

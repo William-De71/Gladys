@@ -5089,7 +5089,19 @@
         "sleep": "Wait, interrupted if the scene is stopped",
         "stop": "End the scene quietly",
         "console": "Write to the console below and to the Gladys logs",
-        "store": "Keep a value under a name, for the templates of the next actions"
+        "store": "Keep a value under a name, for the templates of the next actions",
+        "deviceGet": "A device and the list of its features",
+        "deviceList": "The features of a room, a category or a type, to loop over",
+        "light": "Turn on, turn off, toggle or blink one or several lights",
+        "switch": "Turn on, turn off or toggle one or several switches",
+        "say": "Say a text on a speaker, at the given volume",
+        "variable": "Keep a value from an execution to the next, shared by every script",
+        "houseHome": "Whether the house is empty, and who is at home",
+        "alarm": "Read or change the alarm mode: disarmed, armed, partially-armed, panic",
+        "sun": "Sunrise, sunset and whether it is day (is_day)",
+        "userPresence": "Mark a user at home or away",
+        "timeNow": "The local time of the instance: date, time, hour, minute, day_of_week (1 = Monday)",
+        "http": "Call a URL and return { status, data, headers }"
       },
       "functionIntro": "The function runs in a sandbox, as the body of an async function: use await, return gives its result to the next blocks. It has 32 MB of memory and is stopped if it runs more than one second without awaiting Gladys.",
       "test": {

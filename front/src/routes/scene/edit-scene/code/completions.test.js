@@ -10,6 +10,10 @@ const DATA = {
     { selector: 'living-room-lamp', name: 'Salon — Lampe' },
     { selector: 'kitchen-fan', name: 'Cuisine — Ventilateur' }
   ],
+  devices: [
+    { selector: 'living-room-lamp-device', name: 'Lampe du salon' },
+    { selector: 'kitchen-speaker', name: 'Enceinte cuisine' }
+  ],
   actionTypes: ['light.turn-on', 'light.turn-off', 'delay', 'condition.only-continue-if'],
   conditionTypes: ['condition.only-continue-if']
 };
@@ -28,13 +32,29 @@ describe('getCompletions', () => {
   it('should suggest the members of gladys, its namespaces and the console', () => {
     assert.deepEqual(labels(getCompletions('await gladys.', DATA)), [
       'device',
+      'light',
+      'switch',
       'scene',
       'message',
+      'music',
+      'variable',
+      'house',
+      'user',
+      'time',
+      'http',
       'action',
       'check',
       'store'
     ]);
-    assert.deepEqual(labels(getCompletions('await gladys.device.get', DATA)), ['getValue', 'getFeature']);
+    assert.deepEqual(labels(getCompletions('await gladys.light.t', DATA)), ['turnOn', 'turnOff', 'toggle']);
+    assert.deepEqual(labels(getCompletions('gladys.house.get', DATA)), ['getUsersAtHome', 'getAlarmMode', 'getSun']);
+    assert.deepEqual(labels(getCompletions('gladys.variable.', DATA)), ['get', 'set', 'remove']);
+    assert.deepEqual(labels(getCompletions('gladys.http.', DATA)), ['get', 'post', 'request']);
+    assert.deepEqual(labels(getCompletions('gladys.time.', DATA)), ['now']);
+    assert.deepEqual(labels(getCompletions('gladys.music.', DATA)), ['say']);
+    assert.deepEqual(labels(getCompletions('gladys.user.setA', DATA)), ['setAtHome', 'setAway']);
+    assert.deepEqual(labels(getCompletions('gladys.switch.to', DATA)), ['toggle']);
+    assert.deepEqual(labels(getCompletions('await gladys.device.get', DATA)), ['getValue', 'getFeature', 'get']);
     assert.equal(getCompletions('await gladys.device.get', DATA).back, 3);
     assert.deepEqual(labels(getCompletions('gladys.scene.', DATA)), ['start']);
     assert.deepEqual(labels(getCompletions('gladys.message.s', DATA)), ['send']);
@@ -59,6 +79,29 @@ describe('getCompletions', () => {
     // the argument is closed: nothing more to suggest there
     assert.equal(getCompletions("gladys.device.getValue('kitchen-fan', ", DATA), null);
     assert.equal(getCompletions("gladys.device.getValue('", {}), null);
+  });
+
+  it('should suggest the devices where the API takes one, alone or in a list', () => {
+    assert.deepEqual(labels(getCompletions("await gladys.light.turnOn('", DATA)), [
+      'living-room-lamp-device',
+      'kitchen-speaker'
+    ]);
+    assert.deepEqual(getCompletions("gladys.music.say('ence", DATA), {
+      back: 4,
+      options: [{ label: 'kitchen-speaker', type: 'constant', detail: 'Enceinte cuisine' }]
+    });
+    assert.deepEqual(labels(getCompletions("gladys.switch.toggle(['kitchen-speaker', 'lamp", DATA)), [
+      'living-room-lamp-device'
+    ]);
+    assert.deepEqual(labels(getCompletions('gladys.device.get("kit', DATA)), ['kitchen-speaker']);
+    assert.deepEqual(labels(getCompletions("gladys.light.blink(['", DATA)), [
+      'living-room-lamp-device',
+      'kitchen-speaker'
+    ]);
+    // the text of an announcement is not a device
+    assert.equal(getCompletions("gladys.music.say('kitchen-speaker', 'kit", DATA), null);
+    assert.equal(getCompletions("gladys.light.turnOn('zzz", DATA), null);
+    assert.equal(getCompletions("gladys.light.turnOn('", {}), null);
   });
 
   it('should suggest the action types, and only the conditions for a check', () => {
