@@ -60,7 +60,16 @@ class SceneCanvas extends Component {
   // --- what the canvas draws
 
   displayNodes() {
-    const { graph, scene, intl, deviceFeatures, thermostatSchedules, executingPaths, sceneIntegrations } = this.props;
+    const {
+      graph,
+      scene,
+      intl,
+      deviceFeatures,
+      thermostatSchedules,
+      executingPaths,
+      sceneIntegrations,
+      names
+    } = this.props;
     const dictionary = get(intl, 'dictionary', { default: {} });
     const language = get(this.props, 'user.language') || 'en';
     const { direction } = this.props;
@@ -75,7 +84,10 @@ class SceneCanvas extends Component {
       };
       if (node.type === NODE_TYPES.TRIGGER) {
         const trigger = scene.triggers[node.data.index] || { type: null };
-        return { ...display, data: { ...display.data, trigger, summary: getTriggerSummary(trigger, dictionary) } };
+        return {
+          ...display,
+          data: { ...display.data, trigger, summary: getTriggerSummary(trigger, dictionary, deviceFeatures, names) }
+        };
       }
       if (node.type !== NODE_TYPES.ACTION && node.type !== NODE_TYPES.BLOCK) {
         return display;
@@ -95,7 +107,7 @@ class SceneCanvas extends Component {
           title,
           unwired: !node.data.path,
           executing: Boolean(node.data.path && executingPaths && executingPaths[node.data.path]),
-          summary: action.type ? getActionSummary(action, dictionary, deviceFeatures, thermostatSchedules) : null
+          summary: action.type ? getActionSummary(action, dictionary, deviceFeatures, thermostatSchedules, names) : null
         }
       };
     });

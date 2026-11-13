@@ -759,7 +759,7 @@ class EditScene extends Component {
         errorMessageId: 'editScene.untypedActionsError',
         errorMessageFields: { count: untypedCount }
       });
-      return;
+      return false;
     }
     // In the graph mode, a block wired to nothing is not part of the scene: saving would drop it
     // without a word (docs/specs/scene-editor-modes.md C.3)
@@ -772,7 +772,7 @@ class EditScene extends Component {
           errorMessageId: 'editScene.graph.unwiredError',
           errorMessageFields: { count: unwiredCount }
         });
-        return;
+        return false;
       }
       sceneToSave.editor = graphEditor(sceneToSave, this.state.graph);
     }
@@ -2056,8 +2056,17 @@ class EditScene extends Component {
     }
     // the forms register their variables when they mount: they are remounted (editorKey) on
     // the restored scene, as on a load
+    // a scene in graph mode is drawn again from its restored steps (the blocks that were wired to
+    // nothing are not part of a scene, so a draft does not hold them)
+    const graph = getEditorMode(scene) === EDITOR_MODES.GRAPH ? this.buildGraph(scene) : null;
+    if (graph) {
+      scene.editor = graphEditor(scene, graph);
+    }
     this.setState(prevState => ({
       scene,
+      graph,
+      graphHistory: [],
+      graphFuture: [],
       variables: initializeSceneVariables(scene.actions),
       triggersVariables: scene.triggers.map(() => []),
       draftToRestore: null,

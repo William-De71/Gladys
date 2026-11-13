@@ -199,6 +199,8 @@ const NodePanel = props => {
           variables={props.variables}
           setVariablesTrigger={props.setVariablesTrigger}
           sceneIntegrations={props.sceneIntegrations}
+          deviceFeatures={props.deviceFeatures}
+          names={props.names}
         />
       </PanelFrame>
     );
@@ -273,6 +275,7 @@ const NodePanel = props => {
               sceneIntegrations={props.sceneIntegrations}
               deviceFeatures={props.deviceFeatures}
               thermostatSchedules={props.thermostatSchedules}
+              names={props.names}
             />
           )
         )}

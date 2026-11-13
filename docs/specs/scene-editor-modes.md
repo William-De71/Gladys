@@ -186,7 +186,7 @@ the layout is stored apart (C.4).
   does not have, an edge into a trigger, the start or a join).
 - **Panel.** Clicking a node opens its panel: the same form components as the classic cards (a
   single source of truth for each action's form). The panel of an if / while block edits its
-  conditions only (`conditionsOnly`): its branches are nodes. A block is given its action as it is
+  conditions only (`hideBranches`, the prop the mobile editor uses too): its branches are nodes. A block is given its action as it is
   in the scene, branches included, so its form never resets them.
 - **Removing.** Removing a block wires what came before it to what came after it; removing an if /
   while removes its branches with it, after a confirmation. Removing an edge may leave blocks
